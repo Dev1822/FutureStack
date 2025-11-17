@@ -1,17 +1,20 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { FaClipboardList, FaPaperPlane, FaStar, FaCheckCircle, FaPlus, FaList } from 'react-icons/fa';
+import { FaClipboardList, FaPaperPlane, FaStar, FaCheckCircle, FaPlus, FaList, FaTrash } from 'react-icons/fa';
 import StatsCard from '../components/dashboard/StatsCard';
 import DeadlineWidget from '../components/dashboard/DeadlineWidget';
 import Card from '../components/common/Card';
 import Button from '../components/common/Button';
+import Modal from '../components/common/Modal';
 import { opportunityService } from '../services/api';
 import { isOverdue, getDaysRemaining } from '../utils/dateHelpers';
 
 const Dashboard = () => {
   const [opportunities, setOpportunities] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [opportunityToDelete, setOpportunityToDelete] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -31,8 +34,37 @@ const Dashboard = () => {
     }
   };
 
+  const handleDeleteClick = (id) => {
+    setOpportunityToDelete(id);
+    setDeleteModalOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!opportunityToDelete) return;
+
+    try {
+      await opportunityService.delete(opportunityToDelete);
+      setOpportunities((prev) =>
+        prev.filter((opp) => opp.id !== opportunityToDelete)
+      );
+      toast.success('Opportunity deleted successfully!');
+      setDeleteModalOpen(false);
+      setOpportunityToDelete(null);
+    } catch (error) {
+      console.error('Error deleting opportunity:', error);
+      toast.error('Failed to delete opportunity. Please try again.');
+    }
+  };
+
+  const handleDeleteCancel = () => {
+    setDeleteModalOpen(false);
+    setOpportunityToDelete(null);
+  };
+
   // Calculate statistics
   const totalOpportunities = opportunities.length;
+  const internshipsCount = opportunities.filter(opp => opp.category === 'internship').length;
+  const hackathonsCount = opportunities.filter(opp => opp.category === 'hackathon').length;
   const appliedCount = opportunities.filter(opp => opp.status === 'applied').length;
   const shortlistedCount = opportunities.filter(opp => opp.status === 'shortlisted').length;
   const selectedCount = opportunities.filter(opp => opp.status === 'selected').length;
@@ -48,36 +80,39 @@ const Dashboard = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-900 p-6">
+      <div className="min-h-screen bg-gray-900 p-4 sm:p-6">
         <div className="max-w-7xl mx-auto">
-          <p className="text-white text-center">Loading dashboard...</p>
+          <div className="flex flex-col items-center justify-center py-20">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mb-4"></div>
+            <p className="text-white text-lg">Loading dashboard...</p>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 p-6">
+    <div className="min-h-screen bg-gray-900 p-4 sm:p-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-white mb-2">Dashboard</h1>
-          <p className="text-gray-400">Track your opportunities and upcoming deadlines</p>
+        <div className="mb-6 sm:mb-8">
+          <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">Dashboard</h1>
+          <p className="text-sm sm:text-base text-gray-400">Track your opportunities and upcoming deadlines</p>
         </div>
 
         {/* Statistics Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-8">
           <StatsCard
-            title="Total Opportunities"
-            value={totalOpportunities}
+            title="Internships"
+            value={internshipsCount}
             icon={FaClipboardList}
             color="blue"
           />
           <StatsCard
-            title="Applied"
-            value={appliedCount}
-            icon={FaPaperPlane}
-            color="purple"
+            title="Hackathons"
+            value={hackathonsCount}
+            icon={FaClipboardList}
+            color="orange"
           />
           <StatsCard
             title="Shortlisted"
@@ -95,7 +130,7 @@ const Dashboard = () => {
 
         {/* Overdue Items Alert */}
         {overdueItems.length > 0 && (
-          <Card className="p-6 mb-8 bg-red-900 bg-opacity-20 border-l-4 border-red-500">
+          <Card className="p-4 sm:p-6 mb-6 sm:mb-8 bg-red-900 bg-opacity-20 border-l-4 border-red-500">
             <div className="flex items-start">
               <div className="flex-shrink-0">
                 <svg
@@ -117,10 +152,19 @@ const Dashboard = () => {
                   {overdueItems.length} Overdue {overdueItems.length === 1 ? 'Item' : 'Items'}
                 </h3>
                 <div className="mt-2 text-sm text-red-300">
-                  <ul className="list-disc list-inside space-y-1">
+                  <ul className="space-y-2">
                     {overdueItems.slice(0, 3).map(item => (
-                      <li key={item.id}>
-                        {item.title} - {Math.abs(getDaysRemaining(item.deadline))} days overdue
+                      <li key={item.id} className="flex items-center justify-between">
+                        <span>
+                          {item.title} - {Math.abs(getDaysRemaining(item.deadline))} days overdue
+                        </span>
+                        <button
+                          onClick={() => handleDeleteClick(item.id)}
+                          className="ml-3 text-red-400 hover:text-red-300 transition-colors p-1 rounded-md hover:bg-red-900 hover:bg-opacity-30"
+                          aria-label="Delete opportunity"
+                        >
+                          <FaTrash size={14} />
+                        </button>
                       </li>
                     ))}
                     {overdueItems.length > 3 && (
@@ -136,14 +180,14 @@ const Dashboard = () => {
         )}
 
         {/* Upcoming Deadlines */}
-        <div className="mb-8">
-          <DeadlineWidget deadlines={upcomingDeadlines} />
+        <div className="mb-6 sm:mb-8">
+          <DeadlineWidget deadlines={upcomingDeadlines} onDelete={handleDeleteClick} />
         </div>
 
         {/* Quick Actions */}
-        <Card className="p-6">
+        <Card className="p-4 sm:p-6">
           <h3 className="text-lg font-semibold text-white mb-4">Quick Actions</h3>
-          <div className="flex flex-wrap gap-4">
+          <div className="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4">
             <Button
               onClick={() => navigate('/add')}
               className="flex items-center"
@@ -169,6 +213,28 @@ const Dashboard = () => {
             </Button>
           </div>
         </Card>
+
+        {/* Delete Confirmation Modal */}
+        <Modal
+          isOpen={deleteModalOpen}
+          onClose={handleDeleteCancel}
+          title="Confirm Delete"
+        >
+          <div>
+            <p className="text-gray-300 mb-6">
+              Are you sure you want to delete this opportunity? This action cannot
+              be undone.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <Button variant="secondary" onClick={handleDeleteCancel}>
+                Cancel
+              </Button>
+              <Button variant="danger" onClick={handleDeleteConfirm}>
+                Delete
+              </Button>
+            </div>
+          </div>
+        </Modal>
       </div>
     </div>
   );
