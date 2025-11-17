@@ -1,13 +1,85 @@
-import { useParams } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
+import OpportunityForm from '../components/opportunities/OpportunityForm';
+import Button from '../components/common/Button';
+import { opportunityService } from '../services/api';
 
 const EditOpportunity = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
+  const [opportunity, setOpportunity] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchOpportunity = async () => {
+      try {
+        const data = await opportunityService.getById(id);
+        setOpportunity(data);
+        setLoading(false);
+      } catch (error) {
+        console.error('Error fetching opportunity:', error);
+        toast.error('Failed to load opportunity. Please try again.');
+        setLoading(false);
+        navigate(-1);
+      }
+    };
+
+    fetchOpportunity();
+  }, [id, navigate]);
+
+  const handleSubmit = async (formData) => {
+    try {
+      await opportunityService.update(id, formData);
+      toast.success('Opportunity updated successfully!');
+      navigate(-1); // Navigate back to previous page
+    } catch (error) {
+      console.error('Error updating opportunity:', error);
+      toast.error('Failed to update opportunity. Please try again.');
+    }
+  };
+
+  const handleCancel = () => {
+    navigate(-1); // Navigate back to previous page
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-900 p-4 sm:p-6">
+        <div className="max-w-3xl mx-auto">
+          <div className="flex flex-col items-center justify-center py-20">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mb-4"></div>
+            <p className="text-white text-lg">Loading opportunity...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <h1 className="text-3xl font-bold text-white mb-6">Edit Opportunity</h1>
-      <p className="text-gray-400">Editing opportunity ID: {id}</p>
-      <p className="text-gray-400">Edit form coming soon...</p>
+    <div className="min-h-screen bg-gray-900 p-4 sm:p-6">
+      <div className="max-w-2xl mx-auto">
+        <div className="bg-gray-800 rounded-lg shadow-lg shadow-black/30 p-6 sm:p-8 border border-gray-700">
+          <h2 className="text-lg font-semibold text-white mb-4 border-b border-slate-700 pb-2">
+            Edit Opportunity
+          </h2>
+          
+          <OpportunityForm 
+            initialData={opportunity} 
+            onSubmit={handleSubmit} 
+            isEdit={true} 
+          />
+          
+          <div className="mt-6 pt-4 border-t border-slate-700">
+            <button
+              onClick={handleCancel}
+              className="w-full px-4 py-2 text-gray-400 hover:text-gray-200 transition-colors text-sm font-medium"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
