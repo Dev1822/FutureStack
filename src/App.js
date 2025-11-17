@@ -1,18 +1,50 @@
-import { BrowserRouter as Router } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import './App.css';
+
+// Components
+import Navbar from './components/common/Navbar';
+
+// Pages
+import Home from './pages/Home';
+import Dashboard from './pages/Dashboard';
+import InternshipList from './pages/InternshipList';
+import HackathonList from './pages/HackathonList';
+import AddOpportunity from './pages/AddOpportunity';
+import EditOpportunity from './pages/EditOpportunity';
+import StatusBoard from './pages/StatusBoard';
+import Calendar from './pages/Calendar';
+import Reports from './pages/Reports';
 
 function App() {
   return (
     <Router>
-      <div className="min-h-screen bg-black">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <h1 className="text-3xl font-bold text-white text-center">
-            FutureStack Tracker
-          </h1>
-          <p className="text-gray-400 text-center mt-2">
-            Track your internships and hackathons
-          </p>
-        </div>
+      <div className="min-h-screen bg-gray-900">
+        <Navbar />
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/internships" element={<InternshipList />} />
+          <Route path="/hackathons" element={<HackathonList />} />
+          <Route path="/add" element={<AddOpportunity />} />
+          <Route path="/edit/:id" element={<EditOpportunity />} />
+          <Route path="/status-board" element={<StatusBoard />} />
+          <Route path="/calendar" element={<Calendar />} />
+          <Route path="/reports" element={<Reports />} />
+        </Routes>
+        <ToastContainer
+          position="top-right"
+          autoClose={3000}
+          hideProgressBar={false}
+          newestOnTop={false}
+          closeOnClick
+          rtl={false}
+          pauseOnFocusLoss
+          draggable
+          pauseOnHover
+          theme="dark"
+        />
       </div>
     </Router>
   );
