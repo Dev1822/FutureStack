@@ -1,83 +1,13 @@
 {
   "opportunities": [
     {
-      "id": "1",
-      "title": "Software Engineering Intern at Google",
-      "description": "Work on cutting-edge projects with the Search team",
-      "link": "https://careers.google.com",
-      "deadline": "2025-12-15",
-      "category": "internship",
-      "status": "applied",
-      "notes": "Submitted application with referral from John Doe"
-    },
-    {
-      "id": "2",
-      "title": "Frontend Developer Intern at Meta",
-      "description": "Build user interfaces for Facebook and Instagram",
-      "link": "https://www.metacareers.com",
-      "deadline": "2025-12-20",
-      "category": "internship",
-      "status": "shortlisted",
-      "notes": "Completed online assessment, waiting for interview"
-    },
-    {
-      "id": "3",
-      "title": "HackMIT 2025",
-      "description": "Annual hackathon at MIT with $50k in prizes",
-      "link": "https://hackmit.org",
-      "deadline": "2025-11-25",
-      "category": "hackathon",
-      "status": "applied",
-      "notes": "Team formed with 3 members, project idea: AI-powered study assistant"
-    },
-    {
-      "id": "4",
-      "title": "Data Science Intern at Microsoft",
-      "description": "Work with Azure ML team on predictive analytics",
-      "link": "https://careers.microsoft.com",
-      "deadline": "2025-12-10",
-      "category": "internship",
-      "status": "interviewed",
-      "notes": "Had first round interview, technical round scheduled for next week"
-    },
-    {
-      "id": "5",
-      "title": "MLH Fellowship",
-      "description": "12-week remote internship program for open source",
-      "link": "https://fellowship.mlh.io",
-      "deadline": "2025-11-30",
-      "category": "internship",
-      "status": "applied",
-      "notes": "Applied for Fall 2025 batch"
-    },
-    {
-      "id": "6",
-      "title": "TreeHacks Stanford",
-      "description": "Stanford University's premier hackathon",
-      "link": "https://www.treehacks.com",
-      "deadline": "2025-12-05",
-      "category": "hackathon",
-      "status": "shortlisted",
-      "notes": "Accepted! Travel reimbursement approved"
-    },
-    {
-      "id": "7",
-      "title": "Backend Engineer Intern at Stripe",
-      "description": "Build scalable payment infrastructure",
-      "link": "https://stripe.com/jobs",
-      "deadline": "2025-12-19",
-      "category": "internship",
-      "status": "applied",
-      "notes": "Submitted application, strong match for required skills"
-    },
-    {
       "id": "8",
       "title": "CalHacks",
       "description": "UC Berkeley's largest collegiate hackathon",
       "link": "https://calhacks.io",
-      "deadline": "2025-11-28",
+      "deadline": "2025-12-31",
       "category": "hackathon",
-      "status": "applied",
+      "status": "rejected",
       "notes": "Working on healthcare project idea"
     },
     {
@@ -97,7 +27,7 @@
       "link": "https://www.uber.com/careers",
       "deadline": "2025-12-08",
       "category": "internship",
-      "status": "rejected",
+      "status": "applied",
       "notes": "Received rejection email, will apply again next year"
     },
     {
@@ -105,10 +35,70 @@
       "title": "Software Engineer Intern",
       "description": "Build/Integrate tools to automate the process and improve the efficiency\nCreate, maintain and improve Game call pattern simulation code in C++/Scala to support applications and features \nPerform stress and load testing. This includes coming up with a test design, game play driven scenarios and evaluating actual game logs to come up with an accurate representation of load to generate and setting up complex distributed test environment to run tests and generate load \nExecute tests and provide accurate analysis and reporting of test results ",
       "link": "https://jobs.ea.com/en_US/careers/JobDetail?jobId=211814&recommendation=&source=KrishanKumarLinkedin&tags=&user=&formValues=",
-      "deadline": "2025-11-22",
+      "deadline": "2025-11-30",
+      "category": "internship",
+      "status": "rejected",
+      "notes": ""
+    },
+    {
+      "id": "8bf6",
+      "title": "Software Engineering, New Grad",
+      "description": "Preferred qualifications : \n>One or more areas of specialized knowledge balanced with general skills and knowledge, such as knowing more frontend technologies and, at a high level, how a service handles an HTTP request\n>Experience in code review practices, and an understanding of how to safely update production systems\n>Familiarity with navigating and managing work in large code bases",
+      "link": "https://stripe.com/jobs/listing/software-engineering-new-grad/7176975?gh_src=73vnei",
+      "deadline": "2025-12-05",
+      "category": "internship",
+      "status": "shortlisted",
+      "notes": "Office locations : Bengaluru\nJob type : Full time"
+    },
+    {
+      "id": "6a7d",
+      "title": "Mumbai Hacks Hackathon",
+      "description": "Largest Agentic AI hackathon",
+      "link": "https://mumbaihacks.com/",
+      "deadline": "2025-12-15",
+      "category": "hackathon",
+      "status": "selected",
+      "notes": "Project : VidyaVani - IVR Based System"
+    },
+    {
+      "id": "4197",
+      "title": "Microsoft Internship",
+      "description": "",
+      "link": "https://careers.google.com",
+      "deadline": "2026-02-06",
       "category": "internship",
       "status": "applied",
       "notes": ""
+    },
+    {
+      "id": "9620",
+      "title": "Technology Intern @Barclays",
+      "description": "",
+      "link": "https://futurestack.venkatkolasani.xyz/add",
+      "deadline": "2025-12-10",
+      "category": "internship",
+      "status": "shortlisted",
+      "notes": ""
+    },
+    {
+      "id": "8655",
+      "title": "React Intern in SmartBridge",
+      "description": "Frontend Role",
+      "link": "https://smartbridge.com",
+      "deadline": "2025-12-04",
+      "category": "internship",
+      "status": "applied",
+      "notes": ""
+    },
+    {
+      "id": "7070",
+      "title": "Machine Learning Intern @ SmartBridge",
+      "description": "Job Description\nRoles and Responsibilities:\n• Exploring latest tech products in the respective domain.\n• Collaborate on creating machine learning models using Python, TensorFlow, and other AI libraries.\n• Dive into data analysis and preprocessing to ensure data quality and relevance.\n• Build Guided projects and Mentor the learners\n• Work closely with team members to deliver AI proof of concept projects on time.\n• Gain and share knowledge in the fascinating field of AI. Shall involve in mentoring / training activities.\n• Keep up-to-date with the latest AI and Machine Learning research, trends, and best practices.\n• Building Proof- of- Concepts for the problem statement.\n• Exploring/Developing Computational Algorithms.",
+      "link": "https://careers.thesmartbridge.com/jobs/Careers/56106000003950062/Machine-Learning-Intern?source=CareerSite",
+      "deadline": "2025-12-04",
+      "category": "internship",
+      "status": "interviewed",
+      "notes": "Location:  Noida"
     }
   ]
 }

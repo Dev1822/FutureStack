@@ -18,6 +18,7 @@
 - [Screenshots](#screenshots)
 - [Contributing](#contributing)
 - [License](#license)
+- [Demonstration Video](#demonstration-video)
 
 ## 🎯 Overview
 
@@ -259,6 +260,14 @@ For production, replace JSON Server with:
 - **Firebase Realtime Database**
 - **Supabase**
 - **AWS DynamoDB**
+
+## Demonstration Video
+
+You can watch a walkthrough of how to use the website in the following video:
+
+**DemonstrationVideo.mp4**
+
+> This video shows how to use the website end-to-end.
 
 
 ---

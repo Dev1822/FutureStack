@@ -1,10 +1,17 @@
+// Small presentational component responsible for displaying a single opportunity
+// - Shows title, category, status, deadline, description and external link
+// - Parent controls edit/delete behaviour via onEdit / onDelete callbacks
 import React from 'react';
 import { FaEdit, FaTrash, FaExternalLinkAlt } from 'react-icons/fa';
 import Card from '../common/Card';
 import Button from '../common/Button';
 import { getDaysRemaining, isOverdue, formatDate } from '../../utils/dateHelpers';
 
+// opportunity: full opportunity object (id, title, deadline, status, etc.)
+// onEdit: function called with opportunity.id when user clicks Edit
+// onDelete: function called with opportunity.id when user clicks Delete
 const OpportunityCard = ({ opportunity, onEdit, onDelete }) => {
+  // Derived information based on deadline, reused from shared date helper utils
   const daysRemaining = getDaysRemaining(opportunity.deadline);
   const overdue = isOverdue(opportunity.deadline);
 

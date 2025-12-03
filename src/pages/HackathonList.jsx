@@ -1,3 +1,6 @@
+// Page that shows only hackathon-type opportunities
+// - Logic is parallel to InternshipList but filters category === 'hackathon'
+// - Reuses the same OpportunityList + Modal pattern
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
@@ -17,17 +20,18 @@ const HackathonList = () => {
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [opportunityToDelete, setOpportunityToDelete] = useState(null);
 
-  // Fetch opportunities on mount
+  // Fetch opportunities from backend when this page first loads
   useEffect(() => {
     fetchOpportunities();
   }, []);
 
-  // Apply filters whenever search query, status filter, or opportunities change
+  // Re-run client-side filters whenever search / status / base data changes
   useEffect(() => {
     applyFilters();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchQuery, statusFilter, opportunities]);
 
+  // Load ALL opportunities from API and keep only hackathons
   const fetchOpportunities = async () => {
     try {
       setLoading(true);
@@ -45,6 +49,7 @@ const HackathonList = () => {
     }
   };
 
+  // Apply search + status filters on top of the hackathons list
   const applyFilters = () => {
     let filtered = [...opportunities];
 
@@ -66,6 +71,7 @@ const HackathonList = () => {
     setFilteredOpportunities(filtered);
   };
 
+  // Navigate user to edit page for selected hackathon
   const handleEdit = (id) => {
     navigate(`/edit/${id}`);
   };

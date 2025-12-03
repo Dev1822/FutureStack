@@ -1,3 +1,6 @@
+// Page for creating a brand new opportunity
+// - Wraps the reusable OpportunityForm and wires it to the API service
+// - On success, redirects user back to dashboard
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import OpportunityForm from '../components/opportunities/OpportunityForm';
@@ -5,12 +8,14 @@ import Button from '../components/common/Button';
 import { opportunityService } from '../services/api';
 
 const AddOpportunity = () => {
-  const navigate = useNavigate();
+  const navigate = useNavigate(); 
 
-  const handleSubmit = async (formData) => {
+  // Called by OpportunityForm when user submits a VALID form
+  // formData contains all fields: title, description, deadline, etc.
+  const handleSubmit = async (formData) => { // formData received from OpportunityForm
     try {
       await opportunityService.create(formData);
-      toast.success('Opportunity added successfully!');
+      toast.success('Opportunity added successfully!'); 
       navigate('/dashboard');
     } catch (error) {
       console.error('Error creating opportunity:', error);

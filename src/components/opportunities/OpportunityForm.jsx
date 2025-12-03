@@ -1,7 +1,14 @@
+// Reusable form component for both "Add" and "Edit" opportunity screens
+// - Controlled inputs: all field values live in local React state (formData)
+// - Parent component decides what happens on submit via onSubmit callback
 import React, { useState, useEffect } from 'react';
 import Button from '../common/Button';
 
+// initialData: values to pre-fill the form in edit mode
+// onSubmit: function passed from parent (Add / Edit page) to handle API call
+// isEdit: boolean to toggle button label (Create vs Update)
 const OpportunityForm = ({ initialData = {}, onSubmit, isEdit = false }) => {
+  // Single state object to store all input values
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -12,9 +19,10 @@ const OpportunityForm = ({ initialData = {}, onSubmit, isEdit = false }) => {
     notes: '',
   });
 
+  // Tracks validation error messages per field (e.g. errors.title)
   const [errors, setErrors] = useState({});
 
-  // Populate form with initial data if editing
+  // When initialData changes (Edit screen), pre-fill the form fields
   useEffect(() => {
     if (initialData && Object.keys(initialData).length > 0) {
       setFormData({
@@ -29,13 +37,15 @@ const OpportunityForm = ({ initialData = {}, onSubmit, isEdit = false }) => {
     }
   }, [initialData]);
 
+  // Runs on every keystroke / change in any input or select
   const handleChange = (e) => {
     const { name, value } = e.target;
+    // Keep previous values and only update the changed field
     setFormData((prev) => ({
       ...prev,
       [name]: value,
     }));
-    // Clear error for this field when user starts typing
+    // Clear error for this specific field when user starts typing again
     if (errors[name]) {
       setErrors((prev) => ({
         ...prev,
@@ -44,6 +54,7 @@ const OpportunityForm = ({ initialData = {}, onSubmit, isEdit = false }) => {
     }
   };
 
+  // Basic client-side validation before allowing submit
   const validateForm = () => {
     const newErrors = {};
 
@@ -59,13 +70,16 @@ const OpportunityForm = ({ initialData = {}, onSubmit, isEdit = false }) => {
       newErrors.category = 'Category is required';
     }
 
+    // Save errors so we can show messages in the UI
     setErrors(newErrors);
+    // Form is valid when no keys in newErrors
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
 
+    // Only call parent onSubmit when validation passes
     if (validateForm()) {
       onSubmit(formData);
     }
@@ -100,7 +114,7 @@ const OpportunityForm = ({ initialData = {}, onSubmit, isEdit = false }) => {
           id="description"
           name="description"
           value={formData.description}
-          onChange={handleChange}
+          onChange={handleChange} // Added missing onChange handler
           rows="3"
           className="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
           placeholder="Brief description of the opportunity"

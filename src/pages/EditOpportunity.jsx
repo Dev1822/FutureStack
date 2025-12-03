@@ -1,3 +1,7 @@
+// Page for editing an existing opportunity
+// - Fetches existing record using id from URL
+// - Pre-fills OpportunityForm via initialData
+// - On submit, calls update API and navigates back
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
@@ -11,7 +15,8 @@ const EditOpportunity = () => {
   const [opportunity, setOpportunity] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+  // On first render (and when id changes), load data for this opportunity
+  useEffect(() => { // Fetch opportunity data 
     const fetchOpportunity = async () => {
       try {
         const data = await opportunityService.getById(id);
@@ -28,6 +33,7 @@ const EditOpportunity = () => {
     fetchOpportunity();
   }, [id, navigate]);
 
+  // Called by OpportunityForm when user submits VALID data in edit mode
   const handleSubmit = async (formData) => {
     try {
       await opportunityService.update(id, formData);

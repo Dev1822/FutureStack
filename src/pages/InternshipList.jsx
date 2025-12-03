@@ -1,3 +1,7 @@
+// Page that shows only internship-type opportunities
+// - Loads all opportunities from API, then filters by category === 'internship'
+// - Provides search + status filters on the client side
+// - Uses OpportunityList to render cards and a Modal for delete confirmation
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
@@ -17,17 +21,18 @@ const InternshipList = () => {
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [opportunityToDelete, setOpportunityToDelete] = useState(null);
 
-  // Fetch opportunities on mount
+  // Fetch opportunities from backend when this page first loads
   useEffect(() => {
     fetchOpportunities();
   }, []);
 
-  // Apply filters whenever search query, status filter, or opportunities change
+  // Re-run client-side filters whenever search / status / base data changes
   useEffect(() => {
     applyFilters();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchQuery, statusFilter, opportunities]);
 
+  // Load ALL opportunities from API and keep only internships
   const fetchOpportunities = async () => {
     try {
       setLoading(true);
@@ -45,6 +50,7 @@ const InternshipList = () => {
     }
   };
 
+  // Apply search + status filters on top of the internships list
   const applyFilters = () => {
     let filtered = [...opportunities];
 
@@ -66,6 +72,7 @@ const InternshipList = () => {
     setFilteredOpportunities(filtered);
   };
 
+  // Navigate user to edit page for selected internship
   const handleEdit = (id) => {
     navigate(`/edit/${id}`);
   };
