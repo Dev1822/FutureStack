@@ -1,5 +1,6 @@
 # FutureStack 🚀
 
+> Build Your Future, One Opportunity at a Time
 > Your all-in-one opportunity tracker for internships, hackathons, and career growth
 
 [![React](https://img.shields.io/badge/React-19.2.0-blue.svg)](https://reactjs.org/)
