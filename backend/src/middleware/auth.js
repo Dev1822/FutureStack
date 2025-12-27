@@ -1,4 +1,4 @@
-const { verifyToken } = require('@clerk/clerk-sdk-node');
+const { verifyToken } = require('@clerk/express');
 const { supabase } = require('../lib/supabase');
 
 /**
@@ -43,9 +43,20 @@ const requireAuth = async (req, res, next) => {
         next();
     } catch (error) {
         console.error('Auth middleware error:', error.message);
+
+        // Provide more specific error messages based on error type
+        let message = 'Token verification failed';
+        if (error.message?.includes('expired')) {
+            message = 'Token has expired';
+        } else if (error.message?.includes('malformed') || error.message?.includes('invalid')) {
+            message = 'Malformed or invalid token';
+        } else if (error.code === 'ENOTFOUND' || error.code === 'ECONNREFUSED') {
+            message = 'Authentication service unavailable';
+        }
+
         return res.status(401).json({
             error: 'Unauthorized',
-            message: 'Token verification failed'
+            message
         });
     }
 };
@@ -57,11 +68,13 @@ async function ensureUserExists(auth) {
     const { userId, email } = auth;
 
     // Check if user already exists
-    const { data: existingUser } = await supabase
+    const { data: existingUser, error: selectError } = await supabase
         .from('users')
         .select('id')
         .eq('clerk_id', userId)
-        .single();
+        .maybeSingle();
+
+    if (selectError) throw selectError;
 
     if (existingUser) {
         // Attach internal user ID to auth object

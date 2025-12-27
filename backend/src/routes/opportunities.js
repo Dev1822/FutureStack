@@ -99,10 +99,9 @@ router.post('/', async (req, res) => {
 });
 
 /**
- * PUT /api/opportunities/:id
- * Update an existing opportunity
+ * Shared handler for PUT and PATCH operations
  */
-router.put('/:id', async (req, res) => {
+const updateHandler = async (req, res) => {
     try {
         const { id } = req.params;
         const { title, description, link, deadline, category, status, notes } = req.body;
@@ -146,16 +145,19 @@ router.put('/:id', async (req, res) => {
         console.error('Error updating opportunity:', error.message);
         res.status(500).json({ error: 'Failed to update opportunity' });
     }
-});
+};
+
+/**
+ * PUT /api/opportunities/:id
+ * Update an existing opportunity
+ */
+router.put('/:id', updateHandler);
 
 /**
  * PATCH /api/opportunities/:id
  * Partial update (same as PUT for compatibility)
  */
-router.patch('/:id', async (req, res) => {
-    // Delegate to PUT handler
-    router.handle(req, res, () => { });
-});
+router.patch('/:id', updateHandler);
 
 /**
  * DELETE /api/opportunities/:id
@@ -167,11 +169,15 @@ router.delete('/:id', async (req, res) => {
 
         const { error, count } = await supabase
             .from('opportunities')
-            .delete()
+            .delete({ count: 'exact' })
             .eq('id', id)
             .eq('user_id', req.auth.internalUserId);
 
         if (error) throw error;
+
+        if (count === 0) {
+            return res.status(404).json({ error: 'Opportunity not found' });
+        }
 
         res.json({ success: true, message: 'Opportunity deleted' });
     } catch (error) {

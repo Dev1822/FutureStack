@@ -3,6 +3,9 @@ const { supabase } = require('../lib/supabase');
 
 const router = express.Router();
 
+// Helper to avoid toFixed + parseFloat conversions
+const roundToOneDecimal = (num) => Math.round(num * 10) / 10;
+
 /**
  * GET /api/analytics
  * Get analytics data for the authenticated user
@@ -50,11 +53,11 @@ router.get('/', async (req, res) => {
         const totalInProgress = statusCounts.applied + statusCounts.interviewed + statusCounts.shortlisted;
 
         const conversionRate = totalApplied > 0
-            ? ((totalSelected / totalApplied) * 100).toFixed(1)
+            ? roundToOneDecimal((totalSelected / totalApplied) * 100)
             : 0;
 
         const rejectionRate = totalApplied > 0
-            ? ((totalRejected / totalApplied) * 100).toFixed(1)
+            ? roundToOneDecimal((totalRejected / totalApplied) * 100)
             : 0;
 
         // Monthly breakdown (last 6 months)
@@ -80,12 +83,12 @@ router.get('/', async (req, res) => {
             statusCounts,
             categoryCounts,
             metrics: {
-                conversionRate: parseFloat(conversionRate),
-                rejectionRate: parseFloat(rejectionRate),
+                conversionRate: conversionRate,
+                rejectionRate: rejectionRate,
                 inProgress: totalInProgress,
-                successRate: totalApplied > 0
-                    ? parseFloat(((totalSelected / (totalSelected + totalRejected || 1)) * 100).toFixed(1))
-                    : 0
+                successRate: (totalSelected + totalRejected) > 0
+                    ? roundToOneDecimal((totalSelected / (totalSelected + totalRejected)) * 100)
+                    : null  // No completed opportunities yet
             },
             monthlyBreakdown: monthlyData
         });

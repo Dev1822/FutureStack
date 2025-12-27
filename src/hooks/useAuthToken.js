@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useCallback } from 'react';
 import { useAuth } from '@clerk/clerk-react';
 import { setAuthTokenGetter } from '../services/api';
 
@@ -9,15 +9,19 @@ import { setAuthTokenGetter } from '../services/api';
 export const useAuthToken = () => {
     const { getToken, isLoaded, isSignedIn } = useAuth();
 
+    // Memoize the token getter to avoid unnecessary re-renders
+    // Note: getToken from Clerk is stable across renders
+    const tokenGetter = useCallback(async () => {
+        if (!isSignedIn) return null;
+        return await getToken();
+    }, [isSignedIn, getToken]);
+
     useEffect(() => {
         if (isLoaded) {
             // Set the token getter function for the API service
-            setAuthTokenGetter(async () => {
-                if (!isSignedIn) return null;
-                return await getToken();
-            });
+            setAuthTokenGetter(tokenGetter);
         }
-    }, [isLoaded, isSignedIn, getToken]);
+    }, [isLoaded, tokenGetter]);
 
     return { isLoaded, isSignedIn };
 };

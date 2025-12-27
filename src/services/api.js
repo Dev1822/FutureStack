@@ -44,8 +44,8 @@ api.interceptors.response.use(
     (response) => response,
     (error) => {
         if (error.response?.status === 401) {
-            console.error('Unauthorized - redirecting to login');
-            window.location.href = '/';
+            // Log the error but let the ProtectedRoute component or Clerk handle redirects
+            console.error('Unauthorized - 401 response received');
         }
         return Promise.reject(error);
     }
@@ -73,9 +73,9 @@ export const opportunityService = {
         return response.data;
     },
 
-    // Update an existing opportunity
+    // Update an existing opportunity (partial update)
     update: async (id, data) => {
-        const response = await api.put(`/opportunities/${id}`, data);
+        const response = await api.patch(`/opportunities/${id}`, data);
         return response.data;
     },
 
