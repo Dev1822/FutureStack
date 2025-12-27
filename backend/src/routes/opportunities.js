@@ -107,7 +107,7 @@ const updateHandler = async (req, res) => {
         const { title, description, link, deadline, category, status, notes } = req.body;
 
         // Validation
-        if (title !== undefined && !title.trim()) {
+        if (title !== undefined && (title === null || !title.trim())) {
             return res.status(400).json({ error: 'Title cannot be empty' });
         }
 

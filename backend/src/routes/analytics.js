@@ -88,7 +88,7 @@ router.get('/', async (req, res) => {
                 inProgress: totalInProgress,
                 successRate: (totalSelected + totalRejected) > 0
                     ? roundToOneDecimal((totalSelected / (totalSelected + totalRejected)) * 100)
-                    : null  // No completed opportunities yet
+                    : 0
             },
             monthlyBreakdown: monthlyData
         });
