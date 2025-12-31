@@ -8,11 +8,11 @@ import { FaExclamationTriangle, FaRedo } from 'react-icons/fa';
 class ErrorBoundary extends React.Component {
     constructor(props) {
         super(props);
-        this.state = { hasError: false, error: null };
+        this.state = { hasError: false };
     }
 
-    static getDerivedStateFromError(error) {
-        return { hasError: true, error };
+    static getDerivedStateFromError() {
+        return { hasError: true };
     }
 
     componentDidCatch(error, errorInfo) {
@@ -20,7 +20,7 @@ class ErrorBoundary extends React.Component {
     }
 
     handleReset = () => {
-        this.setState({ hasError: false, error: null });
+        this.setState({ hasError: false });
         window.location.href = '/dashboard';
     };
 

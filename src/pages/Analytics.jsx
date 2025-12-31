@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { toast } from 'react-toastify';
 import {
     PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend,
     LineChart, Line, XAxis, YAxis, CartesianGrid,
@@ -398,7 +397,7 @@ const Analytics = () => {
                                 </div>
                             );
 
-                            return index === 0 ? cells : cells[cells.length - 1];
+                            return cells;
                         })}
                     </div>
                     <div className="mt-4 flex items-center justify-center gap-4 text-sm text-gray-400">

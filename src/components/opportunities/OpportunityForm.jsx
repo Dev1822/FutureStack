@@ -196,13 +196,13 @@ const OpportunityForm = ({ initialData = {}, onSubmit, isEdit = false }) => {
           name="status"
           value={formData.status}
           onChange={handleChange}
-          className="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+          className="w-full px-3 py-2.5 bg-gray-900 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
         >
-          <option value="applied">Applied</option>
-          <option value="shortlisted">Shortlisted</option>
-          <option value="interviewed">Interviewed</option>
-          <option value="selected">Selected</option>
-          <option value="rejected">Rejected</option>
+          <option value="applied" style={{ backgroundColor: '#111827', color: 'white' }}>Applied</option>
+          <option value="shortlisted" style={{ backgroundColor: '#111827', color: 'white' }}>Shortlisted</option>
+          <option value="interviewed" style={{ backgroundColor: '#111827', color: 'white' }}>Interviewed</option>
+          <option value="selected" style={{ backgroundColor: '#111827', color: 'white' }}>Selected</option>
+          <option value="rejected" style={{ backgroundColor: '#111827', color: 'white' }}>Rejected</option>
         </select>
       </div>
 

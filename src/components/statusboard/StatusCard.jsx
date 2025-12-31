@@ -53,13 +53,13 @@ const StatusCard = ({ opportunity, onStatusChange, onDelete }) => {
           id={`status-${opportunity.id}`}
           value={opportunity.status}
           onChange={handleStatusChange}
-          className="w-full px-2 py-1.5 text-sm bg-white/5 border border-white/10 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full px-2 py-1.5 text-sm bg-gray-900 border border-white/10 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
-          <option value="applied">Applied</option>
-          <option value="shortlisted">Shortlisted</option>
-          <option value="interviewed">Interviewed</option>
-          <option value="selected">Selected</option>
-          <option value="rejected">Rejected</option>
+          <option value="applied" style={{ backgroundColor: '#111827', color: 'white' }}>Applied</option>
+          <option value="shortlisted" style={{ backgroundColor: '#111827', color: 'white' }}>Shortlisted</option>
+          <option value="interviewed" style={{ backgroundColor: '#111827', color: 'white' }}>Interviewed</option>
+          <option value="selected" style={{ backgroundColor: '#111827', color: 'white' }}>Selected</option>
+          <option value="rejected" style={{ backgroundColor: '#111827', color: 'white' }}>Rejected</option>
         </select>
       </div>
     </div>

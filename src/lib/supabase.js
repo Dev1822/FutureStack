@@ -14,8 +14,8 @@ if (!supabaseUrl || !supabaseAnonKey) {
  * - Real-time subscriptions (Supabase Realtime)
  * - Direct file storage access (Supabase Storage)
  * 
- * The access token can be set via setSupabaseAccessToken() to authenticate
- * with Clerk JWT for RLS-protected realtime subscriptions.
+ * Note: Realtime uses a permissive SELECT RLS policy.
+ * Data security is enforced by the backend API.
  */
 export const supabase = supabaseUrl && supabaseAnonKey
     ? createClient(supabaseUrl, supabaseAnonKey, {
@@ -26,19 +26,3 @@ export const supabase = supabaseUrl && supabaseAnonKey
         }
     })
     : null;
-
-/**
- * Set the access token for authenticated Supabase operations
- * Call this with the Clerk token to enable RLS-authenticated realtime
- */
-export const setSupabaseAccessToken = async (token) => {
-    if (!supabase) return;
-
-    if (token) {
-        await supabase.auth.setSession({
-            access_token: token,
-            refresh_token: '',
-        });
-    }
-};
-
