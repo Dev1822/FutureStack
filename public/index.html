@@ -5,42 +5,70 @@
     <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#000000" />
-    <meta
-      name="description"
-      content="Web site created using create-react-app"
-    />
+    
+    <!-- Primary Meta Tags -->
+    <title>FutureTracker - Track Internships, Hackathons & Job Applications</title>
+    <meta name="title" content="FutureTracker - Track Internships, Hackathons & Job Applications" />
+    <meta name="description" content="Free opportunity tracker for students and developers. Organize job applications, track internship stages, never miss hackathon deadlines. Kanban boards, calendar view, and PDF reports." />
+    <meta name="keywords" content="job tracker, internship tracker, hackathon tracker, application tracker, career tracker, job application organizer, student tools, developer tools, opportunity tracker" />
+    <meta name="author" content="FutureTracker" />
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href="https://futuretracker.online/" />
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://futuretracker.online/" />
+    <meta property="og:title" content="FutureTracker - Track Internships, Hackathons & Job Applications" />
+    <meta property="og:description" content="Free opportunity tracker for students and developers. Organize job applications, track internship stages, never miss hackathon deadlines." />
+    <meta property="og:image" content="https://futuretracker.online/og-image.png" />
+    <meta property="og:site_name" content="FutureTracker" />
+    <meta property="og:locale" content="en_US" />
+    
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:url" content="https://futuretracker.online/" />
+    <meta name="twitter:title" content="FutureTracker - Track Internships, Hackathons & Job Applications" />
+    <meta name="twitter:description" content="Free opportunity tracker for students and developers. Organize job applications, track internship stages, never miss hackathon deadlines." />
+    <meta name="twitter:image" content="https://futuretracker.online/og-image.png" />
+    
+    <!-- PWA/Mobile -->
     <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
-    <!--
-      manifest.json provides metadata used when your web app is installed on a
-      user's mobile device or desktop. See https://developers.google.com/web/fundamentals/web-app-manifest/
-    -->
     <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
-    <!--
-      Notice the use of %PUBLIC_URL% in the tags above.
-      It will be replaced with the URL of the `public` folder during the build.
-      Only files inside the `public` folder can be referenced from the HTML.
-
-      Unlike "/favicon.ico" or "favicon.ico", "%PUBLIC_URL%/favicon.ico" will
-      work correctly both with client-side routing and a non-root public URL.
-      Learn how to configure a non-root public URL by running `npm run build`.
-    -->
-    <title>FutureStack</title>
+    
+    <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Structured Data (JSON-LD) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "FutureTracker",
+      "url": "https://futuretracker.online",
+      "description": "Track internships, hackathons, and job applications for students and developers. Kanban boards, calendar view, deadline reminders, and PDF reports.",
+      "applicationCategory": "ProductivityApplication",
+      "operatingSystem": "Web",
+      "browserRequirements": "Requires JavaScript. Requires HTML5.",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "featureList": [
+        "Internship Application Tracking",
+        "Hackathon Deadline Management",
+        "Kanban Status Board",
+        "Calendar View",
+        "PDF Report Export",
+        "Analytics Dashboard"
+      ]
+    }
+    </script>
   </head>
   <body>
     <noscript>You need to enable JavaScript to run this app.</noscript>
     <div id="root"></div>
-    <!--
-      This HTML file is a template.
-      If you open it directly in the browser, you will see an empty page.
-
-      You can add webfonts, meta tags, or analytics to this file.
-      The build step will place the bundled scripts into the <body> tag.
-
-      To begin the development, run `npm start` or `yarn start`.
-      To create a production bundle, use `npm run build` or `yarn build`.
-    -->
   </body>
 </html>
