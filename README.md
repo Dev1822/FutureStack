@@ -1,4 +1,4 @@
-# FutureStack 🚀
+# FutureTracker 🚀
 
 > Build Your Future, One Opportunity at a Time : 
 > Your all-in-one opportunity tracker for internships, hackathons, and career growth
@@ -28,9 +28,9 @@
 
 ## 🎯 Overview
 
-FutureStack is a modern, full-featured SaaS application designed to help students and professionals track their career opportunities. Whether you're applying for internships, participating in hackathons, or managing multiple job applications, FutureStack provides an intuitive interface to organize, track, and manage all your opportunities in one place.
+FutureTracker is a modern, full-featured SaaS application designed to help students and professionals track their career opportunities. Whether you're applying for internships, participating in hackathons, or managing multiple job applications, FutureTracker provides an intuitive interface to organize, track, and manage all your opportunities in one place.
 
-### Why FutureStack?
+### Why FutureTracker?
 
 - **🔐 Secure Authentication**: Sign in with Google, GitHub, or email via Clerk
 - **⚡ Real-time Sync**: Instant updates across all devices via Supabase Realtime

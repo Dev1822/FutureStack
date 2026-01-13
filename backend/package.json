@@ -1,7 +1,7 @@
 {
     "name": "futurestack-backend",
     "version": "1.0.0",
-    "description": "Express API backend for FutureStack with Clerk auth and Supabase",
+    "description": "Express API backend for FutureTracker with Clerk auth and Supabase",
     "main": "src/server.js",
     "scripts": {
         "start": "node src/server.js",

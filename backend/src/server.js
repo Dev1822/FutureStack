@@ -91,7 +91,7 @@ app.use((err, req, res, next) => {
 app.listen(PORT, () => {
     console.log(`
 ╔═══════════════════════════════════════════════════════════╗
-║                    FutureStack API                         ║
+║                   FutureTracker API                        ║
 ╠═══════════════════════════════════════════════════════════╣
 ║  Server running on http://localhost:${PORT}                   ║
 ║  Environment: ${(process.env.NODE_ENV || 'development').padEnd(42)}║

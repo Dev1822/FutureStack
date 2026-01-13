@@ -1,4 +1,4 @@
-# FutureStack Backend API
+# FutureTracker Backend API
 
 Express.js backend with Clerk authentication and Supabase PostgreSQL.
 

@@ -1,4 +1,4 @@
-# FutureStack - Future Updates Roadmap
+# FutureTracker - Future Updates Roadmap
 
 > This document tracks planned features, improvements, and technical debt for future releases.
 

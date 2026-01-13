@@ -27,7 +27,7 @@ export const generatePDF = (opportunities, statistics, exportType = 'all') => {
   // Title
   doc.setFontSize(22);
   doc.setFont('helvetica', 'bold');
-  doc.text('FutureStack Report', margin, yPosition);
+  doc.text('FutureTracker Report', margin, yPosition);
   yPosition += 10;
 
   // Date
@@ -106,7 +106,7 @@ export const generatePDF = (opportunities, statistics, exportType = 'all') => {
 
     details.forEach(detail => {
       checkPageBreak(10);
-      
+
       // Handle long text wrapping
       const lines = doc.splitTextToSize(detail, pageWidth - 2 * margin - 5);
       lines.forEach(line => {

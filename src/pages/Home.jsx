@@ -34,7 +34,7 @@ const Home = () => {
               <span className="font-bold text-black text-xl">F</span>
             </div>
             <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">
-              FutureStack
+              FutureTracker
             </span>
           </div>
 
@@ -151,7 +151,7 @@ const Home = () => {
         <div className="text-center mb-20">
           <h2 className="text-3xl md:text-4xl font-bold mb-6">Everything you need to succeed</h2>
           <p className="text-gray-400 max-w-2xl mx-auto">
-            Stop using spreadsheets. FutureStack gives you a powerful, dedicated environment
+            Stop using spreadsheets. FutureTracker gives you a powerful, dedicated environment
             to manage your career growth.
           </p>
         </div>
@@ -207,7 +207,7 @@ const Home = () => {
               <div className="w-6 h-6 bg-white rounded-md flex items-center justify-center">
                 <span className="font-bold text-black text-xs">F</span>
               </div>
-              <span className="font-bold text-gray-300">FutureStack</span>
+              <span className="font-bold text-gray-300">FutureTracker</span>
             </div>
 
             <div className="flex gap-6">
@@ -217,7 +217,7 @@ const Home = () => {
             </div>
 
             <div className="text-sm text-gray-600">
-              © 2025 FutureStack. All rights reserved.
+              © 2025 FutureTracker. All rights reserved.
             </div>
           </div>
         </div>

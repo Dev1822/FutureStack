@@ -1,6 +1,6 @@
-# FutureStack - Comprehensive Project Documentation
+# FutureTracker - Comprehensive Project Documentation
 
-> **One-liner pitch**: FutureStack is a premium SaaS application that helps students and professionals track their internship and hackathon applications with real-time updates, visual analytics, and a Kanban-style workflow.
+> **One-liner pitch**: FutureTracker is a premium SaaS application that helps students and professionals track their internship and hackathon applications with real-time updates, visual analytics, and a Kanban-style workflow.
 
 ---
 
@@ -28,7 +28,7 @@ Students applying to multiple internships and hackathons struggle to:
 - Access their data across devices in real-time
 
 ### Solution
-FutureStack provides a centralized, real-time dashboard that:
+FutureTracker provides a centralized, real-time dashboard that:
 - Tracks all opportunities in one place
 - Visualizes progress with charts and analytics
 - Syncs instantly across devices using WebSocket technology
@@ -442,13 +442,13 @@ api.interceptors.response.use(
 
 ## Quick Pitch Summary
 
-> "FutureStack is a full-stack SaaS application I built to solve my own pain point of tracking internship applications. The standout features are **real-time sync using Supabase WebSockets**, **premium analytics with Recharts**, and **production-grade error handling**. The biggest challenge was integrating Supabase Realtime with Clerk authentication - I solved it by understanding RLS policy conflicts and implementing a hybrid security model. The app is mobile-responsive, follows React best practices, and is **deployed in production** at [futuretracker.online](https://futuretracker.online) with a Render-hosted Express backend."
+> "FutureTracker is a full-stack SaaS application I built to solve my own pain point of tracking internship applications. The standout features are **real-time sync using Supabase WebSockets**, **premium analytics with Recharts**, and **production-grade error handling**. The biggest challenge was integrating Supabase Realtime with Clerk authentication - I solved it by understanding RLS policy conflicts and implementing a hybrid security model. The app is mobile-responsive, follows React best practices, and is **deployed in production** at [futuretracker.online](https://futuretracker.online) with a Render-hosted Express backend."
 
 ---
 
 ## Repository & Deployment
 
-**GitHub**: [Venkat-Kolasani/FutureStack](https://github.com/Venkat-Kolasani/FutureStack)  
+**GitHub**: [Venkat-Kolasani/FutureTracker](https://github.com/Venkat-Kolasani/FutureTracker)  
 **Branch**: `main`
 
 ### Live URLs

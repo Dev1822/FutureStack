@@ -1,5 +1,5 @@
 -- =============================================================================
--- FutureStack Database Schema for Supabase
+-- FutureTracker Database Schema for Supabase
 -- Phase 1: Initial setup with Row Level Security (RLS)
 -- =============================================================================
 

@@ -32,7 +32,7 @@ const Navbar = () => {
               <span className="font-bold text-black text-xl">F</span>
             </div>
             <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400 transition-all">
-              FutureStack
+              FutureTracker
             </span>
           </Link>
 
