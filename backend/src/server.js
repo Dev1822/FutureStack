@@ -80,11 +80,11 @@ app.use(express.json({ limit: '1mb' }));
 app.use(mongoSanitize());
 
 // Rate limiting - Generous limits to prevent abuse while allowing normal usage
-// Note: For users from the same network (e.g., hostels), consider implementing
-// per-user rate limiting using req.auth.userId in addition to IP-based limiting
+// Limits set to accommodate large shared networks (e.g., 100 users in a hostel)
+// Each user can make ~20 general requests and ~15 write operations per 15 minutes
 const generalLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 300, // 300 requests per windowMs per IP
+    max: 2000, // 2000 requests per 15 min (supports ~100 users sharing same IP)
     standardHeaders: true, // Return rate limit info in `RateLimit-*` headers
     legacyHeaders: false, // Disable `X-RateLimit-*` headers
     // Skip health check endpoint for monitoring
@@ -99,15 +99,16 @@ const generalLimiter = rateLimit({
             message: 'You have made too many requests. This is to prevent abuse and ensure fair usage for all users.',
             retryAfter: resetTime.toISOString(),
             retryAfterSeconds,
-            limit: 300,
-            window: '15 minutes'
+            limit: 2000,
+            window: '15 minutes',
+            note: 'If you are on a shared network, multiple users may be affected. Please wait and try again.'
         });
     }
 });
 
 const writeOperationsLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100, // 100 write operations per windowMs per IP (generous for bulk additions)
+    max: 1500, // 1500 write operations per 15 min (supports ~100 users @ 15 writes each)
     standardHeaders: true,
     legacyHeaders: false,
     // Only apply to write operations (POST, PUT, PATCH, DELETE)
@@ -123,9 +124,9 @@ const writeOperationsLimiter = rateLimit({
             message: 'You have made too many create/update/delete operations. This limit helps prevent abuse while allowing you to add multiple opportunities. Please wait a moment and try again.',
             retryAfter: resetTime.toISOString(),
             retryAfterSeconds,
-            limit: 100,
+            limit: 1500,
             window: '15 minutes',
-            tip: 'If you need to add many opportunities at once, you can still do so within this limit.'
+            note: 'If you are on a shared network (hostel, campus), this limit is shared among all users. You can add up to 1500 opportunities collectively per 15 minutes.'
         });
     }
 });
