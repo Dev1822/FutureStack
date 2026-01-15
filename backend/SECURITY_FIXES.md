@@ -66,10 +66,10 @@ The server should start without errors. Check the console output for:
 1. **Install dependencies** (see above)
 2. **Test locally** to ensure everything works
 3. **Review the walkthrough** for detailed testing procedures
-4. **For production**: Follow the [SECURITY.md](file:///Users/venkat/Library/CloudStorage/OneDrive-Personal/Desktop/Projects/FutureStack-1/docs/SECURITY.md) guide for HTTPS setup
+4. **For production**: Follow the [SECURITY.md](../docs/SECURITY.md) guide for HTTPS setup
 
 ## Need Help?
 
 Refer to the comprehensive documentation:
-- [Walkthrough](file:///Users/venkat/.gemini/antigravity/brain/535ad153-188d-460b-8783-80f920d3ccb1/walkthrough.md) - Detailed explanation of changes
-- [SECURITY.md](file:///Users/venkat/Library/CloudStorage/OneDrive-Personal/Desktop/Projects/FutureStack-1/docs/SECURITY.md) - Production deployment guide
+- Walkthrough - Detailed explanation of changes (in artifacts directory)
+- [SECURITY.md](../docs/SECURITY.md) - Production deployment guide

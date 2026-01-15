@@ -14,6 +14,16 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 // =============================================================================
+// Trust Proxy Configuration
+// =============================================================================
+
+// CRITICAL: Enable trust proxy for correct IP detection behind reverse proxies
+// This is essential for rate limiting and IP logging to work correctly when
+// deployed behind Nginx, load balancers, or cloud platforms (Heroku, Railway, etc.)
+// Without this, all requests appear to come from the proxy's IP address
+app.set('trust proxy', 1);
+
+// =============================================================================
 // Middleware
 // =============================================================================
 
@@ -22,6 +32,8 @@ app.use(helmet({
     contentSecurityPolicy: {
         directives: {
             defaultSrc: ["'self'"],
+            // Note: 'unsafe-inline' for styles is required for React's runtime style injection
+            // Consider migrating to styled-components or CSS modules with nonces for stronger protection
             styleSrc: ["'self'", "'unsafe-inline'"],
             scriptSrc: ["'self'"],
             imgSrc: ["'self'", "data:", "https:"],
@@ -40,7 +52,8 @@ app.use(helmet({
     frameguard: {
         action: 'deny'
     },
-    xssFilter: true,
+    // xssFilter deprecated - removed as it's no longer supported
+    // Modern browsers use CSP and built-in protections instead
     noSniff: true,
     referrerPolicy: {
         policy: 'strict-origin-when-cross-origin'
@@ -58,23 +71,34 @@ const corsOptions = {
 };
 app.use(cors(corsOptions));
 
+// Parse JSON bodies BEFORE sanitization (order matters!)
+app.use(express.json({ limit: '1mb' }));
+
+// Data sanitization against NoSQL injection attacks
+// Note: While we use PostgreSQL (Supabase), this provides defense-in-depth
+// and future-proofs the application if MongoDB is added later
+app.use(mongoSanitize());
+
 // Rate limiting - Generous limits to prevent abuse while allowing normal usage
+// Note: For users from the same network (e.g., hostels), consider implementing
+// per-user rate limiting using req.auth.userId in addition to IP-based limiting
 const generalLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
     max: 300, // 300 requests per windowMs per IP
-    message: {
-        error: 'Rate Limit Exceeded',
-        message: 'Too many requests from this IP address. Please try again in 15 minutes.',
-        retryAfter: '15 minutes'
-    },
     standardHeaders: true, // Return rate limit info in `RateLimit-*` headers
     legacyHeaders: false, // Disable `X-RateLimit-*` headers
+    // Skip health check endpoint for monitoring
+    skip: (req) => req.path === '/api/health',
     handler: (req, res) => {
         const resetTime = new Date(Date.now() + 15 * 60 * 1000);
+        const retryAfterSeconds = Math.ceil((resetTime - Date.now()) / 1000);
+
+        res.set('Retry-After', retryAfterSeconds.toString());
         res.status(429).json({
             error: 'Rate Limit Exceeded',
             message: 'You have made too many requests. This is to prevent abuse and ensure fair usage for all users.',
             retryAfter: resetTime.toISOString(),
+            retryAfterSeconds,
             limit: 300,
             window: '15 minutes'
         });
@@ -84,20 +108,21 @@ const generalLimiter = rateLimit({
 const writeOperationsLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
     max: 100, // 100 write operations per windowMs per IP (generous for bulk additions)
-    message: {
-        error: 'Write Rate Limit Exceeded',
-        message: 'Too many write operations from this IP address. Please try again in 15 minutes.',
-        retryAfter: '15 minutes'
-    },
     standardHeaders: true,
     legacyHeaders: false,
-    skip: (req) => req.method === 'GET', // Only apply to write operations
+    // Only apply to write operations (POST, PUT, PATCH, DELETE)
+    // Skip read operations (GET, HEAD, OPTIONS)
+    skip: (req) => !['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method),
     handler: (req, res) => {
         const resetTime = new Date(Date.now() + 15 * 60 * 1000);
+        const retryAfterSeconds = Math.ceil((resetTime - Date.now()) / 1000);
+
+        res.set('Retry-After', retryAfterSeconds.toString());
         res.status(429).json({
             error: 'Write Rate Limit Exceeded',
             message: 'You have made too many create/update/delete operations. This limit helps prevent abuse while allowing you to add multiple opportunities. Please wait a moment and try again.',
             retryAfter: resetTime.toISOString(),
+            retryAfterSeconds,
             limit: 100,
             window: '15 minutes',
             tip: 'If you need to add many opportunities at once, you can still do so within this limit.'
@@ -105,14 +130,8 @@ const writeOperationsLimiter = rateLimit({
     }
 });
 
-// Apply rate limiters
+// Apply general rate limiter to all API routes (except health check)
 app.use('/api/', generalLimiter);
-
-// Data sanitization against NoSQL injection attacks
-app.use(mongoSanitize());
-
-// Parse JSON bodies with size limit to prevent DoS
-app.use(express.json({ limit: '1mb' }));
 
 // Request logging (development only)
 if (process.env.NODE_ENV === 'development') {
@@ -123,15 +142,36 @@ if (process.env.NODE_ENV === 'development') {
 }
 
 // Audit logging middleware for write operations
+// Logs request initiation and response outcome for comprehensive audit trail
 app.use((req, res, next) => {
     if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
+        // Get the true client IP (first IP from X-Forwarded-For when behind proxy)
+        const clientIp = req.ips && req.ips.length > 0 ? req.ips[0] : req.ip;
+
+        // Log request initiation
         console.log(JSON.stringify({
             timestamp: new Date().toISOString(),
             type: 'REQUEST',
             method: req.method,
             path: req.path,
-            ip: req.ip
+            ip: clientIp
         }));
+
+        // Capture the original res.json to log response outcome
+        const originalJson = res.json.bind(res);
+        res.json = function (body) {
+            // Log response outcome
+            console.log(JSON.stringify({
+                timestamp: new Date().toISOString(),
+                type: 'RESPONSE',
+                method: req.method,
+                path: req.path,
+                statusCode: res.statusCode,
+                success: res.statusCode >= 200 && res.statusCode < 300,
+                ip: clientIp
+            }));
+            return originalJson(body);
+        };
     }
     next();
 });

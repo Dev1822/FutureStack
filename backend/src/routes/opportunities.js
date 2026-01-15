@@ -7,15 +7,20 @@ const router = express.Router();
 
 /**
  * Audit logging helper
+ * Note: Avoids logging user-supplied content (titles, descriptions) to prevent
+ * sensitive data exposure in logs. Only logs action type, user ID, resource ID, and metadata.
+ * Note: Custom error messages from Joi schemas (defined in schemas.js) will be properly
+ * propagated through the validation middleware to the client.
  */
-function logAudit(action, userId, resourceId = null, details = {}) {
+function logAudit(action, userId, resourceId = null, outcome = 'success', details = {}) {
     console.log(JSON.stringify({
         timestamp: new Date().toISOString(),
         type: 'AUDIT',
         action,
         userId,
         resourceId,
-        details
+        outcome, // success or failure
+        details // Metadata only, no user content
     }));
 }
 
@@ -94,9 +99,8 @@ router.post('/', validate(createOpportunitySchema), async (req, res) => {
 
         if (error) throw error;
 
-        // Audit log
-        logAudit('CREATE_OPPORTUNITY', req.auth.internalUserId, data.id, {
-            title: data.title,
+        // Audit log (metadata only, no user content)
+        logAudit('CREATE_OPPORTUNITY', req.auth.internalUserId, data.id, 'success', {
             category: data.category
         });
 
@@ -140,9 +144,10 @@ const updateHandler = async (req, res) => {
             throw error;
         }
 
-        // Audit log
-        logAudit('UPDATE_OPPORTUNITY', req.auth.internalUserId, id, {
-            updatedFields: Object.keys(updateData)
+        // Audit log (metadata only, no user content)
+        logAudit('UPDATE_OPPORTUNITY', req.auth.internalUserId, id, 'success', {
+            updatedFields: Object.keys(updateData),
+            fieldCount: Object.keys(updateData).length
         });
 
         res.json(data);
@@ -168,7 +173,7 @@ router.patch('/:id', validate(idParamSchema, 'params'), validate(updateOpportuni
  * DELETE /api/opportunities/:id
  * Delete an opportunity
  */
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', validate(idParamSchema, 'params'), async (req, res) => {
     try {
         const { id } = req.params;
 
@@ -185,7 +190,7 @@ router.delete('/:id', async (req, res) => {
         }
 
         // Audit log
-        logAudit('DELETE_OPPORTUNITY', req.auth.internalUserId, id);
+        logAudit('DELETE_OPPORTUNITY', req.auth.internalUserId, id, 'success');
 
         res.json({ success: true, message: 'Opportunity deleted' });
     } catch (error) {
