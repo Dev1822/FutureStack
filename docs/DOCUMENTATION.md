@@ -468,7 +468,10 @@ Implemented comprehensive performance and SEO improvements to enhance user exper
 // App.js - Route-based code splitting
 import { lazy, Suspense } from 'react';
 
-const Home = lazy(() => import('./pages/Home'));
+// Home is NOT lazy loaded - it's the landing page and should load immediately
+import Home from './pages/Home'; // Landing page - load immediately for best UX
+
+// Lazy load authenticated pages for better performance
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const InternshipList = lazy(() => import('./pages/InternshipList'));
 const HackathonList = lazy(() => import('./pages/HackathonList'));
@@ -488,18 +491,24 @@ const Analytics = lazy(() => import('./pages/Analytics'));
 </Suspense>
 ```
 
+**Why Home is NOT Lazy Loaded:**
+- Home is the most common entry point
+- Lazy loading it would add extra network request delay
+- Better UX to render landing page immediately
+- Authenticated pages are still lazy loaded (users don't need them immediately)
+
 **Results:**
-- **Initial bundle size**: 529 KB → **196 KB** (gzipped) = **63% reduction**
-- **Code chunks created**: 21 separate chunks
+- **Initial bundle size**: 529 KB → **238 KB** (gzipped) = **55% reduction**
+- **Landing page**: Renders immediately with no loading spinner
+- **Code chunks created**: 20 separate chunks
 - **Faster Time to Interactive (TTI)**: Users see content faster
-- **Improved First Contentful Paint (FCP)**: Critical content loads first
 
 **Bundle Analysis:**
 ```
-Main bundle:        196.35 KB (gzipped)
+Main bundle:        237.83 KB (gzipped, includes Home)
 Vendor chunks:      126.66 KB + 117.36 KB
-Page chunks:        45.93 KB, 43.67 KB, 43.21 KB, 39.19 KB
-Smaller chunks:     13 additional chunks (1-10 KB each)
+Page chunks:        45.93 KB, 43.67 KB, 43.21 KB (authenticated pages)
+Smaller chunks:     12 additional chunks (1-10 KB each)
 CSS bundle:         9.9 KB
 ```
 
@@ -512,11 +521,11 @@ CSS bundle:         9.9 KB
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 
-<!-- Async font loading with preload hint -->
-<link rel="preload" 
+<!-- Async font loading using media="print" trick (works without JavaScript) -->
+<link rel="stylesheet" 
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" 
-      as="style" 
-      onload="this.onload=null;this.rel='stylesheet'">
+      media="print" 
+      onload="this.media='all'">
 
 <!-- Fallback for no-JS users -->
 <noscript>
@@ -524,6 +533,12 @@ CSS bundle:         9.9 KB
         rel="stylesheet">
 </noscript>
 ```
+
+**Why media="print" Pattern:**
+- Works even if JavaScript fails or is disabled
+- Browser loads with low priority (async behavior)
+- `onload` changes media to 'all' when loaded
+- Better accessibility than pure JavaScript approach
 
 **Benefits:**
 - Non-blocking font loading (doesn't delay page render)

@@ -1,49 +1,57 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#000000" />
-    
-    <!-- Primary Meta Tags -->
-    <title>FutureTracker - Track Internships, Hackathons & Job Applications</title>
-    <meta name="title" content="FutureTracker - Track Internships, Hackathons & Job Applications" />
-    <meta name="description" content="Free opportunity tracker for students and developers. Organize job applications, track internship stages, never miss hackathon deadlines. Kanban boards, calendar view, and PDF reports." />
-    <meta name="keywords" content="job tracker, internship tracker, hackathon tracker, application tracker, career tracker, job application organizer, student tools, developer tools, opportunity tracker" />
-    <meta name="author" content="FutureTracker" />
-    <meta name="robots" content="index, follow" />
-    <link rel="canonical" href="https://futuretracker.online/" />
-    
-    <!-- Open Graph / Facebook -->
-    <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://futuretracker.online/" />
-    <meta property="og:title" content="FutureTracker - Track Internships, Hackathons & Job Applications" />
-    <meta property="og:description" content="Free opportunity tracker for students and developers. Organize job applications, track internship stages, never miss hackathon deadlines." />
-    <meta property="og:image" content="https://futuretracker.online/og-image.png" />
-    <meta property="og:site_name" content="FutureTracker" />
-    <meta property="og:locale" content="en_US" />
-    
-    <!-- Twitter -->
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:url" content="https://futuretracker.online/" />
-    <meta name="twitter:title" content="FutureTracker - Track Internships, Hackathons & Job Applications" />
-    <meta name="twitter:description" content="Free opportunity tracker for students and developers. Organize job applications, track internship stages, never miss hackathon deadlines." />
-    <meta name="twitter:image" content="https://futuretracker.online/og-image.png" />
-    
-    <!-- PWA/Mobile -->
-    <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
-    <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
-    
-    <!-- Fonts - Optimized with preload -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <!-- Use media="print" trick to load async without JavaScript dependency -->
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" media="print" onload="this.media='all'">
-    <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"></noscript>
-    
-    <!-- Structured Data (JSON-LD) - WebApplication -->
-    <script type="application/ld+json">
+
+<head>
+  <meta charset="utf-8" />
+  <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#000000" />
+
+  <!-- Primary Meta Tags -->
+  <title>FutureTracker - Track Internships, Hackathons & Job Applications</title>
+  <meta name="title" content="FutureTracker - Track Internships, Hackathons & Job Applications" />
+  <meta name="description"
+    content="Free opportunity tracker for students and developers. Organize job applications, track internship stages, never miss hackathon deadlines. Kanban boards, calendar view, and PDF reports." />
+  <meta name="keywords"
+    content="job tracker, internship tracker, hackathon tracker, application tracker, career tracker, job application organizer, student tools, developer tools, opportunity tracker" />
+  <meta name="author" content="FutureTracker" />
+  <meta name="robots" content="index, follow" />
+  <link rel="canonical" href="https://futuretracker.online/" />
+
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://futuretracker.online/" />
+  <meta property="og:title" content="FutureTracker - Track Internships, Hackathons & Job Applications" />
+  <meta property="og:description"
+    content="Free opportunity tracker for students and developers. Organize job applications, track internship stages, never miss hackathon deadlines." />
+  <meta property="og:image" content="https://futuretracker.online/og-image.png" />
+  <meta property="og:site_name" content="FutureTracker" />
+  <meta property="og:locale" content="en_US" />
+
+  <!-- Twitter -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:url" content="https://futuretracker.online/" />
+  <meta name="twitter:title" content="FutureTracker - Track Internships, Hackathons & Job Applications" />
+  <meta name="twitter:description"
+    content="Free opportunity tracker for students and developers. Organize job applications, track internship stages, never miss hackathon deadlines." />
+  <meta name="twitter:image" content="https://futuretracker.online/og-image.png" />
+
+  <!-- PWA/Mobile -->
+  <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
+  <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
+
+  <!-- Fonts - Optimized with preload -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <!-- Use media="print" trick to load async without JavaScript dependency -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+    media="print" onload="this.media='all'">
+  <noscript>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  </noscript>
+
+  <!-- Structured Data (JSON-LD) - WebApplication -->
+  <script type="application/ld+json">
     {
       "@context": "https://schema.org",
       "@type": "WebApplication",
@@ -68,9 +76,9 @@
       ]
     }
     </script>
-    
-    <!-- Structured Data (JSON-LD) - Organization -->
-    <script type="application/ld+json">
+
+  <!-- Structured Data (JSON-LD) - Organization -->
+  <script type="application/ld+json">
     {
       "@context": "https://schema.org",
       "@type": "Organization",
@@ -87,9 +95,9 @@
       }
     }
     </script>
-    
-    <!-- Structured Data (JSON-LD) - FAQ -->
-    <script type="application/ld+json">
+
+  <!-- Structured Data (JSON-LD) - FAQ -->
+  <script type="application/ld+json">
     {
       "@context": "https://schema.org",
       "@type": "FAQPage",
@@ -121,43 +129,11 @@
       ]
     }
     </script>
-    
-    <!-- Structured Data (JSON-LD) - BreadcrumbList -->
-    <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "BreadcrumbList",
-      "itemListElement": [
-        {
-          "@type": "ListItem",
-          "position": 1,
-          "name": "Home",
-          "item": "https://futuretracker.online/"
-        },
-        {
-          "@type": "ListItem",
-          "position": 2,
-          "name": "Dashboard",
-          "item": "https://futuretracker.online/dashboard"
-        },
-        {
-          "@type": "ListItem",
-          "position": 3,
-          "name": "Internships",
-          "item": "https://futuretracker.online/internships"
-        },
-        {
-          "@type": "ListItem",
-          "position": 4,
-          "name": "Hackathons",
-          "item": "https://futuretracker.online/hackathons"
-        }
-      ]
-    }
-    </script>
-  </head>
-  <body>
-    <noscript>You need to enable JavaScript to run this app.</noscript>
-    <div id="root"></div>
-  </body>
+</head>
+
+<body>
+  <noscript>You need to enable JavaScript to run this app.</noscript>
+  <div id="root"></div>
+</body>
+
 </html>

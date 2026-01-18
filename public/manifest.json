@@ -39,7 +39,7 @@
     {
       "name": "Dashboard",
       "short_name": "Dashboard",
-      "description": "View your dashboard",
+      "description": "View your dashboard (sign in required)",
       "url": "/dashboard",
       "icons": [
         {
@@ -51,7 +51,7 @@
     {
       "name": "Add Opportunity",
       "short_name": "Add",
-      "description": "Add a new opportunity",
+      "description": "Add a new opportunity (sign in required)",
       "url": "/add",
       "icons": [
         {

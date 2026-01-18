@@ -67,7 +67,6 @@ const EditOpportunity = () => {
       <SEO
         title="Edit Opportunity"
         description="Edit your opportunity details."
-        canonical="/edit/:id"
         noindex={true}
       />
       <div className="max-w-2xl mx-auto">

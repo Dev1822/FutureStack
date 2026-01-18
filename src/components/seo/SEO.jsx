@@ -35,18 +35,18 @@ const SEO = ({
         </>
       )}
 
-      {/* Open Graph / Facebook */}
+      {/* Open Graph / Facebook - Use base URL for noindex pages */}
       <meta property="og:type" content={type} />
-      <meta property="og:url" content={canonicalUrl} />
+      <meta property="og:url" content={noindex ? baseUrl : canonicalUrl} />
       <meta property="og:title" content={fullTitle} />
       <meta property="og:description" content={metaDescription} />
       <meta property="og:image" content={image} />
       <meta property="og:site_name" content={siteTitle} />
       <meta property="og:locale" content="en_US" />
 
-      {/* Twitter */}
+      {/* Twitter - Use base URL for noindex pages */}
       <meta name="twitter:card" content="summary_large_image" />
-      <meta name="twitter:url" content={canonicalUrl} />
+      <meta name="twitter:url" content={noindex ? baseUrl : canonicalUrl} />
       <meta name="twitter:title" content={fullTitle} />
       <meta name="twitter:description" content={metaDescription} />
       <meta name="twitter:image" content={image} />
