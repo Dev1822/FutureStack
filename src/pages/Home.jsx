@@ -13,13 +13,12 @@ const Home = () => {
 
   return (
     <div className="min-h-screen bg-black text-white font-sans selection:bg-blue-500 selection:text-white overflow-x-hidden">
-      <SEO 
+      <SEO
         title={null}
         description="Free opportunity tracker for students and developers. Organize job applications, track internship stages, never miss hackathon deadlines. Kanban boards, calendar view, and PDF reports."
         keywords="job tracker, internship tracker, hackathon tracker, application tracker, career tracker, job application organizer, student tools, developer tools, opportunity tracker"
         canonical="/"
       />
-      {/* Background Effects */}
       {/* Background Effects */}
       <div className="fixed inset-0 z-0 pointer-events-none">
         {/* Grid Pattern */}

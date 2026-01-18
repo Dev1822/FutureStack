@@ -698,18 +698,12 @@ Implemented 4 Schema.org schemas in `public/index.html`:
 }
 ```
 
-**d) BreadcrumbList Schema**
-```json
-{
-  "@context": "https://schema.org",
-  "@type": "BreadcrumbList",
-  "itemListElement": [
-    { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://futuretracker.online/" },
-    { "@type": "ListItem", "position": 2, "name": "Dashboard", "item": "https://futuretracker.online/dashboard" }
-    // ... more items
-  ]
-}
-```
+**Note:** BreadcrumbList schema was considered but not implemented because static breadcrumbs don't reflect actual navigation in a single-page application (SPA). Each route would need dynamic breadcrumbs which is better handled by the SEO component if needed in the future.
+
+**Implemented Schemas (3 total):**
+- WebApplication - App description and features
+- Organization - Company/brand information
+- FAQ - Common questions and answers
 
 **Benefits:**
 - Rich snippets in Google search results
@@ -830,8 +824,8 @@ Implemented 4 Schema.org schemas in `public/index.html`:
 
 | Metric | Before Optimization | After Optimization | Improvement |
 |--------|---------------------|-------------------|-------------|
-| **Initial Bundle Size** | 529 KB (gzipped) | 196 KB (gzipped) | **-63%** |
-| **Code Chunks** | 1 monolithic bundle | 21 split chunks | **+2000%** |
+| **Initial Bundle Size** | 529 KB (gzipped) | 238 KB (gzipped) | **-55%** |
+| **Code Chunks** | 1 monolithic bundle | 20 split chunks | **+1900%** |
 | **Time to Interactive** | ~3.5s | ~1.2s | **-66%** |
 | **First Contentful Paint** | ~1.8s | ~0.8s | **-56%** |
 | **Lighthouse Performance** | ~65 | ~85 | **+31%** |
