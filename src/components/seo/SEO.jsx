@@ -28,9 +28,12 @@ const SEO = ({
       {noindex ? (
         <meta name="robots" content="noindex, nofollow" />
       ) : (
-        <meta name="robots" content="index, follow" />
+        <>
+          <meta name="robots" content="index, follow" />
+          {/* Only add canonical for indexable pages */}
+          <link rel="canonical" href={canonicalUrl} />
+        </>
       )}
-      <link rel="canonical" href={canonicalUrl} />
 
       {/* Open Graph / Facebook */}
       <meta property="og:type" content={type} />

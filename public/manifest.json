@@ -21,13 +21,17 @@
       "purpose": "any maskable"
     }
   ],
-  "start_url": "/",
+  "start_url": ".",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait-primary",
   "theme_color": "#000000",
   "background_color": "#000000",
-  "categories": ["productivity", "education", "utilities"],
+  "categories": [
+    "productivity",
+    "education",
+    "utilities"
+  ],
   "lang": "en-US",
   "dir": "ltr",
   "prefer_related_applications": false,
@@ -37,14 +41,24 @@
       "short_name": "Dashboard",
       "description": "View your dashboard",
       "url": "/dashboard",
-      "icons": [{ "src": "logo192.png", "sizes": "192x192" }]
+      "icons": [
+        {
+          "src": "logo192.png",
+          "sizes": "192x192"
+        }
+      ]
     },
     {
       "name": "Add Opportunity",
       "short_name": "Add",
       "description": "Add a new opportunity",
       "url": "/add",
-      "icons": [{ "src": "logo192.png", "sizes": "192x192" }]
+      "icons": [
+        {
+          "src": "logo192.png",
+          "sizes": "192x192"
+        }
+      ]
     }
   ]
 }

@@ -64,9 +64,10 @@ const EditOpportunity = () => {
 
   return (
     <div className="min-h-screen bg-black p-4 sm:p-6">
-      <SEO 
+      <SEO
         title="Edit Opportunity"
         description="Edit your opportunity details."
+        canonical="/edit/:id"
         noindex={true}
       />
       <div className="max-w-2xl mx-auto">
