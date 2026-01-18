@@ -63,7 +63,7 @@
   padding: 0.75rem;
   font-size: 0.875rem;
   border-radius: 0.5rem;
-  margin: 2px;
+  /* margin: 2px; - Removed to prevent layout breaking (7 * (14.28% + 4px) > 100%) */
   transition: all 0.2s;
   cursor: pointer;
   min-height: 60px;

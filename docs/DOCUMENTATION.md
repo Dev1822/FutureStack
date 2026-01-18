@@ -433,6 +433,14 @@ api.interceptors.response.use(
 );
 ```
 
+### Challenge 4: Calendar Grid Layout Alignment
+
+**Problem**: The custom calendar view was showing misaligned days, with the Sunday column wrapping to the next line, causing significant confusion.
+
+**Root Cause**: A custom `margin: 2px` on calendar tiles was increasing the total width of the flex container beyond 100% (7 days * ~14.28% + margins > 100%), forcing the 7th element to wrap.
+
+**Solution**: Removed the margin and relied on borders for visual separation, ensuring the 7-column grid fits perfectly within the container.
+
 ---
 
 ## Future Roadmap
