@@ -4,6 +4,7 @@
 import React, { useState, useEffect } from 'react';
 import Button from '../common/Button';
 import DocumentSelector from '../documents/DocumentSelector';
+import { supportsDocuments } from '../../utils/opportunityHelpers';
 
 // initialData: values to pre-fill the form in edit mode
 // onSubmit: function passed from parent (Add / Edit page) to handle API call
@@ -224,8 +225,8 @@ const OpportunityForm = ({ initialData = {}, onSubmit, isEdit = false, opportuni
         />
       </div>
 
-      {/* Document Selector - only for internships in edit mode */}
-      {isEdit && opportunityId && formData.category === 'internship' && (
+      {/* Document Selector - only for categories that support documents in edit mode */}
+      {isEdit && opportunityId && supportsDocuments(formData.category) && (
         <DocumentSelector
           opportunityId={opportunityId}
           category={formData.category}

@@ -9,6 +9,7 @@
  * - Responsive: drawer on desktop, bottom sheet on mobile
  */
 import React, { useEffect, useState } from 'react';
+import { toast } from 'react-toastify';
 import {
     FaTimes,
     FaEdit,
@@ -24,6 +25,7 @@ import {
 } from 'react-icons/fa';
 import Button from '../common/Button';
 import { getDaysRemaining, isOverdue, formatDate } from '../../utils/dateHelpers';
+import { supportsDocuments } from '../../utils/opportunityHelpers';
 import { documentService } from '../../services/api';
 
 // Status badge color mappings
@@ -63,7 +65,7 @@ const OpportunityDetailModal = ({ opportunity, isOpen, onClose, onEdit, onDelete
 
     // Fetch attached documents for internships
     useEffect(() => {
-        if (isOpen && opportunity?.category === 'internship' && opportunity?.id) {
+        if (isOpen && supportsDocuments(opportunity?.category) && opportunity?.id) {
             const fetchDocs = async () => {
                 try {
                     setLoadingDocs(true);
@@ -72,6 +74,7 @@ const OpportunityDetailModal = ({ opportunity, isOpen, onClose, onEdit, onDelete
                 } catch (error) {
                     console.error('Error fetching documents:', error);
                     setDocuments([]);
+                    toast.error('Failed to load attached documents');
                 } finally {
                     setLoadingDocs(false);
                 }
@@ -184,7 +187,7 @@ const OpportunityDetailModal = ({ opportunity, isOpen, onClose, onEdit, onDelete
                         )}
 
                         {/* Attached Documents Section (Internships only) */}
-                        {opportunity.category === 'internship' && (
+                        {supportsDocuments(opportunity.category) && (
                             <section>
                                 <div className="flex items-center gap-2 text-gray-400 mb-2">
                                     <FaFilePdf size={14} />

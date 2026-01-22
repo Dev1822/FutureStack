@@ -7,8 +7,12 @@ const {
     updateDocumentSchema,
     assignDocumentSchema,
     documentIdParamSchema,
-    unassignDocumentParamsSchema
+    unassignDocumentParamsSchema,
+    opportunityIdParamSchema
 } = require('../validation/documents-schemas');
+
+// Signed URL expiration time (1 hour)
+const SIGNED_URL_EXPIRY = 60 * 60;
 
 const router = express.Router();
 
@@ -38,8 +42,18 @@ const upload = multer({
 
 /**
  * Audit logging helper
+ * Logs audit events with sanitized details (no sensitive data)
  */
 function logAudit(action, userId, resourceId = null, outcome = 'success', details = {}) {
+    // Sanitize details to avoid logging sensitive information
+    const sanitizedDetails = {};
+    const allowedKeys = ['type', 'fileSize', 'updatedFields', 'opportunity_id', 'errorCode'];
+    for (const key of allowedKeys) {
+        if (details[key] !== undefined) {
+            sanitizedDetails[key] = details[key];
+        }
+    }
+    
     console.log(JSON.stringify({
         timestamp: new Date().toISOString(),
         type: 'AUDIT',
@@ -47,7 +61,7 @@ function logAudit(action, userId, resourceId = null, outcome = 'success', detail
         userId,
         resourceId,
         outcome,
-        details
+        details: sanitizedDetails
     }));
 }
 
@@ -70,11 +84,15 @@ router.get('/', async (req, res) => {
             .eq('user_id', req.auth.internalUserId)
             .order('created_at', { ascending: false });
 
-        if (error) throw error;
+        if (error) {
+            logAudit('LIST_DOCUMENTS', req.auth.internalUserId, null, 'failure', { errorCode: error.code });
+            throw error;
+        }
 
+        logAudit('LIST_DOCUMENTS', req.auth.internalUserId, null, 'success', { count: data.length });
         res.json(data);
     } catch (error) {
-        console.error('Error fetching documents:', error.message);
+        console.error('Error fetching documents:', error.code || 'UNKNOWN');
         res.status(500).json({ error: 'Failed to fetch documents' });
     }
 });
@@ -103,14 +121,17 @@ router.get('/:id', validate(documentIdParamSchema, 'params'), async (req, res) =
 
         if (error) {
             if (error.code === 'PGRST116') {
+                logAudit('READ_DOCUMENT', req.auth.internalUserId, id, 'failure', { errorCode: 'NOT_FOUND' });
                 return res.status(404).json({ error: 'Document not found' });
             }
+            logAudit('READ_DOCUMENT', req.auth.internalUserId, id, 'failure', { errorCode: error.code });
             throw error;
         }
 
+        logAudit('READ_DOCUMENT', req.auth.internalUserId, id, 'success');
         res.json(data);
     } catch (error) {
-        console.error('Error fetching document:', error.message);
+        console.error('Error fetching document:', error.code || 'UNKNOWN');
         res.status(500).json({ error: 'Failed to fetch document' });
     }
 });
@@ -156,7 +177,7 @@ router.post('/', validate(createDocumentSchema), async (req, res) => {
 
         res.status(201).json(data);
     } catch (error) {
-        console.error('Error creating document:', error.message);
+        console.error('Error creating document:', error.code || 'UNKNOWN');
         res.status(500).json({ error: 'Failed to create document' });
     }
 });
@@ -164,6 +185,7 @@ router.post('/', validate(createDocumentSchema), async (req, res) => {
 /**
  * POST /api/documents/upload
  * Upload a file and create document record
+ * Uses signed URLs for secure, time-limited access to private bucket
  */
 router.post('/upload', upload.single('file'), async (req, res) => {
     try {
@@ -205,24 +227,34 @@ router.post('/upload', upload.single('file'), async (req, res) => {
             });
 
         if (uploadError) {
-            console.error('Storage upload error:', uploadError);
+            // Log sanitized error (only code, not full error object which may contain sensitive details)
+            console.error('Storage upload error:', uploadError.statusCode || uploadError.error || 'UNKNOWN');
             return res.status(500).json({ error: 'Failed to upload file' });
         }
 
-        // Get public URL (or signed URL for private bucket)
-        const { data: urlData } = supabase
+        // Generate signed URL for secure access (valid for 1 hour)
+        // This provides time-limited access to the private bucket
+        const { data: signedUrlData, error: signedUrlError } = await supabase
             .storage
             .from('documents')
-            .getPublicUrl(storagePath);
+            .createSignedUrl(storagePath, SIGNED_URL_EXPIRY);
+
+        if (signedUrlError) {
+            // Rollback: delete uploaded file if we can't generate signed URL
+            await supabase.storage.from('documents').remove([storagePath]);
+            console.error('Signed URL generation error:', signedUrlError.statusCode || 'UNKNOWN');
+            return res.status(500).json({ error: 'Failed to generate secure access URL' });
+        }
 
         // Create document record
+        // Store storage_path for future signed URL generation, not the signed URL itself
         const { data, error } = await supabase
             .from('documents')
             .insert({
                 user_id: req.auth.internalUserId,
                 name,
                 type,
-                file_url: urlData.publicUrl,
+                file_url: signedUrlData.signedUrl, // Initial signed URL (will be refreshed on access)
                 file_size: req.file.size,
                 storage_path: storagePath,
                 version: version || 'v1',
@@ -245,7 +277,7 @@ router.post('/upload', upload.single('file'), async (req, res) => {
 
         res.status(201).json(data);
     } catch (error) {
-        console.error('Error uploading document:', error.message);
+        console.error('Error uploading document:', error.code || 'UNKNOWN');
         res.status(500).json({ error: 'Failed to upload document' });
     }
 });
@@ -288,7 +320,7 @@ router.patch('/:id', validate(documentIdParamSchema, 'params'), validate(updateD
 
         res.json(data);
     } catch (error) {
-        console.error('Error updating document:', error.message);
+        console.error('Error updating document:', error.code || 'UNKNOWN');
         res.status(500).json({ error: 'Failed to update document' });
     }
 });
@@ -324,7 +356,7 @@ router.delete('/:id', validate(documentIdParamSchema, 'params'), async (req, res
                 .remove([doc.storage_path]);
 
             if (storageError) {
-                console.error('Storage delete error:', storageError);
+                console.error('Storage delete error:', storageError.statusCode || 'UNKNOWN');
                 // Continue with database deletion anyway
             }
         }
@@ -342,7 +374,7 @@ router.delete('/:id', validate(documentIdParamSchema, 'params'), async (req, res
 
         res.json({ success: true, message: 'Document deleted' });
     } catch (error) {
-        console.error('Error deleting document:', error.message);
+        console.error('Error deleting document:', error.code || 'UNKNOWN');
         res.status(500).json({ error: 'Failed to delete document' });
     }
 });
@@ -414,7 +446,7 @@ router.post('/:id/assign', validate(documentIdParamSchema, 'params'), validate(a
 
         res.status(201).json(data);
     } catch (error) {
-        console.error('Error assigning document:', error.message);
+        console.error('Error assigning document:', error.code || 'UNKNOWN');
         res.status(500).json({ error: 'Failed to assign document' });
     }
 });
@@ -427,13 +459,22 @@ router.delete('/:id/unassign/:opportunityId', validate(unassignDocumentParamsSch
     try {
         const { id, opportunityId } = req.params;
 
-        // Verify ownership through document
-        const { data: doc } = await supabase
+        // Verify ownership through document - properly handle errors
+        const { data: doc, error: fetchError } = await supabase
             .from('documents')
             .select('id')
             .eq('id', id)
             .eq('user_id', req.auth.internalUserId)
             .single();
+
+        if (fetchError) {
+            if (fetchError.code === 'PGRST116') {
+                return res.status(404).json({ error: 'Document not found' });
+            }
+            // Database error - log and return 500
+            console.error('Error verifying document ownership:', fetchError.code || 'UNKNOWN');
+            return res.status(500).json({ error: 'Failed to verify document ownership' });
+        }
 
         if (!doc) {
             return res.status(404).json({ error: 'Document not found' });
@@ -455,7 +496,7 @@ router.delete('/:id/unassign/:opportunityId', validate(unassignDocumentParamsSch
 
         res.json({ success: true, message: 'Document unlinked' });
     } catch (error) {
-        console.error('Error unassigning document:', error.message);
+        console.error('Error unassigning document:', error.code || 'UNKNOWN');
         res.status(500).json({ error: 'Failed to unassign document' });
     }
 });
@@ -464,7 +505,7 @@ router.delete('/:id/unassign/:opportunityId', validate(unassignDocumentParamsSch
  * GET /api/documents/by-opportunity/:opportunityId
  * Get all documents linked to an opportunity
  */
-router.get('/by-opportunity/:opportunityId', async (req, res) => {
+router.get('/by-opportunity/:opportunityId', validate(opportunityIdParamSchema, 'params'), async (req, res) => {
     try {
         const { opportunityId } = req.params;
 
@@ -478,8 +519,10 @@ router.get('/by-opportunity/:opportunityId', async (req, res) => {
 
         if (oppError) {
             if (oppError.code === 'PGRST116') {
+                logAudit('LIST_OPPORTUNITY_DOCUMENTS', req.auth.internalUserId, opportunityId, 'failure', { errorCode: 'NOT_FOUND' });
                 return res.status(404).json({ error: 'Opportunity not found' });
             }
+            logAudit('LIST_OPPORTUNITY_DOCUMENTS', req.auth.internalUserId, opportunityId, 'failure', { errorCode: oppError.code });
             throw oppError;
         }
 
@@ -491,7 +534,10 @@ router.get('/by-opportunity/:opportunityId', async (req, res) => {
             `)
             .eq('opportunity_id', opportunityId);
 
-        if (error) throw error;
+        if (error) {
+            logAudit('LIST_OPPORTUNITY_DOCUMENTS', req.auth.internalUserId, opportunityId, 'failure', { errorCode: error.code });
+            throw error;
+        }
 
         // Flatten the response
         const documents = data.map(item => ({
@@ -499,14 +545,16 @@ router.get('/by-opportunity/:opportunityId', async (req, res) => {
             submitted_at: item.submitted_at
         }));
 
+        logAudit('LIST_OPPORTUNITY_DOCUMENTS', req.auth.internalUserId, opportunityId, 'success', { count: documents.length });
         res.json(documents);
     } catch (error) {
-        console.error('Error fetching opportunity documents:', error.message);
+        console.error('Error fetching opportunity documents:', error.code || 'UNKNOWN');
         res.status(500).json({ error: 'Failed to fetch documents' });
     }
 });
 
 // Error handling middleware for multer
+// Handles all errors to prevent stack trace exposure
 router.use((error, req, res, next) => {
     if (error instanceof multer.MulterError) {
         if (error.code === 'LIMIT_FILE_SIZE') {
@@ -515,11 +563,22 @@ router.use((error, req, res, next) => {
                 message: `Maximum file size is ${MAX_FILE_SIZE / 1024 / 1024}MB`
             });
         }
+        // Handle other multer errors generically without exposing details
+        return res.status(400).json({
+            error: 'File upload error',
+            message: 'There was a problem with your file upload. Please try again.'
+        });
     }
     if (error.message === 'Only PDF, DOC, and DOCX files are allowed') {
         return res.status(400).json({ error: error.message });
     }
-    next(error);
+    // For any other errors, return a generic message without exposing internal details
+    // Log the error code only (not the full error object) for debugging
+    console.error('Unhandled document route error:', error.code || error.name || 'UNKNOWN');
+    return res.status(500).json({
+        error: 'Internal server error',
+        message: 'An unexpected error occurred. Please try again later.'
+    });
 });
 
 module.exports = router;

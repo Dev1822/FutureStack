@@ -160,10 +160,24 @@ const unassignDocumentParamsSchema = Joi.object({
         })
 });
 
+/**
+ * Validation schema for opportunity ID parameter (by-opportunity route)
+ */
+const opportunityIdParamSchema = Joi.object({
+    opportunityId: Joi.string()
+        .uuid()
+        .required()
+        .messages({
+            'string.uuid': 'Invalid opportunity ID format',
+            'any.required': 'Opportunity ID is required'
+        })
+});
+
 module.exports = {
     createDocumentSchema,
     updateDocumentSchema,
     assignDocumentSchema,
     documentIdParamSchema,
-    unassignDocumentParamsSchema
+    unassignDocumentParamsSchema,
+    opportunityIdParamSchema
 };

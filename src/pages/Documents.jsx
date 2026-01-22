@@ -90,6 +90,7 @@ const Documents = () => {
             fetchDocuments();
         } catch (error) {
             console.error('Error uploading document:', error);
+            toast.error(error.response?.data?.message || error.response?.data?.error || 'Failed to upload document. Please try again.');
         } finally {
             setActionLoading(false);
         }
@@ -105,6 +106,7 @@ const Documents = () => {
             fetchDocuments();
         } catch (error) {
             console.error('Error creating document:', error);
+            toast.error(error.response?.data?.message || error.response?.data?.error || 'Failed to add link. Please try again.');
         } finally {
             setActionLoading(false);
         }
@@ -128,6 +130,7 @@ const Documents = () => {
             fetchDocuments();
         } catch (error) {
             console.error('Error updating document:', error);
+            toast.error(error.response?.data?.message || error.response?.data?.error || 'Failed to update document. Please try again.');
         } finally {
             setActionLoading(false);
         }
@@ -145,6 +148,7 @@ const Documents = () => {
             fetchDocuments();
         } catch (error) {
             console.error('Error deleting document:', error);
+            toast.error(error.response?.data?.message || error.response?.data?.error || 'Failed to delete document. Please try again.');
         } finally {
             setActionLoading(false);
         }

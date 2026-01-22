@@ -1,8 +1,10 @@
 // DocumentSelector - component for selecting documents to attach to an opportunity
-// Only shown for internship opportunities
+// Only shown for opportunity categories that support document attachments
 import React, { useState, useEffect } from 'react';
+import { toast } from 'react-toastify';
 import { FaPlus, FaTimes, FaFile, FaFilePdf, FaLink } from 'react-icons/fa';
 import { documentService } from '../../services/api';
+import { supportsDocuments } from '../../utils/opportunityHelpers';
 
 const typeIcons = {
     resume: FaFilePdf,
@@ -25,9 +27,9 @@ const DocumentSelector = ({ opportunityId, category, onDocumentsChange }) => {
     const [loading, setLoading] = useState(false);
     const [actionLoading, setActionLoading] = useState(null);
 
-    // Fetch all user documents (only if internship)
+    // Fetch all user documents (only if category supports documents)
     useEffect(() => {
-        if (category !== 'internship') return;
+        if (!supportsDocuments(category)) return;
 
         const fetchDocuments = async () => {
             try {
@@ -36,6 +38,7 @@ const DocumentSelector = ({ opportunityId, category, onDocumentsChange }) => {
                 setAllDocuments(docs);
             } catch (error) {
                 console.error('Error fetching documents:', error);
+                toast.error('Failed to load documents');
             } finally {
                 setLoading(false);
             }
@@ -43,9 +46,9 @@ const DocumentSelector = ({ opportunityId, category, onDocumentsChange }) => {
         fetchDocuments();
     }, [category]);
 
-    // Fetch linked documents for this opportunity (only if internship)
+    // Fetch linked documents for this opportunity (only if category supports documents)
     useEffect(() => {
-        if (category !== 'internship' || !opportunityId) return;
+        if (!supportsDocuments(category) || !opportunityId) return;
 
         const fetchLinkedDocuments = async () => {
             try {
@@ -56,13 +59,14 @@ const DocumentSelector = ({ opportunityId, category, onDocumentsChange }) => {
                 }
             } catch (error) {
                 console.error('Error fetching linked documents:', error);
+                toast.error('Failed to load attached documents');
             }
         };
         fetchLinkedDocuments();
     }, [opportunityId, category, onDocumentsChange]);
 
-    // Only show for internships
-    if (category !== 'internship') {
+    // Only show for categories that support documents
+    if (!supportsDocuments(category)) {
         return null;
     }
 
@@ -79,8 +83,10 @@ const DocumentSelector = ({ opportunityId, category, onDocumentsChange }) => {
             if (onDocumentsChange) {
                 onDocumentsChange(docs);
             }
+            toast.success('Document attached successfully');
         } catch (error) {
             console.error('Error linking document:', error);
+            toast.error(error.response?.data?.error || 'Failed to attach document');
         } finally {
             setActionLoading(null);
         }
@@ -99,8 +105,10 @@ const DocumentSelector = ({ opportunityId, category, onDocumentsChange }) => {
             if (onDocumentsChange) {
                 onDocumentsChange(docs);
             }
+            toast.success('Document removed');
         } catch (error) {
             console.error('Error unlinking document:', error);
+            toast.error(error.response?.data?.error || 'Failed to remove document');
         } finally {
             setActionLoading(null);
         }
