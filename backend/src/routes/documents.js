@@ -303,9 +303,17 @@ router.post('/upload', upload.single('file'), async (req, res) => {
         }
 
         const { name, type, version, notes } = req.body;
+        const validTypes = ['resume', 'cover_letter', 'portfolio', 'other'];
 
         if (!name || !type) {
             return res.status(400).json({ error: 'Name and type are required' });
+        }
+
+        if (!validTypes.includes(type)) {
+            return res.status(400).json({
+                error: 'Invalid document type',
+                message: 'Type must be one of: resume, cover_letter, portfolio, other'
+            });
         }
 
         // Generate unique file path: userId/timestamp-filename
