@@ -53,7 +53,7 @@ function logAudit(action, userId, resourceId = null, outcome = 'success', detail
             sanitizedDetails[key] = details[key];
         }
     }
-    
+
     console.log(JSON.stringify({
         timestamp: new Date().toISOString(),
         type: 'AUDIT',
@@ -64,6 +64,75 @@ function logAudit(action, userId, resourceId = null, outcome = 'success', detail
         details: sanitizedDetails
     }));
 }
+
+/**
+ * GET /api/documents/by-opportunity/:opportunityId
+ * Get all documents linked to an opportunity
+ * NOTE: This must be defined BEFORE /:id to prevent route shadowing
+ */
+router.get('/by-opportunity/:opportunityId', validate(opportunityIdParamSchema, 'params'), async (req, res) => {
+    try {
+        const { opportunityId } = req.params;
+
+        // Verify opportunity belongs to user
+        const { data: opp, error: oppError } = await supabase
+            .from('opportunities')
+            .select('id')
+            .eq('id', opportunityId)
+            .eq('user_id', req.auth.internalUserId)
+            .single();
+
+        if (oppError) {
+            if (oppError.code === 'PGRST116') {
+                logAudit('LIST_OPPORTUNITY_DOCUMENTS', req.auth.internalUserId, opportunityId, 'failure', { errorCode: 'NOT_FOUND' });
+                return res.status(404).json({ error: 'Opportunity not found' });
+            }
+            logAudit('LIST_OPPORTUNITY_DOCUMENTS', req.auth.internalUserId, opportunityId, 'failure', { errorCode: oppError.code });
+            throw oppError;
+        }
+
+        const { data, error } = await supabase
+            .from('opportunity_documents')
+            .select(`
+                submitted_at,
+                documents(*)
+            `)
+            .eq('opportunity_id', opportunityId);
+
+        if (error) {
+            logAudit('LIST_OPPORTUNITY_DOCUMENTS', req.auth.internalUserId, opportunityId, 'failure', { errorCode: error.code });
+            throw error;
+        }
+
+        // Flatten the response and refresh signed URLs
+        const documents = await Promise.all(data.map(async (item) => {
+            const doc = item.documents;
+
+            // Refresh signed URL if it's a stored file
+            if (doc.storage_path && !doc.is_external) {
+                const { data: signedData } = await supabase
+                    .storage
+                    .from('documents')
+                    .createSignedUrl(doc.storage_path, SIGNED_URL_EXPIRY);
+
+                if (signedData?.signedUrl) {
+                    doc.file_url = signedData.signedUrl;
+                }
+            }
+
+            return {
+                ...doc,
+                submitted_at: item.submitted_at
+            };
+        }));
+
+        logAudit('LIST_OPPORTUNITY_DOCUMENTS', req.auth.internalUserId, opportunityId, 'success', { count: documents.length });
+        res.json(documents);
+    } catch (error) {
+        console.error('Error fetching opportunity documents:', error.code || 'UNKNOWN');
+        res.status(500).json({ error: 'Failed to fetch documents' });
+    }
+});
 
 /**
  * GET /api/documents
@@ -89,8 +158,23 @@ router.get('/', async (req, res) => {
             throw error;
         }
 
+        // Refresh signed URLs for stored documents
+        const documentsWithFreshUrls = await Promise.all(data.map(async (doc) => {
+            if (doc.storage_path && !doc.is_external) {
+                const { data: signedData } = await supabase
+                    .storage
+                    .from('documents')
+                    .createSignedUrl(doc.storage_path, SIGNED_URL_EXPIRY);
+
+                if (signedData?.signedUrl) {
+                    doc.file_url = signedData.signedUrl;
+                }
+            }
+            return doc;
+        }));
+
         logAudit('LIST_DOCUMENTS', req.auth.internalUserId, null, 'success', { count: data.length });
-        res.json(data);
+        res.json(documentsWithFreshUrls);
     } catch (error) {
         console.error('Error fetching documents:', error.code || 'UNKNOWN');
         res.status(500).json({ error: 'Failed to fetch documents' });
@@ -105,7 +189,7 @@ router.get('/:id', validate(documentIdParamSchema, 'params'), async (req, res) =
     try {
         const { id } = req.params;
 
-        const { data, error } = await supabase
+        const { data: doc, error } = await supabase
             .from('documents')
             .select(`
                 *,
@@ -128,8 +212,20 @@ router.get('/:id', validate(documentIdParamSchema, 'params'), async (req, res) =
             throw error;
         }
 
+        // Refresh signed URL if it's a stored file
+        if (doc.storage_path && !doc.is_external) {
+            const { data: signedData } = await supabase
+                .storage
+                .from('documents')
+                .createSignedUrl(doc.storage_path, SIGNED_URL_EXPIRY);
+
+            if (signedData?.signedUrl) {
+                doc.file_url = signedData.signedUrl;
+            }
+        }
+
         logAudit('READ_DOCUMENT', req.auth.internalUserId, id, 'success');
-        res.json(data);
+        res.json(doc);
     } catch (error) {
         console.error('Error fetching document:', error.code || 'UNKNOWN');
         res.status(500).json({ error: 'Failed to fetch document' });
@@ -498,58 +594,6 @@ router.delete('/:id/unassign/:opportunityId', validate(unassignDocumentParamsSch
     } catch (error) {
         console.error('Error unassigning document:', error.code || 'UNKNOWN');
         res.status(500).json({ error: 'Failed to unassign document' });
-    }
-});
-
-/**
- * GET /api/documents/by-opportunity/:opportunityId
- * Get all documents linked to an opportunity
- */
-router.get('/by-opportunity/:opportunityId', validate(opportunityIdParamSchema, 'params'), async (req, res) => {
-    try {
-        const { opportunityId } = req.params;
-
-        // Verify opportunity belongs to user
-        const { data: opp, error: oppError } = await supabase
-            .from('opportunities')
-            .select('id')
-            .eq('id', opportunityId)
-            .eq('user_id', req.auth.internalUserId)
-            .single();
-
-        if (oppError) {
-            if (oppError.code === 'PGRST116') {
-                logAudit('LIST_OPPORTUNITY_DOCUMENTS', req.auth.internalUserId, opportunityId, 'failure', { errorCode: 'NOT_FOUND' });
-                return res.status(404).json({ error: 'Opportunity not found' });
-            }
-            logAudit('LIST_OPPORTUNITY_DOCUMENTS', req.auth.internalUserId, opportunityId, 'failure', { errorCode: oppError.code });
-            throw oppError;
-        }
-
-        const { data, error } = await supabase
-            .from('opportunity_documents')
-            .select(`
-                submitted_at,
-                documents(*)
-            `)
-            .eq('opportunity_id', opportunityId);
-
-        if (error) {
-            logAudit('LIST_OPPORTUNITY_DOCUMENTS', req.auth.internalUserId, opportunityId, 'failure', { errorCode: error.code });
-            throw error;
-        }
-
-        // Flatten the response
-        const documents = data.map(item => ({
-            ...item.documents,
-            submitted_at: item.submitted_at
-        }));
-
-        logAudit('LIST_OPPORTUNITY_DOCUMENTS', req.auth.internalUserId, opportunityId, 'success', { count: documents.length });
-        res.json(documents);
-    } catch (error) {
-        console.error('Error fetching opportunity documents:', error.code || 'UNKNOWN');
-        res.status(500).json({ error: 'Failed to fetch documents' });
     }
 });
 

@@ -1,9 +1,9 @@
 import React, { useEffect } from 'react';
 import { FaTimes } from 'react-icons/fa';
 
-const Modal = ({ 
-  isOpen, 
-  onClose, 
+const Modal = ({
+  isOpen,
+  onClose,
   title,
   children,
   showCloseButton = true,
@@ -39,25 +39,25 @@ const Modal = ({
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
       {/* Backdrop */}
-      <div 
+      <div
         className="fixed inset-0 bg-black bg-opacity-50 transition-opacity"
         onClick={onClose}
       />
 
       {/* Modal Container */}
       <div className="flex min-h-full items-end sm:items-center justify-center p-0 sm:p-4">
-        <div 
-          className={`relative bg-gray-800 rounded-t-2xl sm:rounded-lg shadow-xl border border-gray-700 max-w-lg w-full ${className} transform transition-all`}
+        <div
+          className={`relative bg-[#0A0A0A] rounded-t-2xl sm:rounded-xl shadow-xl border border-white/10 max-w-lg w-full ${className} transform transition-all`}
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
           {(title || showCloseButton) && (
-            <div className="flex items-center justify-between p-4 sm:p-5 border-b border-gray-700">
+            <div className="flex items-center justify-between p-4 sm:p-5 border-b border-white/10">
               {title && <h3 className="text-lg sm:text-xl font-semibold text-white">{title}</h3>}
               {showCloseButton && (
                 <button
                   onClick={onClose}
-                  className="text-gray-400 hover:text-gray-200 transition-colors p-2 rounded-md hover:bg-gray-700"
+                  className="text-gray-400 hover:text-white transition-colors p-2 rounded-md hover:bg-white/5"
                   aria-label="Close modal"
                 >
                   <FaTimes size={20} />

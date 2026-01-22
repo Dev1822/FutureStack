@@ -54,7 +54,7 @@ const createDocumentSchema = Joi.object({
         }),
 
     is_external: Joi.boolean()
-        .default(false)
+        .default(true)
         .optional()
 });
 
