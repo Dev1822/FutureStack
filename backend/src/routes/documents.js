@@ -239,10 +239,15 @@ router.get('/:id', validate(documentIdParamSchema, 'params'), async (req, res) =
 router.post('/', validate(createDocumentSchema), async (req, res) => {
     try {
         // Check document limit
-        const { count } = await supabase
+        const { count, error: countError } = await supabase
             .from('documents')
             .select('*', { count: 'exact', head: true })
             .eq('user_id', req.auth.internalUserId);
+
+        if (countError) {
+            console.error('Error checking document limit:', countError);
+            return res.status(500).json({ error: 'Failed to check document limits' });
+        }
 
         if (count >= MAX_DOCUMENTS_PER_USER) {
             return res.status(400).json({
@@ -290,10 +295,15 @@ router.post('/upload', upload.single('file'), async (req, res) => {
         }
 
         // Check document limit
-        const { count } = await supabase
+        const { count, error: countError } = await supabase
             .from('documents')
             .select('*', { count: 'exact', head: true })
             .eq('user_id', req.auth.internalUserId);
+
+        if (countError) {
+            console.error('Error checking document limit:', countError);
+            return res.status(500).json({ error: 'Failed to check document limits' });
+        }
 
         if (count >= MAX_DOCUMENTS_PER_USER) {
             return res.status(400).json({

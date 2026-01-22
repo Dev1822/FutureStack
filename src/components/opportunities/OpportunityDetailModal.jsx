@@ -87,8 +87,10 @@ const OpportunityDetailModal = ({ opportunity, isOpen, onClose, onEdit, onDelete
 
     // Close on Escape key
     useEffect(() => {
+        if (!isOpen) return;
+
         const handleEscape = (e) => {
-            if (e.key === 'Escape' && isOpen) {
+            if (e.key === 'Escape') {
                 onClose();
             }
         };

@@ -48,7 +48,7 @@ const DocumentCard = ({ document, onEdit, onDelete }) => {
     };
 
     return (
-        <div className="bg-white/5 border border-white/10 rounded-xl p-4 hover:border-white/20 transition-all group">
+        <div className="bg-white/5 border border-white/10 rounded-xl p-4 hover:border-white/20 transition-all group h-full flex flex-col">
             {/* Header */}
             <div className="flex items-start gap-3">
                 <div className={`w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center ${colorClass}`}>
@@ -93,7 +93,7 @@ const DocumentCard = ({ document, onEdit, onDelete }) => {
             )}
 
             {/* Actions */}
-            <div className="mt-4 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+            <div className="mt-auto pt-4 flex items-center gap-2">
                 {document.file_url && (
                     <a
                         href={document.file_url}
