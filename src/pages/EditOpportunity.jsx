@@ -41,7 +41,17 @@ const EditOpportunity = () => {
       navigate(-1); // Navigate back to previous page
     } catch (error) {
       console.error('Error updating opportunity:', error);
-      toast.error('Failed to update opportunity. Please try again.');
+      // Extract specific validation error message from server response
+      if (error.response?.data?.details?.length > 0) {
+        const errorMessages = error.response.data.details
+          .map(detail => detail.message)
+          .join('. ');
+        toast.error(errorMessages);
+      } else if (error.response?.data?.message) {
+        toast.error(error.response.data.message);
+      } else {
+        toast.error('Failed to update opportunity. Please try again.');
+      }
     }
   };
 
