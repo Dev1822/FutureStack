@@ -18,11 +18,11 @@ const createOpportunitySchema = Joi.object({
 
     description: Joi.string()
         .trim()
-        .max(2000)
+        .max(5000)
         .allow(null, '')
         .optional()
         .messages({
-            'string.max': 'Description cannot exceed 2000 characters'
+            'string.max': 'Description cannot exceed 5000 characters'
         }),
 
     link: Joi.string()
@@ -88,11 +88,11 @@ const updateOpportunitySchema = Joi.object({
 
     description: Joi.string()
         .trim()
-        .max(2000)
+        .max(5000)
         .allow(null, '')
         .optional()
         .messages({
-            'string.max': 'Description cannot exceed 2000 characters'
+            'string.max': 'Description cannot exceed 5000 characters'
         }),
 
     link: Joi.string()

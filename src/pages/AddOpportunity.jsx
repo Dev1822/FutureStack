@@ -19,7 +19,17 @@ const AddOpportunity = () => {
       navigate('/dashboard');
     } catch (error) {
       console.error('Error creating opportunity:', error);
-      toast.error('Failed to add opportunity. Please try again.');
+      // Extract specific validation error message from server response
+      if (error.response?.data?.details?.length > 0) {
+        const errorMessages = error.response.data.details
+          .map(detail => detail.message)
+          .join('. ');
+        toast.error(errorMessages);
+      } else if (error.response?.data?.message) {
+        toast.error(error.response.data.message);
+      } else {
+        toast.error('Failed to add opportunity. Please try again.');
+      }
     }
   };
 
@@ -29,7 +39,7 @@ const AddOpportunity = () => {
 
   return (
     <div className="min-h-screen bg-black p-4 sm:p-6">
-      <SEO 
+      <SEO
         title="Add Opportunity"
         description="Add a new internship or hackathon opportunity to track."
         canonical="/add"
