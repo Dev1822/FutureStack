@@ -1,0 +1,87 @@
+import { FiGithub, FiTwitter, FiLinkedin } from 'react-icons/fi';
+
+const Footer = () => {
+    return (
+        <footer className="bg-black border-t border-white/10 relative overflow-hidden">
+            {/* Background Gradient */}
+            <div className="absolute inset-0 bg-gradient-to-t from-orange-500/5 to-transparent pointer-events-none" />
+
+            <div className="max-w-7xl mx-auto px-6 py-20 relative z-10">
+                <div className="grid md:grid-cols-4 gap-12 mb-20">
+                    <div className="col-span-2">
+                        <div className="flex items-center gap-2 mb-6">
+                            <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center">
+                                <span className="font-bold text-black text-xl">F</span>
+                            </div>
+                            <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">
+                                FutureTracker
+                            </span>
+                        </div>
+                        <p className="text-gray-400 leading-relaxed max-w-sm">
+                            The all-in-one workspace for students and developers.
+                            Track internships, manage hackathons, and build your future.
+                        </p>
+                    </div>
+
+                    <div>
+                        <h4 className="font-bold text-white mb-6">Product</h4>
+                        <ul className="space-y-4 text-gray-400">
+                            <li><a href="#features" className="hover:text-white transition-colors">Features</a></li>
+                            <li><a href="#faq" className="hover:text-white transition-colors">FAQ</a></li>
+                            <li><a href="/login" className="hover:text-white transition-colors">Sign In</a></li>
+                        </ul>
+                    </div>
+
+                    <div>
+                        <h4 className="font-bold text-white mb-6">Connect</h4>
+                        <div className="flex gap-4">
+                            <a
+                                href="https://github.com/Venkat-Kolasani/FutureStack"
+                                target="_blank"
+                                rel="noreferrer"
+                                className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-gray-400 hover:bg-white/10 hover:text-white transition-all hover:-translate-y-1"
+                            >
+                                <FiGithub size={20} />
+                            </a>
+                            <a
+                                href="https://twitter.com"
+                                target="_blank"
+                                rel="noreferrer"
+                                className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-gray-400 hover:bg-white/10 hover:text-white transition-all hover:-translate-y-1"
+                            >
+                                <FiTwitter size={20} />
+                            </a>
+                            <a
+                                href="https://linkedin.com"
+                                target="_blank"
+                                rel="noreferrer"
+                                className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-gray-400 hover:bg-white/10 hover:text-white transition-all hover:-translate-y-1"
+                            >
+                                <FiLinkedin size={20} />
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="border-t border-white/10 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
+                    <p className="text-sm text-gray-600">
+                        © {new Date().getFullYear()} FutureTracker. All rights reserved.
+                    </p>
+                    <div className="flex gap-8 text-sm text-gray-600">
+                        <a href="#" className="hover:text-gray-400 transition-colors">Privacy Policy</a>
+                        <a href="#" className="hover:text-gray-400 transition-colors">Terms of Service</a>
+                    </div>
+                </div>
+            </div>
+
+            {/* Large Branding Text */}
+            <div className="mt-20 select-none pointer-events-none w-full overflow-hidden flex justify-center">
+                <h1 className="text-[10vw] leading-none font-bold text-white/5 text-center whitespace-nowrap">
+                    FUTURE TRACKER
+                </h1>
+            </div>
+        </footer>
+    );
+};
+
+export default Footer;
