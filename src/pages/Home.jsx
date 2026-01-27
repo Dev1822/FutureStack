@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { FiActivity, FiBriefcase, FiCode, FiArrowRight, FiGithub, FiLinkedin, FiTwitter, FiFileText, FiCalendar } from 'react-icons/fi';
+import { FiActivity, FiBriefcase, FiCode, FiArrowRight, FiFileText, FiCalendar } from 'react-icons/fi';
 import { SignInButton, SignUpButton, SignedIn, SignedOut, UserButton } from '@clerk/clerk-react';
 import SEO from '../components/seo/SEO';
 import FAQ from '../components/common/FAQ';
