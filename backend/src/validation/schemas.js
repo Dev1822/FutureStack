@@ -154,8 +154,309 @@ const idParamSchema = Joi.object({
         })
 });
 
+// =============================================================================
+// HACKATHON TEAM COLLABORATION SCHEMAS
+// =============================================================================
+
+/**
+ * Validation schema for creating a hackathon team
+ */
+const createTeamSchema = Joi.object({
+    name: Joi.string()
+        .trim()
+        .min(1)
+        .max(100)
+        .required()
+        .messages({
+            'string.empty': 'Team name is required',
+            'string.min': 'Team name must be at least 1 character long',
+            'string.max': 'Team name cannot exceed 100 characters',
+            'any.required': 'Team name is required'
+        }),
+
+    description: Joi.string()
+        .trim()
+        .max(500)
+        .allow(null, '')
+        .optional()
+        .messages({
+            'string.max': 'Description cannot exceed 500 characters'
+        })
+});
+
+/**
+ * Validation schema for updating a hackathon team
+ */
+const updateTeamSchema = Joi.object({
+    name: Joi.string()
+        .trim()
+        .min(1)
+        .max(100)
+        .optional()
+        .messages({
+            'string.empty': 'Team name cannot be empty',
+            'string.max': 'Team name cannot exceed 100 characters'
+        }),
+
+    description: Joi.string()
+        .trim()
+        .max(500)
+        .allow(null, '')
+        .optional()
+        .messages({
+            'string.max': 'Description cannot exceed 500 characters'
+        })
+}).min(1);
+
+/**
+ * Validation schema for creating a team member
+ */
+const createTeamMemberSchema = Joi.object({
+    name: Joi.string()
+        .trim()
+        .min(1)
+        .max(100)
+        .required()
+        .messages({
+            'string.empty': 'Member name is required',
+            'any.required': 'Member name is required'
+        }),
+
+    role: Joi.string()
+        .trim()
+        .max(50)
+        .allow(null, '')
+        .optional()
+        .messages({
+            'string.max': 'Role cannot exceed 50 characters'
+        }),
+
+    email: Joi.string()
+        .trim()
+        .email()
+        .max(200)
+        .allow(null, '')
+        .optional()
+        .messages({
+            'string.email': 'Invalid email format'
+        })
+});
+
+/**
+ * Validation schema for updating a team member
+ */
+const updateTeamMemberSchema = Joi.object({
+    name: Joi.string()
+        .trim()
+        .min(1)
+        .max(100)
+        .optional(),
+
+    role: Joi.string()
+        .trim()
+        .max(50)
+        .allow(null, '')
+        .optional(),
+
+    email: Joi.string()
+        .trim()
+        .email()
+        .max(200)
+        .allow(null, '')
+        .optional()
+}).min(1);
+
+/**
+ * Validation schema for creating a brainstorm idea
+ */
+const createIdeaSchema = Joi.object({
+    title: Joi.string()
+        .trim()
+        .min(1)
+        .max(200)
+        .required()
+        .messages({
+            'string.empty': 'Idea title is required',
+            'any.required': 'Idea title is required'
+        }),
+
+    description: Joi.string()
+        .trim()
+        .max(2000)
+        .allow(null, '')
+        .optional(),
+
+    category: Joi.string()
+        .valid('feature', 'design', 'tech', 'other')
+        .optional()
+        .messages({
+            'any.only': 'Category must be one of: feature, design, tech, other'
+        })
+});
+
+/**
+ * Validation schema for updating a brainstorm idea
+ */
+const updateIdeaSchema = Joi.object({
+    title: Joi.string()
+        .trim()
+        .min(1)
+        .max(200)
+        .optional(),
+
+    description: Joi.string()
+        .trim()
+        .max(2000)
+        .allow(null, '')
+        .optional(),
+
+    category: Joi.string()
+        .valid('feature', 'design', 'tech', 'other')
+        .optional(),
+
+    votes: Joi.number()
+        .integer()
+        .min(0)
+        .optional(),
+
+    is_selected: Joi.boolean()
+        .optional()
+}).min(1);
+
+/**
+ * Validation schema for creating a hackathon task
+ */
+const createTaskSchema = Joi.object({
+    title: Joi.string()
+        .trim()
+        .min(1)
+        .max(200)
+        .required()
+        .messages({
+            'string.empty': 'Task title is required',
+            'any.required': 'Task title is required'
+        }),
+
+    description: Joi.string()
+        .trim()
+        .max(2000)
+        .allow(null, '')
+        .optional(),
+
+    assigned_to: Joi.string()
+        .trim()
+        .max(100)
+        .allow(null, '')
+        .optional(),
+
+    status: Joi.string()
+        .valid('todo', 'in_progress', 'done')
+        .optional()
+        .messages({
+            'any.only': 'Status must be one of: todo, in_progress, done'
+        }),
+
+    priority: Joi.string()
+        .valid('low', 'medium', 'high')
+        .optional()
+        .messages({
+            'any.only': 'Priority must be one of: low, medium, high'
+        }),
+
+    due_date: Joi.date()
+        .iso()
+        .allow(null)
+        .optional()
+});
+
+/**
+ * Validation schema for updating a hackathon task
+ */
+const updateTaskSchema = Joi.object({
+    title: Joi.string()
+        .trim()
+        .min(1)
+        .max(200)
+        .optional(),
+
+    description: Joi.string()
+        .trim()
+        .max(2000)
+        .allow(null, '')
+        .optional(),
+
+    assigned_to: Joi.string()
+        .trim()
+        .max(100)
+        .allow(null, '')
+        .optional(),
+
+    status: Joi.string()
+        .valid('todo', 'in_progress', 'done')
+        .optional(),
+
+    priority: Joi.string()
+        .valid('low', 'medium', 'high')
+        .optional(),
+
+    due_date: Joi.date()
+        .iso()
+        .allow(null)
+        .optional()
+}).min(1);
+
+/**
+ * Validation schema for creating a checklist item
+ */
+const createChecklistItemSchema = Joi.object({
+    title: Joi.string()
+        .trim()
+        .min(1)
+        .max(200)
+        .required()
+        .messages({
+            'string.empty': 'Checklist item title is required',
+            'any.required': 'Checklist item title is required'
+        }),
+
+    sort_order: Joi.number()
+        .integer()
+        .min(0)
+        .optional()
+});
+
+/**
+ * Validation schema for updating a checklist item
+ */
+const updateChecklistItemSchema = Joi.object({
+    title: Joi.string()
+        .trim()
+        .min(1)
+        .max(200)
+        .optional(),
+
+    is_completed: Joi.boolean()
+        .optional(),
+
+    sort_order: Joi.number()
+        .integer()
+        .min(0)
+        .optional()
+}).min(1);
+
 module.exports = {
     createOpportunitySchema,
     updateOpportunitySchema,
-    idParamSchema
+    idParamSchema,
+    // Hackathon team collaboration
+    createTeamSchema,
+    updateTeamSchema,
+    createTeamMemberSchema,
+    updateTeamMemberSchema,
+    createIdeaSchema,
+    updateIdeaSchema,
+    createTaskSchema,
+    updateTaskSchema,
+    createChecklistItemSchema,
+    updateChecklistItemSchema
 };

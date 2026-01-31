@@ -21,7 +21,8 @@ import {
     FaFilePdf,
     FaLink,
     FaFile,
-    FaDownload
+    FaDownload,
+    FaUsers
 } from 'react-icons/fa';
 import Button from '../common/Button';
 import { getDaysRemaining, isOverdue, formatDate } from '../../utils/dateHelpers';
@@ -58,8 +59,9 @@ const documentTypeConfig = {
  * @param {Function} props.onClose - Callback when modal is closed
  * @param {Function} props.onEdit - Callback when Edit is clicked (receives opportunity.id)
  * @param {Function} props.onDelete - Callback when Delete is clicked (receives opportunity.id)
+ * @param {Function} props.onManage - Callback when Manage is clicked for hackathons (receives opportunity.id)
  */
-const OpportunityDetailModal = ({ opportunity, isOpen, onClose, onEdit, onDelete }) => {
+const OpportunityDetailModal = ({ opportunity, isOpen, onClose, onEdit, onDelete, onManage }) => {
     const [documents, setDocuments] = useState([]);
     const [loadingDocs, setLoadingDocs] = useState(false);
 
@@ -279,6 +281,16 @@ const OpportunityDetailModal = ({ opportunity, isOpen, onClose, onEdit, onDelete
                     {/* Fixed Footer with Actions */}
                     <div className="p-6 border-t border-white/10 bg-[#0A0A0A]">
                         <div className="flex gap-3">
+                            {opportunity.category === 'hackathon' && onManage && (
+                                <Button
+                                    variant="secondary"
+                                    onClick={() => onManage(opportunity.id)}
+                                    className="flex-1"
+                                >
+                                    <FaUsers className="mr-2" size={14} />
+                                    Manage Project
+                                </Button>
+                            )}
                             <Button
                                 variant="primary"
                                 onClick={() => onEdit(opportunity.id)}

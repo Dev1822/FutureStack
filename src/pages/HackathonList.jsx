@@ -96,6 +96,12 @@ const HackathonList = () => {
     navigate(`/edit/${id}`);
   };
 
+  // Manage team handler - navigates to hackathon detail page
+  const handleManage = (id) => {
+    setSelectedOpportunity(null);
+    navigate(`/hackathons/${id}`);
+  };
+
   // Delete handlers
   const handleDeleteClick = (id) => {
     setSelectedOpportunity(null);
@@ -222,6 +228,7 @@ const HackathonList = () => {
           onClose={handleCloseDetail}
           onEdit={handleEdit}
           onDelete={handleDeleteClick}
+          onManage={handleManage}
         />
 
         {/* Delete Confirmation Modal */}

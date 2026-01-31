@@ -10,6 +10,7 @@ const { requireAuth } = require('./middleware/auth');
 const opportunitiesRoutes = require('./routes/opportunities');
 const analyticsRoutes = require('./routes/analytics');
 const documentsRoutes = require('./routes/documents');
+const hackathonsRoutes = require('./routes/hackathons');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -195,6 +196,7 @@ app.get('/api/health', (req, res) => {
 app.use('/api/opportunities', requireAuth, writeOperationsLimiter, opportunitiesRoutes);
 app.use('/api/analytics', requireAuth, analyticsRoutes);
 app.use('/api/documents', requireAuth, writeOperationsLimiter, documentsRoutes);
+app.use('/api/hackathons', requireAuth, writeOperationsLimiter, hackathonsRoutes);
 
 // User info endpoint
 app.get('/api/me', requireAuth, (req, res) => {
