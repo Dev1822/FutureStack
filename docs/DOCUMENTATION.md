@@ -437,9 +437,63 @@ api.interceptors.response.use(
 
 **Problem**: The custom calendar view was showing misaligned days, with the Sunday column wrapping to the next line, causing significant confusion.
 
-**Root Cause**: A custom `margin: 2px` on calendar tiles was increasing the total width of the flex container beyond 100% (7 days * ~14.28% + margins > 100%), forcing the 7th element to wrap.
-
 **Solution**: Removed the margin and relied on borders for visual separation, ensuring the 7-column grid fits perfectly within the container.
+
+---
+
+## Hackathon Team Collaboration (NEW)
+
+A comprehensive collaboration workspace for hackathon participants, enabling team management, idea brainstorming, task assignment, and submission tracking.
+
+### Database Schema
+
+5 new tables with Row Level Security:
+
+| Table | Purpose |
+|-------|---------|
+| `hackathon_teams` | One team per hackathon with name and description |
+| `team_members` | Name-based members with roles (no account linking) |
+| `brainstorm_ideas` | Ideas with voting, categories, and selection |
+| `hackathon_tasks` | Kanban-style tasks with priorities and assignments |
+| `submission_checklist` | Checklist items with completion tracking |
+
+### API Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET/POST/PUT | `/api/hackathons/:id/team` | Team CRUD |
+| POST/PUT/DELETE | `/api/hackathons/:id/team/members` | Member management |
+| GET/POST/PUT/DELETE | `/api/hackathons/:id/ideas` | Idea brainstorming |
+| POST | `/api/hackathons/:id/ideas/:id/vote` | Upvote idea |
+| GET/POST/PUT/DELETE | `/api/hackathons/:id/tasks` | Task management |
+| GET/POST/PUT/DELETE | `/api/hackathons/:id/checklist` | Checklist management |
+
+### Frontend Components
+
+```
+src/components/hackathons/
+├── TeamManagementPanel.jsx    # Team creation, member management
+├── IdeaBrainstormingBoard.jsx # Ideas grid with voting & categories
+├── TaskBoard.jsx              # Kanban with 3 columns
+└── SubmissionChecklist.jsx    # Progress bar & completion tracking
+```
+
+### HackathonDetail Page
+
+Tabbed interface with 5 sections:
+1. **Overview** - Hackathon description and notes
+2. **Team** - Create team, add/remove members, edit roles
+3. **Ideas** - Brainstorm and vote on project ideas
+4. **Tasks** - Kanban board with priorities and assignments
+5. **Checklist** - Track submission requirements
+
+### Setup
+
+Run the migration SQL in Supabase:
+```bash
+# In Supabase SQL Editor, paste contents of:
+docs/hackathon-collaboration-migration.sql
+```
 
 ---
 
@@ -456,9 +510,10 @@ api.interceptors.response.use(
 - [ ] **AI Suggestions**: Auto-fill company details, suggest similar opportunities
 
 ### Long-Term Vision
-- [ ] **Team Features**: Share applications with mentors/career counselors
+- [x] **Team Features**: ~~Share applications with mentors/career counselors~~ → Implemented as Hackathon Team Collaboration
 - [ ] **Job Board Integration**: Pull listings from LinkedIn, Glassdoor, etc.
 - [ ] **Analytics Insights**: ML-powered predictions on success likelihood
+
 
 ---
 

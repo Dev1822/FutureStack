@@ -179,5 +179,110 @@ export const healthCheck = async () => {
     return response.data;
 };
 
-export default api;
+// =============================================================================
+// HACKATHON TEAM COLLABORATION SERVICE
+// =============================================================================
 
+export const hackathonService = {
+    // Team management
+    getTeam: async (opportunityId) => {
+        const response = await api.get(`/hackathons/${opportunityId}/team`);
+        return response.data;
+    },
+
+    createTeam: async (opportunityId, data) => {
+        const response = await api.post(`/hackathons/${opportunityId}/team`, data);
+        return response.data;
+    },
+
+    updateTeam: async (opportunityId, data) => {
+        const response = await api.put(`/hackathons/${opportunityId}/team`, data);
+        return response.data;
+    },
+
+    // Team members
+    addMember: async (opportunityId, data) => {
+        const response = await api.post(`/hackathons/${opportunityId}/team/members`, data);
+        return response.data;
+    },
+
+    updateMember: async (opportunityId, memberId, data) => {
+        const response = await api.put(`/hackathons/${opportunityId}/team/members/${memberId}`, data);
+        return response.data;
+    },
+
+    removeMember: async (opportunityId, memberId) => {
+        const response = await api.delete(`/hackathons/${opportunityId}/team/members/${memberId}`);
+        return response.data;
+    },
+
+    // Ideas
+    getIdeas: async (opportunityId) => {
+        const response = await api.get(`/hackathons/${opportunityId}/ideas`);
+        return response.data;
+    },
+
+    createIdea: async (opportunityId, data) => {
+        const response = await api.post(`/hackathons/${opportunityId}/ideas`, data);
+        return response.data;
+    },
+
+    updateIdea: async (opportunityId, ideaId, data) => {
+        const response = await api.put(`/hackathons/${opportunityId}/ideas/${ideaId}`, data);
+        return response.data;
+    },
+
+    deleteIdea: async (opportunityId, ideaId) => {
+        const response = await api.delete(`/hackathons/${opportunityId}/ideas/${ideaId}`);
+        return response.data;
+    },
+
+    voteIdea: async (opportunityId, ideaId) => {
+        const response = await api.post(`/hackathons/${opportunityId}/ideas/${ideaId}/vote`);
+        return response.data;
+    },
+
+    // Tasks
+    getTasks: async (opportunityId) => {
+        const response = await api.get(`/hackathons/${opportunityId}/tasks`);
+        return response.data;
+    },
+
+    createTask: async (opportunityId, data) => {
+        const response = await api.post(`/hackathons/${opportunityId}/tasks`, data);
+        return response.data;
+    },
+
+    updateTask: async (opportunityId, taskId, data) => {
+        const response = await api.put(`/hackathons/${opportunityId}/tasks/${taskId}`, data);
+        return response.data;
+    },
+
+    deleteTask: async (opportunityId, taskId) => {
+        const response = await api.delete(`/hackathons/${opportunityId}/tasks/${taskId}`);
+        return response.data;
+    },
+
+    // Checklist
+    getChecklist: async (opportunityId) => {
+        const response = await api.get(`/hackathons/${opportunityId}/checklist`);
+        return response.data;
+    },
+
+    addChecklistItem: async (opportunityId, data) => {
+        const response = await api.post(`/hackathons/${opportunityId}/checklist`, data);
+        return response.data;
+    },
+
+    updateChecklistItem: async (opportunityId, itemId, data) => {
+        const response = await api.put(`/hackathons/${opportunityId}/checklist/${itemId}`, data);
+        return response.data;
+    },
+
+    deleteChecklistItem: async (opportunityId, itemId) => {
+        const response = await api.delete(`/hackathons/${opportunityId}/checklist/${itemId}`);
+        return response.data;
+    }
+};
+
+export default api;
