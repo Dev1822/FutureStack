@@ -208,6 +208,9 @@ CORS_ORIGIN=http://localhost:3000
 # Clerk Authentication
 CLERK_SECRET_KEY=sk_test_...
 
+# Clerk JWT Public Key (recommended for production - see below)
+# CLERK_JWT_PUBLIC_KEY=-----BEGIN PUBLIC KEY-----\nMIIB...\n-----END PUBLIC KEY-----
+
 # Supabase Database
 SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=eyJ...
@@ -232,9 +235,26 @@ SUPABASE_SERVICE_ROLE_KEY=eyJ...
    - `NODE_ENV=production`
    - `CORS_ORIGIN` (your Vercel frontend URL)
    - `CLERK_SECRET_KEY`
+   - `CLERK_JWT_PUBLIC_KEY` (recommended - see note below)
    - `SUPABASE_URL`
    - `SUPABASE_SERVICE_ROLE_KEY`
 4. Deploy
+
+#### CLERK_JWT_PUBLIC_KEY (Recommended for Production)
+
+Setting `CLERK_JWT_PUBLIC_KEY` enables **local JWT verification** without network calls to Clerk's JWKS endpoint. This prevents `TypeError: fetch failed` errors that can occur on cloud platforms.
+
+**To get the key:**
+1. Go to [Clerk Dashboard](https://dashboard.clerk.com) > Configure > API Keys
+2. Click "Show JWT Public Key"
+3. Copy the entire PEM key
+
+**Format:** If your hosting doesn't support multi-line env vars, replace newlines with `\n`:
+```
+-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkq...\n-----END PUBLIC KEY-----
+```
+
+The middleware automatically normalizes both formats.
 
 ## 📁 Project Structure
 

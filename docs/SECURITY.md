@@ -302,9 +302,32 @@ CORS_ORIGIN=https://your-frontend-domain.com
 # Clerk Authentication
 CLERK_SECRET_KEY=your_clerk_secret_key_here
 
+# Clerk JWT Public Key (RECOMMENDED - enables networkless JWT verification)
+# Prevents "TypeError: fetch failed" errors on Render/Railway/etc.
+# Get from: Clerk Dashboard > Configure > API Keys > Show JWT Public Key
+# Format: Use \n for newlines if your hosting doesn't support multi-line values
+CLERK_JWT_PUBLIC_KEY=-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkq...\n-----END PUBLIC KEY-----
+
 # Supabase
 SUPABASE_URL=your_supabase_url_here
 SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key_here
+```
+
+#### CLERK_JWT_PUBLIC_KEY
+
+This variable enables **local JWT verification** without making network calls to Clerk's JWKS endpoint on every request. Benefits:
+
+- **Reliability**: Eliminates `TypeError: fetch failed` errors caused by network issues
+- **Performance**: Faster JWT verification (no external HTTP call)
+- **Resilience**: Auth works even if Clerk's JWKS endpoint is temporarily unavailable
+
+**Accepted formats** (the middleware normalizes automatically):
+1. **Multi-line PEM** - if your hosting supports multi-line environment variables
+2. **Single-line with `\n` escapes** - replace actual newlines with `\n` (most common)
+
+**Example single-line format:**
+```
+-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA...\n-----END PUBLIC KEY-----
 ```
 
 **Security Best Practices**:

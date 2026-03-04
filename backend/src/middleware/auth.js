@@ -7,6 +7,26 @@ const userCache = new Map();
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
 /**
+ * Normalize PEM key from environment variable
+ * Handles both multi-line PEM and single-line with escaped newlines (\n)
+ * Also strips surrounding quotes that some env parsers add
+ */
+function normalizePemKey(key) {
+    if (!key) return null;
+    
+    return key
+        .trim()
+        // Remove surrounding quotes (single or double) that some env parsers add
+        .replace(/^["']|["']$/g, '')
+        // Convert escaped newlines to actual newlines (common on Render, Railway, etc.)
+        .replace(/\\n/g, '\n');
+}
+
+// Log startup configuration (without exposing secrets)
+const jwtPublicKeyConfigured = !!process.env.CLERK_JWT_PUBLIC_KEY;
+console.log(`Auth: JWT public key configured: ${jwtPublicKeyConfigured} (networkless verification ${jwtPublicKeyConfigured ? 'enabled' : 'disabled'})`);
+
+/**
  * Clerk JWT Authentication Middleware
  * Validates Bearer token and attaches user info to request
  * 
@@ -33,8 +53,9 @@ const requireAuth = async (req, res, next) => {
 
         // Use JWT public key for local verification if available (recommended for production)
         // This avoids network calls to Clerk's JWKS endpoint
-        if (process.env.CLERK_JWT_PUBLIC_KEY) {
-            verifyOptions.jwtKey = process.env.CLERK_JWT_PUBLIC_KEY;
+        const jwtKey = normalizePemKey(process.env.CLERK_JWT_PUBLIC_KEY);
+        if (jwtKey) {
+            verifyOptions.jwtKey = jwtKey;
         }
 
         // Verify the JWT

@@ -23,9 +23,20 @@ npm run dev
 | `PORT` | Server port (default: 3001) | - |
 | `NODE_ENV` | Environment (development/production) | - |
 | `CORS_ORIGIN` | Frontend URL for CORS | Your frontend URL |
-| `CLERK_SECRET_KEY` | Clerk secret key (starts with `sk_`) | [Clerk Dashboard](https://clerk.com) → API Keys |
-| `SUPABASE_URL` | Supabase project URL | [Supabase Dashboard](https://supabase.com) → Settings → API |
-| `SUPABASE_SERVICE_ROLE_KEY` | Service role key (⚠️ secret!) | Supabase Dashboard → Settings → API |
+| `CLERK_SECRET_KEY` | Clerk secret key (starts with `sk_`) | [Clerk Dashboard](https://clerk.com) > API Keys |
+| `CLERK_JWT_PUBLIC_KEY` | JWT public key for local verification (recommended for production) | [Clerk Dashboard](https://clerk.com) > API Keys > Show JWT Public Key |
+| `SUPABASE_URL` | Supabase project URL | [Supabase Dashboard](https://supabase.com) > Settings > API |
+| `SUPABASE_SERVICE_ROLE_KEY` | Service role key (secret!) | Supabase Dashboard > Settings > API |
+
+### CLERK_JWT_PUBLIC_KEY (Production)
+
+Setting this variable enables **local JWT verification** without network calls to Clerk's JWKS endpoint. This prevents `TypeError: fetch failed` errors that can occur on platforms like Render or Railway.
+
+**Accepted formats:**
+- Multi-line PEM (if your hosting supports it)
+- Single-line with `\n` escape sequences (most common)
+
+The middleware automatically normalizes escaped newlines, so both formats work.
 
 ## API Endpoints
 
