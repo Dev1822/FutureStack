@@ -1,5 +1,10 @@
-const { verifyToken } = require('@clerk/express');
+const { createClerkClient } = require('@clerk/express');
 const { supabase } = require('../lib/supabase');
+
+// Initialize Clerk client with secret key
+const clerkClient = createClerkClient({
+    secretKey: process.env.CLERK_SECRET_KEY,
+});
 
 // In-memory cache for user IDs to avoid database lookups on every request
 // Key: clerk_id, Value: { internalUserId, timestamp }
@@ -8,7 +13,13 @@ const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
 /**
  * Clerk JWT Authentication Middleware
- * Validates Bearer token and attaches user info to request
+ * Validates Bearer token and attaches user info to request.
+ * 
+ * Supports two verification modes:
+ * 1. Network mode (default): Uses CLERK_SECRET_KEY to fetch JWKS from Clerk's API
+ * 2. Networkless mode: Uses CLERK_JWT_KEY (PEM public key) for local verification
+ *    - Get this from Clerk Dashboard > API Keys > Advanced > JWT Public Key
+ *    - This avoids outbound HTTP requests and is more reliable on some hosting platforms
  */
 const requireAuth = async (req, res, next) => {
     try {
@@ -23,10 +34,34 @@ const requireAuth = async (req, res, next) => {
 
         const token = authHeader.split(' ')[1];
 
-        // Verify the JWT using Clerk's secret key
-        const payload = await verifyToken(token, {
-            secretKey: process.env.CLERK_SECRET_KEY
-        });
+        // Build verification options
+        const verifyOptions = {
+            secretKey: process.env.CLERK_SECRET_KEY,
+        };
+
+        // Use jwtKey for networkless verification if available
+        // This avoids the "TypeError: fetch failed" issue on some hosting platforms
+        if (process.env.CLERK_JWT_KEY) {
+            verifyOptions.jwtKey = process.env.CLERK_JWT_KEY;
+        }
+
+        // Verify the JWT using Clerk client
+        let payload;
+        try {
+            payload = await clerkClient.verifyToken(token, verifyOptions);
+        } catch (verifyError) {
+            // If network verification fails and we don't have jwtKey, provide helpful error
+            if (verifyError.message?.includes('fetch failed') || verifyError.message?.includes('ECONNREFUSED') || verifyError.message?.includes('ENOTFOUND')) {
+                console.error('Auth: Network error verifying token - cannot reach Clerk API.', verifyError.message);
+                console.error('Auth: Consider setting CLERK_JWT_KEY env var for networkless verification.');
+                console.error('Auth: Get the PEM key from Clerk Dashboard > API Keys > Advanced > JWT Public Key');
+                return res.status(503).json({
+                    error: 'Service Unavailable',
+                    message: 'Authentication service temporarily unavailable. Please try again in a moment.'
+                });
+            }
+            throw verifyError; // Re-throw other errors (expired, malformed, etc.)
+        }
 
         if (!payload) {
             return res.status(401).json({
@@ -126,4 +161,3 @@ async function ensureUserExists(auth) {
 }
 
 module.exports = { requireAuth };
-
