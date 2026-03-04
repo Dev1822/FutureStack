@@ -1,15 +1,14 @@
-const { createClerkClient } = require('@clerk/express');
+const { verifyToken } = require('@clerk/backend');
 const { supabase } = require('../lib/supabase');
-
-// Initialize Clerk client with secret key
-const clerkClient = createClerkClient({
-    secretKey: process.env.CLERK_SECRET_KEY,
-});
 
 // In-memory cache for user IDs to avoid database lookups on every request
 // Key: clerk_id, Value: { internalUserId, timestamp }
 const userCache = new Map();
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+// Log configuration on startup
+const hasJwtKey = !!process.env.CLERK_JWT_KEY;
+console.log(`Auth config: networkless verification ${hasJwtKey ? 'ENABLED (CLERK_JWT_KEY set)' : 'DISABLED (no CLERK_JWT_KEY — will fetch JWKS from Clerk API)'}`);
 
 /**
  * Clerk JWT Authentication Middleware
@@ -18,8 +17,8 @@ const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
  * Supports two verification modes:
  * 1. Network mode (default): Uses CLERK_SECRET_KEY to fetch JWKS from Clerk's API
  * 2. Networkless mode: Uses CLERK_JWT_KEY (PEM public key) for local verification
- *    - Get this from Clerk Dashboard > API Keys > Advanced > JWT Public Key
- *    - This avoids outbound HTTP requests and is more reliable on some hosting platforms
+ *    - Get this from Clerk Dashboard > API Keys > Advanced > PEM Public Key
+ *    - This avoids outbound HTTP requests and is more reliable on Render/Railway
  */
 const requireAuth = async (req, res, next) => {
     try {
@@ -35,26 +34,28 @@ const requireAuth = async (req, res, next) => {
         const token = authHeader.split(' ')[1];
 
         // Build verification options
-        const verifyOptions = {
-            secretKey: process.env.CLERK_SECRET_KEY,
-        };
+        // If CLERK_JWT_KEY is set, use networkless verification (no outbound HTTP needed)
+        // Otherwise fall back to secretKey which requires fetching JWKS from Clerk
+        const verifyOptions = {};
 
-        // Use jwtKey for networkless verification if available
-        // This avoids the "TypeError: fetch failed" issue on some hosting platforms
         if (process.env.CLERK_JWT_KEY) {
             verifyOptions.jwtKey = process.env.CLERK_JWT_KEY;
+        } else {
+            verifyOptions.secretKey = process.env.CLERK_SECRET_KEY;
         }
 
-        // Verify the JWT using Clerk client
+        // Verify the JWT
         let payload;
         try {
-            payload = await clerkClient.verifyToken(token, verifyOptions);
+            payload = await verifyToken(token, verifyOptions);
         } catch (verifyError) {
-            // If network verification fails and we don't have jwtKey, provide helpful error
-            if (verifyError.message?.includes('fetch failed') || verifyError.message?.includes('ECONNREFUSED') || verifyError.message?.includes('ENOTFOUND')) {
-                console.error('Auth: Network error verifying token - cannot reach Clerk API.', verifyError.message);
-                console.error('Auth: Consider setting CLERK_JWT_KEY env var for networkless verification.');
-                console.error('Auth: Get the PEM key from Clerk Dashboard > API Keys > Advanced > JWT Public Key');
+            // If network verification fails, provide helpful error
+            if (verifyError.message?.includes('fetch failed') ||
+                verifyError.message?.includes('ECONNREFUSED') ||
+                verifyError.message?.includes('ENOTFOUND')) {
+                console.error('Auth: Network error verifying token — cannot reach Clerk API.', verifyError.message);
+                console.error('Auth: Set CLERK_JWT_KEY env var for networkless verification.');
+                console.error('Auth: Get the PEM key from Clerk Dashboard > API Keys > Advanced > PEM Public Key');
                 return res.status(503).json({
                     error: 'Service Unavailable',
                     message: 'Authentication service temporarily unavailable. Please try again in a moment.'
@@ -77,21 +78,18 @@ const requireAuth = async (req, res, next) => {
             email: payload.email
         };
 
-        // Get or create user (with caching)
+        // Get or create user in Supabase (with caching)
         await ensureUserExists(req.auth);
 
         next();
     } catch (error) {
         console.error('Auth middleware error:', error.message);
 
-        // Provide more specific error messages based on error type
         let message = 'Token verification failed';
         if (error.message?.includes('expired')) {
             message = 'Token has expired';
         } else if (error.message?.includes('malformed') || error.message?.includes('invalid')) {
             message = 'Malformed or invalid token';
-        } else if (error.code === 'ENOTFOUND' || error.code === 'ECONNREFUSED') {
-            message = 'Authentication service unavailable';
         }
 
         return res.status(401).json({
@@ -115,7 +113,7 @@ async function ensureUserExists(auth) {
         return;
     }
 
-    // Try to find existing user first (faster than upsert for existing users)
+    // Try to find existing user
     const { data: existingUser, error: selectError } = await supabase
         .from('users')
         .select('id')
@@ -125,7 +123,6 @@ async function ensureUserExists(auth) {
     if (selectError) throw selectError;
 
     if (existingUser) {
-        // Cache and return
         userCache.set(userId, { internalUserId: existingUser.id, timestamp: Date.now() });
         auth.internalUserId = existingUser.id;
         return;
@@ -139,8 +136,8 @@ async function ensureUserExists(auth) {
         .single();
 
     if (insertError) {
-        // Handle race condition - another request may have created the user
-        if (insertError.code === '23505') { // Unique violation
+        // Handle race condition
+        if (insertError.code === '23505') {
             const { data: raceUser } = await supabase
                 .from('users')
                 .select('id')
@@ -155,7 +152,6 @@ async function ensureUserExists(auth) {
         throw insertError;
     }
 
-    // Cache and return
     userCache.set(userId, { internalUserId: newUser.id, timestamp: Date.now() });
     auth.internalUserId = newUser.id;
 }
