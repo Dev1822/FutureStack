@@ -1016,5 +1016,42 @@ Implemented 4 Schema.org schemas in `public/index.html`:
 - `NODE_ENV` - Set to `production`
 - `CORS_ORIGIN` - Frontend URL (https://futuretracker.online)
 - `CLERK_SECRET_KEY` - Clerk secret key (must match frontend's publishable key environment)
+- `CLERK_JWT_KEY` - *(Recommended)* Clerk JWT public key (PEM format) for networkless token verification. Get from: Clerk Dashboard > API Keys > Advanced > JWT Public Key. Without this, the backend must fetch JWKS from Clerk's API on every request, which can fail on Render with `TypeError: fetch failed`.
 - `SUPABASE_URL` - Supabase project URL
 - `SUPABASE_SERVICE_ROLE_KEY` - Supabase service role key
+
+---
+
+## Troubleshooting
+
+### "Session expired" / "Failed to load opportunities" on Dashboard
+
+**Symptoms:** Dashboard loads briefly, shows "Session expired. Please sign in again." and "Failed to load opportunities", then redirects to home.
+
+**Root Cause:** The backend returns HTTP 401 because JWT token verification fails.
+
+**Check Render Logs for:**
+
+| Log Message | Cause | Fix |
+|-------------|-------|-----|
+| `TypeError: fetch failed` | Backend can't reach Clerk's JWKS endpoint | Set `CLERK_JWT_KEY` env var on Render (see above) |
+| `Token has expired` | JWT token is stale | Check Clerk dashboard for token lifetime settings |
+| `Malformed or invalid token` | Frontend sending wrong token | Verify `CLERK_SECRET_KEY` matches frontend's Clerk environment |
+| `Service Unavailable` (503) | Transient network issue to Clerk API | Wait and retry, or set `CLERK_JWT_KEY` for permanent fix |
+
+**Quick Diagnostic Commands:**
+```bash
+# Check if backend is alive
+curl https://futurestack-api.onrender.com/api/health
+
+# Test CORS preflight
+curl -X OPTIONS -H "Origin: https://futuretracker.online" \
+  -H "Access-Control-Request-Method: GET" \
+  -H "Access-Control-Request-Headers: Authorization" \
+  https://futurestack-api.onrender.com/api/opportunities
+
+# Test auth (should return 401 with helpful message)
+curl -H "Origin: https://futuretracker.online" \
+  https://futurestack-api.onrender.com/api/opportunities
+```
+

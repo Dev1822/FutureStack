@@ -1,10 +1,14 @@
-const { verifyToken } = require('@clerk/express');
+const { verifyToken } = require('@clerk/backend');
 const { supabase } = require('../lib/supabase');
 
 // In-memory cache for user IDs to avoid database lookups on every request
 // Key: clerk_id, Value: { internalUserId, timestamp }
 const userCache = new Map();
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+// Log configuration on startup
+const hasJwtKey = !!process.env.CLERK_JWT_KEY;
+console.log(`Auth config: networkless verification ${hasJwtKey ? 'ENABLED (CLERK_JWT_KEY set)' : 'DISABLED (no CLERK_JWT_KEY — will fetch JWKS from Clerk API)'}`);
 
 /**
  * Clerk JWT Authentication Middleware
@@ -39,6 +43,43 @@ const requireAuth = async (req, res, next) => {
 
         // Verify the JWT
         const payload = await verifyToken(token, verifyOptions);
+        let jwtKey = process.env.CLERK_JWT_KEY;
+
+        // Render sometimes saves newlines as literal '\n' strings which breaks PEM parsing
+        if (jwtKey && jwtKey.includes('\\n')) {
+            jwtKey = jwtKey.replace(/\\n/g, '\n');
+        }
+
+        const verifyOptions = {};
+
+        if (jwtKey) {
+            verifyOptions.jwtKey = jwtKey;
+            console.log('Auth: Verifying strictly with local PEM key');
+        } else {
+            verifyOptions.secretKey = process.env.CLERK_SECRET_KEY;
+            console.log('Auth: CLERK_JWT_KEY missing or empty. Falling back to secretKey (NETWORK REQUEST REQUIRED)');
+        }
+
+        // Verify the JWT
+        let payload;
+        try {
+            console.log(`Auth: Token issuer check -> using options keys: ${Object.keys(verifyOptions)}`);
+            payload = await verifyToken(token, verifyOptions);
+        } catch (verifyError) {
+            // If network verification fails, provide helpful error
+            if (verifyError.message?.includes('fetch failed') ||
+                verifyError.message?.includes('ECONNREFUSED') ||
+                verifyError.message?.includes('ENOTFOUND') ||
+                verifyError.message?.includes('fetch is not defined')) {
+                console.error('Auth: Network error verifying token — cannot reach Clerk API.', verifyError.message);
+                console.error('Auth: PLEASE CHECK YOUR RENDER ENV VARS. CLERK_JWT_KEY is not being applied correctly.');
+                return res.status(503).json({
+                    error: 'Service Unavailable',
+                    message: 'Authentication service temporarily unavailable due to network restrictions. Please try again.'
+                });
+            }
+            throw verifyError; // Re-throw other errors (expired, malformed, etc.)
+        }
 
         if (!payload) {
             return res.status(401).json({
@@ -54,21 +95,18 @@ const requireAuth = async (req, res, next) => {
             email: payload.email
         };
 
-        // Get or create user (with caching)
+        // Get or create user in Supabase (with caching)
         await ensureUserExists(req.auth);
 
         next();
     } catch (error) {
         console.error('Auth middleware error:', error.message);
 
-        // Provide more specific error messages based on error type
         let message = 'Token verification failed';
         if (error.message?.includes('expired')) {
             message = 'Token has expired';
         } else if (error.message?.includes('malformed') || error.message?.includes('invalid')) {
             message = 'Malformed or invalid token';
-        } else if (error.code === 'ENOTFOUND' || error.code === 'ECONNREFUSED') {
-            message = 'Authentication service unavailable';
         }
 
         return res.status(401).json({
@@ -92,7 +130,7 @@ async function ensureUserExists(auth) {
         return;
     }
 
-    // Try to find existing user first (faster than upsert for existing users)
+    // Try to find existing user
     const { data: existingUser, error: selectError } = await supabase
         .from('users')
         .select('id')
@@ -102,7 +140,6 @@ async function ensureUserExists(auth) {
     if (selectError) throw selectError;
 
     if (existingUser) {
-        // Cache and return
         userCache.set(userId, { internalUserId: existingUser.id, timestamp: Date.now() });
         auth.internalUserId = existingUser.id;
         return;
@@ -116,8 +153,8 @@ async function ensureUserExists(auth) {
         .single();
 
     if (insertError) {
-        // Handle race condition - another request may have created the user
-        if (insertError.code === '23505') { // Unique violation
+        // Handle race condition
+        if (insertError.code === '23505') {
             const { data: raceUser } = await supabase
                 .from('users')
                 .select('id')
@@ -132,10 +169,8 @@ async function ensureUserExists(auth) {
         throw insertError;
     }
 
-    // Cache and return
     userCache.set(userId, { internalUserId: newUser.id, timestamp: Date.now() });
     auth.internalUserId = newUser.id;
 }
 
 module.exports = { requireAuth };
-
