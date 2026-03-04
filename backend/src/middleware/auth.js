@@ -9,6 +9,9 @@ const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 /**
  * Clerk JWT Authentication Middleware
  * Validates Bearer token and attaches user info to request
+ * 
+ * Uses jwtKey (PEM public key) for local verification to avoid network dependency.
+ * Get this from Clerk Dashboard > Configure > API Keys > Show JWT Public Key
  */
 const requireAuth = async (req, res, next) => {
     try {
@@ -23,10 +26,19 @@ const requireAuth = async (req, res, next) => {
 
         const token = authHeader.split(' ')[1];
 
-        // Verify the JWT using Clerk's secret key
-        const payload = await verifyToken(token, {
+        // Build verification options
+        const verifyOptions = {
             secretKey: process.env.CLERK_SECRET_KEY
-        });
+        };
+
+        // Use JWT public key for local verification if available (recommended for production)
+        // This avoids network calls to Clerk's JWKS endpoint
+        if (process.env.CLERK_JWT_PUBLIC_KEY) {
+            verifyOptions.jwtKey = process.env.CLERK_JWT_PUBLIC_KEY;
+        }
+
+        // Verify the JWT
+        const payload = await verifyToken(token, verifyOptions);
 
         if (!payload) {
             return res.status(401).json({
