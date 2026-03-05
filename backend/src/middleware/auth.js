@@ -1,4 +1,4 @@
-const { verifyToken } = require('@clerk/backend');
+const jwt = require('jsonwebtoken');
 const { supabase } = require('../lib/supabase');
 
 // In-memory cache for user IDs to avoid database lookups on every request
@@ -14,24 +14,40 @@ const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 function normalizePemKey(key) {
     if (!key) return null;
     
-    return key
+    let normalized = key
         .trim()
-        // Remove surrounding quotes (single or double) that some env parsers add
+        // Remove surrounding quotes (single or double)
         .replace(/^["']|["']$/g, '')
-        // Convert escaped newlines to actual newlines (common on Render, Railway, etc.)
+        // Convert literal \n strings to actual newlines
         .replace(/\\n/g, '\n');
+    
+    // Validate it looks like a PEM key
+    if (!normalized.includes('-----BEGIN') || !normalized.includes('-----END')) {
+        console.error('Auth: CLERK_JWT_PUBLIC_KEY does not appear to be a valid PEM key');
+        return null;
+    }
+    
+    return normalized;
 }
 
-// Log startup configuration (without exposing secrets)
-const jwtPublicKeyConfigured = !!process.env.CLERK_JWT_PUBLIC_KEY;
-console.log(`Auth: JWT public key configured: ${jwtPublicKeyConfigured} (networkless verification ${jwtPublicKeyConfigured ? 'enabled' : 'disabled'})`);
+// Initialize JWT public key on startup
+const jwtPublicKey = normalizePemKey(process.env.CLERK_JWT_PUBLIC_KEY);
+const hasPublicKey = !!jwtPublicKey;
+
+console.log(`Auth: JWT public key configured: ${hasPublicKey}`);
+if (hasPublicKey) {
+    console.log('Auth: Using local JWT verification with jsonwebtoken (no network calls)');
+} else {
+    console.error('Auth: WARNING - CLERK_JWT_PUBLIC_KEY not set or invalid!');
+    console.error('Auth: Get it from Clerk Dashboard > API Keys > Show JWT Public Key');
+}
 
 /**
  * Clerk JWT Authentication Middleware
- * Validates Bearer token and attaches user info to request
+ * Validates Bearer token using jsonwebtoken library (NO network calls)
  * 
- * Uses jwtKey (PEM public key) for local verification to avoid network dependency.
- * Get this from Clerk Dashboard > Configure > API Keys > Show JWT Public Key
+ * REQUIRED: Set CLERK_JWT_PUBLIC_KEY environment variable
+ * Get from: Clerk Dashboard > Configure > API Keys > Show JWT Public Key
  */
 const requireAuth = async (req, res, next) => {
     try {
@@ -46,51 +62,43 @@ const requireAuth = async (req, res, next) => {
 
         const token = authHeader.split(' ')[1];
 
-        // Build verification options
-        const verifyOptions = {};
-
-        // Use JWT public key for local verification if available (recommended for production)
-        // This avoids network calls to Clerk's JWKS endpoint
-        const jwtKey = normalizePemKey(process.env.CLERK_JWT_PUBLIC_KEY);
-        if (jwtKey) {
-            verifyOptions.jwtKey = jwtKey;
-        } else {
-            // Fallback to secret key (requires network call to Clerk)
-            verifyOptions.secretKey = process.env.CLERK_SECRET_KEY;
-        }
-
-        // Verify the JWT
-        let payload;
-        try {
-            payload = await verifyToken(token, verifyOptions);
-        } catch (verifyError) {
-            // If network verification fails, provide helpful error
-            if (verifyError.message?.includes('fetch failed') ||
-                verifyError.message?.includes('ECONNREFUSED') ||
-                verifyError.message?.includes('ENOTFOUND') ||
-                verifyError.message?.includes('fetch is not defined')) {
-                console.error('Auth: Network error verifying token — cannot reach Clerk API.', verifyError.message);
-                console.error('Auth: Set CLERK_JWT_PUBLIC_KEY env var to enable local verification.');
-                return res.status(503).json({
-                    error: 'Service Unavailable',
-                    message: 'Authentication service temporarily unavailable. Please try again.'
-                });
-            }
-            throw verifyError; // Re-throw other errors (expired, malformed, etc.)
-        }
-
-        if (!payload) {
-            return res.status(401).json({
-                error: 'Unauthorized',
-                message: 'Invalid token'
+        // Check if we have the public key configured
+        if (!jwtPublicKey) {
+            console.error('Auth: Cannot verify token - CLERK_JWT_PUBLIC_KEY not configured');
+            return res.status(503).json({
+                error: 'Service Unavailable',
+                message: 'Authentication not configured. Please contact support.'
             });
         }
 
+        // Verify the JWT using jsonwebtoken (completely local, no network)
+        let payload;
+        try {
+            payload = jwt.verify(token, jwtPublicKey, {
+                algorithms: ['RS256'], // Clerk uses RS256
+            });
+        } catch (verifyError) {
+            if (verifyError.name === 'TokenExpiredError') {
+                return res.status(401).json({
+                    error: 'Unauthorized',
+                    message: 'Token has expired'
+                });
+            } else if (verifyError.name === 'JsonWebTokenError') {
+                console.error('Auth: JWT verification failed:', verifyError.message);
+                return res.status(401).json({
+                    error: 'Unauthorized',
+                    message: 'Invalid token'
+                });
+            }
+            throw verifyError;
+        }
+
         // Attach user info to request
+        // Clerk JWT payload has 'sub' as user ID
         req.auth = {
             userId: payload.sub,
             sessionId: payload.sid,
-            email: payload.email
+            email: payload.email || payload.primary_email
         };
 
         // Get or create user in Supabase (with caching)
@@ -99,17 +107,9 @@ const requireAuth = async (req, res, next) => {
         next();
     } catch (error) {
         console.error('Auth middleware error:', error.message);
-
-        let message = 'Token verification failed';
-        if (error.message?.includes('expired')) {
-            message = 'Token has expired';
-        } else if (error.message?.includes('malformed') || error.message?.includes('invalid')) {
-            message = 'Malformed or invalid token';
-        }
-
         return res.status(401).json({
             error: 'Unauthorized',
-            message
+            message: 'Token verification failed'
         });
     }
 };
