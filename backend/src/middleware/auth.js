@@ -128,7 +128,10 @@ const requireAuth = async (req, res, next) => {
 
         next();
     } catch (error) {
-        console.error('Auth middleware error:', error.message);
+        console.error('Auth middleware error:', error.name, '-', error.message);
+        if (error.cause) {
+            console.error('Auth middleware error cause:', error.cause);
+        }
         return res.status(401).json({
             error: 'Unauthorized',
             message: 'Token verification failed'
@@ -150,6 +153,8 @@ async function ensureUserExists(auth) {
         return;
     }
 
+    console.log('Auth: Looking up user in Supabase:', userId);
+
     // Try to find existing user
     const { data: existingUser, error: selectError } = await supabase
         .from('users')
@@ -157,7 +162,10 @@ async function ensureUserExists(auth) {
         .eq('clerk_id', userId)
         .maybeSingle();
 
-    if (selectError) throw selectError;
+    if (selectError) {
+        console.error('Auth: Supabase select error:', selectError);
+        throw selectError;
+    }
 
     if (existingUser) {
         userCache.set(userId, { internalUserId: existingUser.id, timestamp: Date.now() });
