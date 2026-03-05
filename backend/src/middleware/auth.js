@@ -1,4 +1,5 @@
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 const { supabase } = require('../lib/supabase');
 
 // In-memory cache for user IDs to avoid database lookups on every request
@@ -30,8 +31,29 @@ function normalizePemKey(key) {
     return normalized;
 }
 
+/**
+ * Create a proper crypto KeyObject from PEM string
+ */
+function createPublicKey(pemString) {
+    if (!pemString) return null;
+    
+    try {
+        const keyObject = crypto.createPublicKey({
+            key: pemString,
+            format: 'pem'
+        });
+        console.log('Auth: Successfully created public key object');
+        return keyObject;
+    } catch (err) {
+        console.error('Auth: Failed to create public key object:', err.message);
+        console.error('Auth: PEM key first 50 chars:', pemString.substring(0, 50));
+        return null;
+    }
+}
+
 // Initialize JWT public key on startup
-const jwtPublicKey = normalizePemKey(process.env.CLERK_JWT_PUBLIC_KEY);
+const pemKey = normalizePemKey(process.env.CLERK_JWT_PUBLIC_KEY);
+const jwtPublicKey = createPublicKey(pemKey);
 const hasPublicKey = !!jwtPublicKey;
 
 console.log(`Auth: JWT public key configured: ${hasPublicKey}`);
