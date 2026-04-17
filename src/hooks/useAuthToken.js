@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from 'react';
+import { useCallback } from 'react';
 import { useAuth } from '@clerk/clerk-react';
 import { setAuthTokenGetter } from '../services/api';
 
@@ -16,12 +16,13 @@ export const useAuthToken = () => {
         return await getToken();
     }, [isSignedIn, getToken]);
 
-    useEffect(() => {
-        if (isLoaded) {
-            // Set the token getter function for the API service
-            setAuthTokenGetter(tokenGetter);
-        }
-    }, [isLoaded, tokenGetter]);
+    // Set synchronously on every render (not in useEffect).
+    // This ensures getAuthToken is available before any child component's
+    // useEffect fires, eliminating the race condition where Dashboard/other
+    // pages fire API calls before the token getter is registered.
+    if (isLoaded) {
+        setAuthTokenGetter(tokenGetter);
+    }
 
     return { isLoaded, isSignedIn };
 };

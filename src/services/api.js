@@ -46,8 +46,10 @@ api.interceptors.response.use(
 
         switch (status) {
             case 401:
+                // Don't auto-redirect — ProtectedRoute + Clerk handle actual session expiry.
+                // Auto-redirecting caused false positives when the token getter wasn't
+                // attached yet on first render (race condition on page load).
                 toast.error('Session expired. Please sign in again.');
-                setTimeout(() => { window.location.href = '/'; }, 1500);
                 break;
             case 403:
                 toast.error('You don\'t have permission to do that.');
