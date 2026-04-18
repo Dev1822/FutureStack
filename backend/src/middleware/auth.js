@@ -7,6 +7,11 @@ const { supabase } = require('../lib/supabase');
 const userCache = new Map();
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
+const isDatabaseUnavailableError = (error) => {
+    const message = String(error?.message || '').toLowerCase();
+    return message.includes('fetch failed') || message.includes('network');
+};
+
 /**
  * Normalize PEM key from environment variable
  * Handles both multi-line PEM and single-line with escaped newlines (\n)
@@ -127,20 +132,31 @@ const requireAuth = async (req, res, next) => {
         try {
             await ensureUserExists(req.auth);
         } catch (dbError) {
-            console.error('Auth bootstrap error (Supabase unavailable):', {
+            const unavailable = isDatabaseUnavailableError(dbError);
+            console.error('Auth bootstrap error:', {
+                type: 'AUTH_BOOTSTRAP_ERROR',
+                service: 'supabase',
+                unavailable,
                 message: dbError?.message,
                 code: dbError?.code,
                 details: dbError?.details
             });
-            return res.status(503).json({
-                error: 'Service Unavailable',
-                message: 'Database temporarily unavailable. Please try again shortly.'
+
+            return res.status(unavailable ? 503 : 500).json({
+                error: unavailable ? 'Service Unavailable' : 'Internal Server Error',
+                message: unavailable
+                    ? 'Database temporarily unavailable. Please try again shortly.'
+                    : 'Authentication bootstrap failed'
             });
         }
 
         next();
     } catch (error) {
-        console.error('Auth middleware error:', error.name, '-', error.message);
+        console.error('Auth middleware error:', {
+            type: 'AUTH_MIDDLEWARE_ERROR',
+            name: error?.name,
+            message: error?.message
+        });
         if (error.cause) {
             console.error('Auth middleware error cause:', error.cause);
         }

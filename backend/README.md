@@ -42,6 +42,7 @@ The middleware automatically normalizes escaped newlines, so both formats work.
 
 ### Public
 - `GET /api/health` - Health check
+- `GET /api/health/deps` - Dependency health check (Supabase reachability)
 
 ### Protected (require Bearer token)
 - `GET /api/me` - Get current user info

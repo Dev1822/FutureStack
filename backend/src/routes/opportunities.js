@@ -10,6 +10,28 @@ const isDatabaseUnavailableError = (error) => {
     return msg.includes('fetch failed') || msg.includes('network');
 };
 
+const handleRouteError = (res, action, error, defaultMessage) => {
+    const unavailable = isDatabaseUnavailableError(error);
+
+    console.error(`${action} error:`, {
+        type: 'ROUTE_ERROR',
+        service: 'supabase',
+        unavailable,
+        message: error?.message,
+        code: error?.code,
+        details: error?.details
+    });
+
+    if (unavailable) {
+        return res.status(503).json({
+            error: 'Service Unavailable',
+            message: 'Database is currently unavailable. Please try again in a moment.'
+        });
+    }
+
+    return res.status(500).json({ error: defaultMessage });
+};
+
 /**
  * Audit logging helper
  * Note: Avoids logging user-supplied content (titles, descriptions) to prevent
@@ -45,20 +67,7 @@ router.get('/', async (req, res) => {
 
         res.json(data);
     } catch (error) {
-        console.error('Error fetching opportunities:', {
-            message: error?.message,
-            code: error?.code,
-            details: error?.details
-        });
-
-        if (isDatabaseUnavailableError(error)) {
-            return res.status(503).json({
-                error: 'Service Unavailable',
-                message: 'Database is currently unavailable. Please try again in a moment.'
-            });
-        }
-
-        res.status(500).json({ error: 'Failed to fetch opportunities' });
+        return handleRouteError(res, 'FETCH_OPPORTUNITIES', error, 'Failed to fetch opportunities');
     }
 });
 
@@ -86,8 +95,7 @@ router.get('/:id', async (req, res) => {
 
         res.json(data);
     } catch (error) {
-        console.error('Error fetching opportunity:', error.message);
-        res.status(500).json({ error: 'Failed to fetch opportunity' });
+        return handleRouteError(res, 'FETCH_OPPORTUNITY', error, 'Failed to fetch opportunity');
     }
 });
 
@@ -123,8 +131,7 @@ router.post('/', validate(createOpportunitySchema), async (req, res) => {
 
         res.status(201).json(data);
     } catch (error) {
-        console.error('Error creating opportunity:', error.message);
-        res.status(500).json({ error: 'Failed to create opportunity' });
+        return handleRouteError(res, 'CREATE_OPPORTUNITY', error, 'Failed to create opportunity');
     }
 });
 
@@ -169,8 +176,7 @@ const updateHandler = async (req, res) => {
 
         res.json(data);
     } catch (error) {
-        console.error('Error updating opportunity:', error.message);
-        res.status(500).json({ error: 'Failed to update opportunity' });
+        return handleRouteError(res, 'UPDATE_OPPORTUNITY', error, 'Failed to update opportunity');
     }
 };
 
@@ -211,8 +217,7 @@ router.delete('/:id', validate(idParamSchema, 'params'), async (req, res) => {
 
         res.json({ success: true, message: 'Opportunity deleted' });
     } catch (error) {
-        console.error('Error deleting opportunity:', error.message);
-        res.status(500).json({ error: 'Failed to delete opportunity' });
+        return handleRouteError(res, 'DELETE_OPPORTUNITY', error, 'Failed to delete opportunity');
     }
 });
 

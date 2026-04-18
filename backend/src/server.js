@@ -7,6 +7,7 @@ const rateLimit = require('express-rate-limit');
 const mongoSanitize = require('express-mongo-sanitize');
 
 const { requireAuth } = require('./middleware/auth');
+const { supabase } = require('./lib/supabase');
 const opportunitiesRoutes = require('./routes/opportunities');
 const analyticsRoutes = require('./routes/analytics');
 const documentsRoutes = require('./routes/documents');
@@ -189,6 +190,41 @@ app.get('/api/health', (req, res) => {
         status: 'ok',
         timestamp: new Date().toISOString(),
         environment: process.env.NODE_ENV || 'development'
+    });
+});
+
+// Dependency health check (public)
+app.get('/api/health/deps', async (req, res) => {
+    const checks = {
+        supabase: { status: 'ok' }
+    };
+
+    try {
+        const { error } = await supabase
+            .from('users')
+            .select('id')
+            .limit(1);
+
+        if (error) {
+            checks.supabase = {
+                status: 'down',
+                message: error.message
+            };
+        }
+    } catch (error) {
+        checks.supabase = {
+            status: 'down',
+            message: error.message
+        };
+    }
+
+    const allHealthy = Object.values(checks).every(check => check.status === 'ok');
+
+    res.status(allHealthy ? 200 : 503).json({
+        status: allHealthy ? 'ok' : 'degraded',
+        timestamp: new Date().toISOString(),
+        environment: process.env.NODE_ENV || 'development',
+        checks
     });
 });
 

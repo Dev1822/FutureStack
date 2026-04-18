@@ -1026,23 +1026,34 @@ Implemented 4 Schema.org schemas in `public/index.html`:
 
 ### "Session expired" / "Failed to load opportunities" on Dashboard
 
-**Symptoms:** Dashboard loads briefly, shows "Session expired. Please sign in again." and "Failed to load opportunities", then redirects to home.
+**Symptoms:** Dashboard shows loading state, then "Failed to load opportunities". In some cases users may also see a session-related toast and get redirected.
 
-**Root Cause:** The backend returns HTTP 401 because JWT token verification fails.
+**Incident Note (April 2026):**
+- During local debugging, the primary outage was **Supabase being inactive/offline**.
+- Because backend failure paths were not clearly classified, the issue looked like auth/session expiry.
+- This led to debugging on Clerk/auth for longer than necessary.
+
+**Root Cause Categories:**
+- **Auth mismatch**: Clerk token cannot be verified (`401`).
+- **Database/backend unavailable**: Supabase connection/bootstrap fails (`503` recommended).
 
 **Check Render Logs for:**
 
 | Log Message | Cause | Fix |
 |-------------|-------|-----|
-| `TypeError: fetch failed` | Backend can't reach Clerk's JWKS endpoint | Set `CLERK_JWT_KEY` env var on Render (see above) |
+| `Auth: JWT verification failed: invalid signature` | Clerk key mismatch between frontend/backend | Ensure `REACT_APP_CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY`, and JWT key are from the same Clerk instance |
+| `TypeError: fetch failed` during JWT verify | Backend can't reach Clerk JWKS endpoint | Set `CLERK_JWT_KEY` / `CLERK_JWT_PUBLIC_KEY` for local JWT verification |
 | `Token has expired` | JWT token is stale | Check Clerk dashboard for token lifetime settings |
-| `Malformed or invalid token` | Frontend sending wrong token | Verify `CLERK_SECRET_KEY` matches frontend's Clerk environment |
-| `Service Unavailable` (503) | Transient network issue to Clerk API | Wait and retry, or set `CLERK_JWT_KEY` for permanent fix |
+| `Auth bootstrap error` or Supabase fetch/network errors | Supabase unavailable | Verify Supabase project status, `SUPABASE_URL`, and `SUPABASE_SERVICE_ROLE_KEY` |
+| API returns `503 Service Unavailable` | Dependency outage (DB/auth bootstrap) | Surface clear UI message and retry after dependency recovers |
 
 **Quick Diagnostic Commands:**
 ```bash
 # Check if backend is alive
 curl https://futurestack-api.onrender.com/api/health
+
+# Check opportunities endpoint without auth (expect 401 Unauthorized)
+curl -i https://futurestack-api.onrender.com/api/opportunities
 
 # Test CORS preflight
 curl -X OPTIONS -H "Origin: https://futuretracker.online" \
@@ -1050,8 +1061,31 @@ curl -X OPTIONS -H "Origin: https://futuretracker.online" \
   -H "Access-Control-Request-Headers: Authorization" \
   https://futurestack-api.onrender.com/api/opportunities
 
-# Test auth (should return 401 with helpful message)
-curl -H "Origin: https://futuretracker.online" \
+# Test authenticated request (replace token)
+curl -i -H "Authorization: Bearer YOUR_CLERK_TOKEN" \
   https://futurestack-api.onrender.com/api/opportunities
 ```
 
+### Improvements To Prevent Recurrence
+
+1. **Strict error classification in backend**
+   - Use `401` only for actual token/auth failures.
+   - Use `503` for Supabase/dependency outages.
+   - Include compact structured logs (`type`, `service`, `code`, `message`) for faster triage.
+
+2. **Frontend messaging by status code**
+   - Avoid redirecting users on non-auth errors.
+   - Show explicit “Database temporarily unavailable” message for `503`.
+   - Keep generic fallback only when no API message is provided.
+
+3. **Dependency health checks**
+   - Add a deeper health endpoint (for example `/api/health/deps`) that validates Supabase reachability.
+   - Use this in uptime monitors and deployment smoke tests.
+
+4. **Post-deploy smoke tests**
+   - Validate sign-in, `/api/opportunities`, and one DB query after every deploy.
+   - Fail deployment checks if auth passes but DB is unavailable.
+
+5. **Runbook updates**
+   - First check service status (Supabase/Render) before rotating auth keys.
+   - Add a short decision tree: `401` path (auth), `503` path (dependency), `500` path (application bug).
