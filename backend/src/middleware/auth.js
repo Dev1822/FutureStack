@@ -124,7 +124,19 @@ const requireAuth = async (req, res, next) => {
         };
 
         // Get or create user in Supabase (with caching)
-        await ensureUserExists(req.auth);
+        try {
+            await ensureUserExists(req.auth);
+        } catch (dbError) {
+            console.error('Auth bootstrap error (Supabase unavailable):', {
+                message: dbError?.message,
+                code: dbError?.code,
+                details: dbError?.details
+            });
+            return res.status(503).json({
+                error: 'Service Unavailable',
+                message: 'Database temporarily unavailable. Please try again shortly.'
+            });
+        }
 
         next();
     } catch (error) {
@@ -132,9 +144,9 @@ const requireAuth = async (req, res, next) => {
         if (error.cause) {
             console.error('Auth middleware error cause:', error.cause);
         }
-        return res.status(401).json({
-            error: 'Unauthorized',
-            message: 'Token verification failed'
+        return res.status(500).json({
+            error: 'Internal Server Error',
+            message: 'Authentication service error'
         });
     }
 };

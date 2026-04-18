@@ -29,7 +29,10 @@ const Dashboard = () => {
       setOpportunities(data);
     } catch (error) {
       console.error('Error fetching opportunities:', error);
-      toast.error('Failed to load opportunities');
+      const apiMessage = error?.response?.data?.message;
+      if (!apiMessage) {
+        toast.error('Failed to load opportunities');
+      }
     } finally {
       setLoading(false);
     }

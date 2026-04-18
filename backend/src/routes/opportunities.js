@@ -5,6 +5,11 @@ const { createOpportunitySchema, updateOpportunitySchema, idParamSchema } = requ
 
 const router = express.Router();
 
+const isDatabaseUnavailableError = (error) => {
+    const msg = String(error?.message || '').toLowerCase();
+    return msg.includes('fetch failed') || msg.includes('network');
+};
+
 /**
  * Audit logging helper
  * Note: Avoids logging user-supplied content (titles, descriptions) to prevent
@@ -40,7 +45,19 @@ router.get('/', async (req, res) => {
 
         res.json(data);
     } catch (error) {
-        console.error('Error fetching opportunities:', error.message);
+        console.error('Error fetching opportunities:', {
+            message: error?.message,
+            code: error?.code,
+            details: error?.details
+        });
+
+        if (isDatabaseUnavailableError(error)) {
+            return res.status(503).json({
+                error: 'Service Unavailable',
+                message: 'Database is currently unavailable. Please try again in a moment.'
+            });
+        }
+
         res.status(500).json({ error: 'Failed to fetch opportunities' });
     }
 });

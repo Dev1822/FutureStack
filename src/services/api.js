@@ -63,6 +63,9 @@ api.interceptors.response.use(
             case 500:
                 toast.error('Server error. Please try again later.');
                 break;
+            case 503:
+                toast.error(message || 'Service temporarily unavailable. Please try again shortly.');
+                break;
             default:
                 if (status >= 400) {
                     toast.error(message || 'Something went wrong.');
