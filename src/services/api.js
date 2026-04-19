@@ -18,16 +18,30 @@ export const setAuthTokenGetter = (getter) => {
 
 api.interceptors.request.use(
     async (config) => {
+        let tokenAttached = false;
+
         if (getAuthToken) {
             try {
                 const token = await getAuthToken();
                 if (token) {
                     config.headers.Authorization = `Bearer ${token}`;
+                    tokenAttached = true;
                 }
             } catch (error) {
                 console.error('Error getting auth token:', error);
             }
         }
+
+        const isBrowser = typeof window !== 'undefined';
+        if (isBrowser && process.env.NODE_ENV !== 'production' && config.url?.startsWith('/')) {
+            console.debug('[API] Request auth status:', {
+                method: config.method?.toUpperCase(),
+                url: config.url,
+                tokenGetterConfigured: Boolean(getAuthToken),
+                tokenAttached,
+            });
+        }
+
         return config;
     },
     (error) => Promise.reject(error)
@@ -43,6 +57,15 @@ api.interceptors.response.use(
 
         const status = error.response?.status;
         const message = error.response?.data?.message || error.response?.data?.error;
+
+        if (process.env.NODE_ENV !== 'production') {
+            console.error('[API] Response error:', {
+                status,
+                url: error.config?.url,
+                method: error.config?.method?.toUpperCase(),
+                message,
+            });
+        }
 
         switch (status) {
             case 401:

@@ -44,7 +44,7 @@ const StatusBoard = () => {
 
     // Subscribe to realtime changes (uses anon key with permissive RLS policy)
     const channel = supabase
-      .channel('kanban-realtime')
+      .channel(`kanban-realtime-${userId}`)
       .on(
         'postgres_changes',
         {
@@ -59,10 +59,12 @@ const StatusBoard = () => {
         }
       )
       .subscribe((status, err) => {
-        console.log('Supabase realtime subscription status:', status);
+        if (status !== 'CLOSED') {
+          console.log('Supabase realtime subscription status:', status);
+        }
         if (status === 'SUBSCRIBED') {
           setRealtimeConnected(true);
-        } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
+        } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
           setRealtimeConnected(false);
         }
         if (err) {
