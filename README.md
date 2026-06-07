@@ -401,6 +401,10 @@ Flexible PDF export with multiple options
 - **Body**: Regular, sm-base
 - **Labels**: Medium, sm
 
+## 🤝 Contributing
+
+FutureStack is part of **GSSoC 2026**. Please read [CONTRIBUTING.md](CONTRIBUTING.md) before requesting an issue assignment or opening a PR.
+
 ## 📚 Documentation
 
 - [Devin Wiki](https://app.devin.ai/wiki/Venkat-Kolasani/FutureStack) – canonical, always-current runbook with high-level decisions, architecture diagrams, and demo notes.
