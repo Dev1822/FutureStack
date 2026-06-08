@@ -1,6 +1,6 @@
 import { render, screen, waitFor } from '@testing-library/react';
 
-jest.mock('react-router-dom');
+// react-router-dom is mapped to src/testUtils/reactRouterDomMock.js via package.json jest.moduleNameMapper
 jest.mock('./hooks/useAuthToken', () => ({
     useAuthToken: jest.fn(() => ({ isLoaded: true, isSignedIn: false })),
 }));

@@ -30,7 +30,7 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
-    "test:ci": "CI=true react-scripts test --watchAll=false",
+    "test:ci": "CI=true TZ=UTC react-scripts test --watchAll=false",
     "check:architecture": "node scripts/architecture-check.js",
     "eject": "react-scripts eject",
     "server": "json-server --watch db.json --port 3001"
@@ -40,6 +40,11 @@
       "react-app",
       "react-app/jest"
     ]
+  },
+  "jest": {
+    "moduleNameMapper": {
+      "^react-router-dom$": "<rootDir>/src/testUtils/reactRouterDomMock.js"
+    }
   },
   "browserslist": {
     "production": [
