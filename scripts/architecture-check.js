@@ -51,16 +51,20 @@ function gitDiff(baseRef, targetPath) {
 
 function scanFrontendSrc() {
     const srcDir = path.join(ROOT, 'src');
-    const files = walkDir(srcDir).filter((f) => /\.(js|jsx|ts|tsx)$/.test(f));
+    const allFiles = walkDir(srcDir);
 
-    for (const file of files) {
+    for (const file of allFiles) {
+        const basename = path.basename(file);
+        if (basename === '.env' || basename.startsWith('.env.')) {
+            errors.push(`${relPath(file)}: .env files must not live in src/`);
+        }
+    }
+
+    const codeFiles = allFiles.filter((f) => /\.(js|jsx|ts|tsx)$/.test(f));
+
+    for (const file of codeFiles) {
         const rel = relPath(file);
         const content = fs.readFileSync(file, 'utf8');
-        const basename = path.basename(file);
-
-        if (basename === '.env' || basename.startsWith('.env.')) {
-            errors.push(`${rel}: .env files must not live in src/`);
-        }
 
         if (/service_role/i.test(content)) {
             errors.push(`${rel}: references service_role in frontend source`);
