@@ -1,6 +1,6 @@
-import { useCallback, useLayoutEffect } from "react";
-import { useAuth } from "@clerk/clerk-react";
-import { setAuthTokenGetter } from "../services/api";
+import { useCallback, useLayoutEffect } from 'react';
+import { useAuth } from '@clerk/clerk-react';
+import { setAuthTokenGetter } from '../services/api';
 
 /**
  * Hook to set up the auth token getter for API calls
