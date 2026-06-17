@@ -18,6 +18,7 @@
 - [Features](#features)
 - [Tech Stack](#tech-stack)
 - [System Architecture](#system-architecture)
+- [Database Schema](#database-schema)
 - [Getting Started](#getting-started)
 - [Environment Variables](#environment-variables)
 - [Deployment](#deployment)
@@ -109,37 +110,92 @@ FutureTracker is a modern, full-featured SaaS application designed to help stude
 
 ## 🏗 System Architecture
 
+```mermaid
+flowchart TB
+    subgraph Browser["User Browser"]
+        React["React App (Vercel)"]
+        ClerkSDK["Clerk Auth SDK"]
+        SupaClient["Supabase Client<br/>(Realtime subscriptions)"]
+        Axios["Axios API Client"]
+    end
+
+    subgraph Backend["Express API (Render)"]
+        AuthMW["Auth Middleware<br/>(Clerk JWT verification)"]
+        Routes["REST Routes<br/>/api/*"]
+        Admin["Supabase Admin Client<br/>(user-scoped queries)"]
+    end
+
+    subgraph Services["External Services"]
+        Clerk["Clerk"]
+        PG[("Supabase PostgreSQL")]
+        RT["Realtime Engine"]
+    end
+
+    React --> ClerkSDK
+    React --> SupaClient
+    React --> Axios
+    ClerkSDK -.->|"OAuth / session"| Clerk
+    Axios -->|"JWT + API requests"| AuthMW
+    AuthMW --> Routes
+    Routes --> Admin
+    AuthMW -.->|"Verify token"| Clerk
+    Admin --> PG
+    SupaClient -.->|"WebSocket"| RT
+    RT -.-> PG
 ```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                              USER BROWSER                                    │
-│  ┌─────────────────────────────────────────────────────────────────────────┐ │
-│  │  React App (Vercel)                                                     │ │
-│  │  ├── Clerk Auth (OAuth login)                                           │ │
-│  │  ├── Supabase Client (Realtime subscriptions)                          │ │
-│  │  └── Axios (API calls with JWT)                                        │ │
-│  └─────────────────────────────────────────────────────────────────────────┘ │
-└─────────────────────────────────────────────────────────────────────────────┘
-                                    │
-                     JWT Token + API Requests
-                                    ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                         EXPRESS BACKEND (Render)                            │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────────────────────────────┐
-│  │ Auth         │  │ Routes       │  │ Services                            │
-│  │ Middleware   │──│ /api/*       │──│ Supabase Admin Client               │
-│  │ (Clerk JWT)  │  │              │  │ (user_id filtered queries)          │
-│  └──────────────┘  └──────────────┘  └──────────────────────────────────────┘
-└─────────────────────────────────────────────────────────────────────────────┘
-                                    │
-                                    ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                           SUPABASE (PostgreSQL)                             │
-│  ┌──────────────────────────────────────────────────────────────────────────┐
-│  │  Tables: users, opportunities                                           │
-│  │  Features: Row-Level Security, Realtime subscriptions                   │
-│  └──────────────────────────────────────────────────────────────────────────┘
-└─────────────────────────────────────────────────────────────────────────────┘
+
+## 🗄 Database Schema
+
+```mermaid
+erDiagram
+    USERS ||--o{ OPPORTUNITIES : tracks
+    USERS ||--o{ DOCUMENTS : owns
+    OPPORTUNITIES ||--o{ OPPORTUNITY_DOCUMENTS : uses
+    DOCUMENTS ||--o{ OPPORTUNITY_DOCUMENTS : linked_to
+
+    USERS {
+        uuid id PK
+        text clerk_id UK
+        text email
+        text full_name
+        text avatar_url
+        timestamptz created_at
+    }
+
+    OPPORTUNITIES {
+        uuid id PK
+        uuid user_id FK
+        text title
+        text description
+        text link
+        date deadline
+        text category
+        text status
+        text notes
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    DOCUMENTS {
+        uuid id PK
+        uuid user_id FK
+        text name
+        text type
+        text file_url
+        text version
+        boolean is_external
+        timestamptz created_at
+    }
+
+    OPPORTUNITY_DOCUMENTS {
+        uuid id PK
+        uuid opportunity_id FK
+        uuid document_id FK
+        timestamptz submitted_at
+    }
 ```
+
+All tables use **Row-Level Security (RLS)** so each user only accesses their own data. Full SQL migrations live in [`docs/supabase-schema.sql`](docs/supabase-schema.sql) and [`docs/documents-migration.sql`](docs/documents-migration.sql).
 
 ## 🚀 Getting Started
 
