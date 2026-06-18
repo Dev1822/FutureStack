@@ -99,6 +99,33 @@ api.interceptors.response.use(
     }
 );
 
+export const roundService = {
+  list: async (opportunityId) => {
+    const response = await api.get(`/opportunities/${opportunityId}/rounds`);
+    return response.data;
+  },
+
+  create: async (opportunityId, roundData) => {
+    const response = await api.post(`/opportunities/${opportunityId}/rounds`, roundData);
+    return response.data;
+  },
+
+  update: async (opportunityId, roundId, roundData) => {
+    const response = await api.patch(
+      `/opportunities/${opportunityId}/rounds/${roundId}`,
+      roundData
+    );
+    return response.data;
+  },
+
+  delete: async (opportunityId, roundId) => {
+    const response = await api.delete(
+      `/opportunities/${opportunityId}/rounds/${roundId}`
+    );
+    return response.data;
+  },
+};
+
 export const opportunityService = {
     getAll: async () => {
         const response = await api.get('/opportunities');

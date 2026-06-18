@@ -8,6 +8,18 @@ describe('deriveOpportunityFieldsFromRounds', () => {
         });
     });
 
+    it('marks rejected at round 1', () => {
+        expect(
+            deriveOpportunityFieldsFromRounds([
+                { round_number: 1, round_type: 'resume_shortlisted', result: 'rejected' }
+            ])
+        ).toEqual({
+            status: 'rejected',
+            current_round_number: null,
+            rejected_round_number: 1
+        });
+    });
+
     it('marks rejected at the failing round', () => {
         expect(
             deriveOpportunityFieldsFromRounds([

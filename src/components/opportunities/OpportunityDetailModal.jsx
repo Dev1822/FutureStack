@@ -8,7 +8,7 @@
  * - Fixed footer with Edit/Delete actions
  * - Responsive: drawer layout on all devices
  */
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
 import {
     FaTimes,
@@ -22,12 +22,21 @@ import {
     FaLink,
     FaFile,
     FaDownload,
-    FaUsers
+    FaUsers,
+    FaPlus,
+    FaLayerGroup,
 } from 'react-icons/fa';
 import Button from '../common/Button';
+import RoundTimeline, { RoundTimelineSkeleton } from '../rounds/RoundTimeline';
+import AddRoundModal from '../rounds/AddRoundModal';
 import { getDaysRemaining, isOverdue, formatDate } from '../../utils/dateHelpers';
 import { supportsDocuments } from '../../utils/opportunityHelpers';
-import { documentService } from '../../services/api';
+import {
+    getNextRoundNumber,
+    getRoundProgressStats,
+    supportsInterviewRounds,
+} from '../../utils/roundHelpers';
+import { documentService, roundService } from '../../services/api';
 
 // Status badge color mappings
 const statusColors = {
@@ -60,10 +69,30 @@ const documentTypeConfig = {
  * @param {Function} props.onEdit - Callback when Edit is clicked (receives opportunity.id)
  * @param {Function} props.onDelete - Callback when Delete is clicked (receives opportunity.id)
  * @param {Function} props.onManage - Callback when Manage is clicked for hackathons (receives opportunity.id)
+ * @param {Function} props.onOpportunityUpdated - Callback when opportunity fields change (e.g. after round sync)
  */
-const OpportunityDetailModal = ({ opportunity, isOpen, onClose, onEdit, onDelete, onManage }) => {
+const OpportunityDetailModal = ({
+    opportunity,
+    isOpen,
+    onClose,
+    onEdit,
+    onDelete,
+    onManage,
+    onOpportunityUpdated,
+}) => {
+    const [displayOpportunity, setDisplayOpportunity] = useState(opportunity);
     const [documents, setDocuments] = useState([]);
     const [loadingDocs, setLoadingDocs] = useState(false);
+    const [rounds, setRounds] = useState([]);
+    const [roundsLoading, setRoundsLoading] = useState(false);
+    const [roundModalOpen, setRoundModalOpen] = useState(false);
+    const [editingRound, setEditingRound] = useState(null);
+    const [roundSaving, setRoundSaving] = useState(false);
+    const [deletingRoundId, setDeletingRoundId] = useState(null);
+
+    useEffect(() => {
+        setDisplayOpportunity(opportunity);
+    }, [opportunity]);
 
     // Fetch attached documents for internships
     useEffect(() => {
@@ -85,6 +114,36 @@ const OpportunityDetailModal = ({ opportunity, isOpen, onClose, onEdit, onDelete
         } else {
             setDocuments([]);
         }
+    }, [isOpen, opportunity?.id, opportunity?.category]);
+
+    useEffect(() => {
+        if (!isOpen || !opportunity?.id || !supportsInterviewRounds(opportunity.category)) {
+            setRounds([]);
+            return;
+        }
+
+        let cancelled = false;
+
+        const loadRounds = async () => {
+            try {
+                setRoundsLoading(true);
+                const data = await roundService.list(opportunity.id);
+                if (!cancelled) setRounds(data);
+            } catch (error) {
+                console.error('Error loading rounds:', error);
+                if (!cancelled) {
+                    setRounds([]);
+                    toast.error('Failed to load interview rounds');
+                }
+            } finally {
+                if (!cancelled) setRoundsLoading(false);
+            }
+        };
+
+        loadRounds();
+        return () => {
+            cancelled = true;
+        };
     }, [isOpen, opportunity?.id, opportunity?.category]);
 
     // Close on Escape key
@@ -112,10 +171,76 @@ const OpportunityDetailModal = ({ opportunity, isOpen, onClose, onEdit, onDelete
         };
     }, [isOpen]);
 
-    if (!isOpen || !opportunity) return null;
+    const applyRoundMutationResult = useCallback((result) => {
+        if (result?.opportunity) {
+            setDisplayOpportunity(result.opportunity);
+            onOpportunityUpdated?.(result.opportunity);
+        }
+        if (result?.rounds) {
+            setRounds(result.rounds);
+        }
+    }, [onOpportunityUpdated]);
 
-    const daysRemaining = getDaysRemaining(opportunity.deadline);
-    const overdue = isOverdue(opportunity.deadline);
+    const roundStats = getRoundProgressStats(rounds);
+
+    if (!isOpen || !displayOpportunity) return null;
+
+    const daysRemaining = getDaysRemaining(displayOpportunity.deadline);
+    const overdue = isOverdue(displayOpportunity.deadline);
+    const showInterviewRounds = supportsInterviewRounds(displayOpportunity.category);
+
+    const handleOpenAddRound = () => {
+        setEditingRound(null);
+        setRoundModalOpen(true);
+    };
+
+    const handleEditRound = (round) => {
+        setEditingRound(round);
+        setRoundModalOpen(true);
+    };
+
+    const handleCloseRoundModal = () => {
+        if (roundSaving) return;
+        setRoundModalOpen(false);
+        setEditingRound(null);
+    };
+
+    const handleRoundSubmit = async (payload) => {
+        const wasEditing = Boolean(editingRound);
+
+        try {
+            setRoundSaving(true);
+            const result = wasEditing
+                ? await roundService.update(displayOpportunity.id, editingRound.id, payload)
+                : await roundService.create(displayOpportunity.id, payload);
+
+            applyRoundMutationResult(result);
+            setRoundModalOpen(false);
+            setEditingRound(null);
+            if (result?.opportunity?.status !== 'rejected') {
+                toast.success(wasEditing ? 'Round updated' : 'Round added');
+            }
+        } catch (error) {
+            console.error('Error saving round:', error);
+            toast.error(error.response?.data?.error || 'Failed to save round');
+        } finally {
+            setRoundSaving(false);
+        }
+    };
+
+    const handleDeleteRound = async (round) => {
+        try {
+            setDeletingRoundId(round.id);
+            const result = await roundService.delete(displayOpportunity.id, round.id);
+            applyRoundMutationResult(result);
+            toast.success('Round deleted');
+        } catch (error) {
+            console.error('Error deleting round:', error);
+            toast.error(error.response?.data?.error || 'Failed to delete round');
+        } finally {
+            setDeletingRoundId(null);
+        }
+    };
 
     return (
         <div className="fixed inset-0 z-50 overflow-hidden">
@@ -133,15 +258,21 @@ const OpportunityDetailModal = ({ opportunity, isOpen, onClose, onEdit, onDelete
                     <div className="flex items-start justify-between p-6 border-b border-white/10">
                         <div className="flex-1 pr-4">
                             <h2 className="text-xl font-bold text-white mb-3">
-                                {opportunity.title}
+                                {displayOpportunity.title}
                             </h2>
                             <div className="flex flex-wrap gap-2">
-                                <span className={`px-3 py-1 rounded-full text-xs font-medium ${categoryColors[opportunity.category] || 'bg-gray-500/10 text-gray-400 border border-gray-500/20'}`}>
-                                    {opportunity.category.charAt(0).toUpperCase() + opportunity.category.slice(1)}
+                                <span className={`px-3 py-1 rounded-full text-xs font-medium ${categoryColors[displayOpportunity.category] || 'bg-gray-500/10 text-gray-400 border border-gray-500/20'}`}>
+                                    {displayOpportunity.category.charAt(0).toUpperCase() + displayOpportunity.category.slice(1)}
                                 </span>
-                                <span className={`px-3 py-1 rounded-full text-xs font-medium ${statusColors[opportunity.status] || 'bg-gray-500/10 text-gray-400 border border-gray-500/20'}`}>
-                                    {opportunity.status.charAt(0).toUpperCase() + opportunity.status.slice(1)}
+                                <span className={`px-3 py-1 rounded-full text-xs font-medium ${statusColors[displayOpportunity.status] || 'bg-gray-500/10 text-gray-400 border border-gray-500/20'}`}>
+                                    {displayOpportunity.status.charAt(0).toUpperCase() + displayOpportunity.status.slice(1)}
                                 </span>
+                                {roundStats.total > 0 && (
+                                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-purple-500/10 text-purple-300 border border-purple-500/20">
+                                        <FaLayerGroup size={10} aria-hidden="true" />
+                                        {roundStats.total} round{roundStats.total !== 1 ? 's' : ''}
+                                    </span>
+                                )}
                             </div>
                         </div>
                         <button
@@ -164,7 +295,7 @@ const OpportunityDetailModal = ({ opportunity, isOpen, onClose, onEdit, onDelete
                             </div>
                             <div className="bg-white/5 rounded-lg p-4 border border-white/10">
                                 <p className="text-white font-medium">
-                                    {formatDate(opportunity.deadline)}
+                                    {formatDate(displayOpportunity.deadline)}
                                 </p>
                                 <p className={`text-sm mt-1 ${overdue ? 'text-red-400' : 'text-gray-400'}`}>
                                     {overdue
@@ -176,7 +307,7 @@ const OpportunityDetailModal = ({ opportunity, isOpen, onClose, onEdit, onDelete
                         </section>
 
                         {/* Description Section */}
-                        {opportunity.description && (
+                        {displayOpportunity.description && (
                             <section>
                                 <div className="flex items-center gap-2 text-gray-400 mb-2">
                                     <FaFileAlt size={14} />
@@ -184,14 +315,59 @@ const OpportunityDetailModal = ({ opportunity, isOpen, onClose, onEdit, onDelete
                                 </div>
                                 <div className="bg-white/5 rounded-lg p-4 border border-white/10">
                                     <p className="text-gray-300 whitespace-pre-wrap leading-relaxed">
-                                        {opportunity.description}
+                                        {displayOpportunity.description}
                                     </p>
                                 </div>
                             </section>
                         )}
 
+                        {/* Interview Pipeline (internships only) */}
+                        {showInterviewRounds && (
+                            <section>
+                                <div className="flex items-center justify-between gap-3 text-gray-400 mb-2">
+                                    <div className="flex items-center gap-2 min-w-0">
+                                        <FaLayerGroup size={14} className="shrink-0 text-purple-400" />
+                                        <div className="min-w-0">
+                                            <h3 className="text-sm font-medium uppercase tracking-wide text-gray-300">
+                                                Interview Pipeline
+                                            </h3>
+                                            {!roundsLoading && roundStats.total > 0 && (
+                                                <p className="text-xs text-gray-500 normal-case tracking-normal mt-0.5">
+                                                    {roundStats.total} round{roundStats.total !== 1 ? 's' : ''} logged
+                                                </p>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <Button
+                                        variant="outline"
+                                        onClick={handleOpenAddRound}
+                                        disabled={roundsLoading || roundSaving}
+                                        className="!px-3 !py-1.5 text-xs shrink-0"
+                                    >
+                                        <FaPlus className="mr-1.5" size={12} />
+                                        Add round
+                                    </Button>
+                                </div>
+                                <div className="rounded-xl border border-white/10 bg-gradient-to-b from-white/[0.04] to-transparent p-4">
+                                    {roundsLoading ? (
+                                        <RoundTimelineSkeleton />
+                                    ) : (
+                                        <RoundTimeline
+                                            rounds={rounds}
+                                            currentRoundNumber={displayOpportunity.current_round_number}
+                                            rejectedRoundNumber={displayOpportunity.rejected_round_number}
+                                            onEditRound={handleEditRound}
+                                            onDeleteRound={handleDeleteRound}
+                                            onAddRound={handleOpenAddRound}
+                                            deletingRoundId={deletingRoundId}
+                                        />
+                                    )}
+                                </div>
+                            </section>
+                        )}
+
                         {/* Attached Documents Section (Internships only) */}
-                        {supportsDocuments(opportunity.category) && (
+                        {supportsDocuments(displayOpportunity.category) && (
                             <section>
                                 <div className="flex items-center gap-2 text-gray-400 mb-2">
                                     <FaFilePdf size={14} />
@@ -244,7 +420,7 @@ const OpportunityDetailModal = ({ opportunity, isOpen, onClose, onEdit, onDelete
                         )}
 
                         {/* Notes Section */}
-                        {opportunity.notes && (
+                        {displayOpportunity.notes && (
                             <section>
                                 <div className="flex items-center gap-2 text-gray-400 mb-2">
                                     <FaStickyNote size={14} />
@@ -252,21 +428,21 @@ const OpportunityDetailModal = ({ opportunity, isOpen, onClose, onEdit, onDelete
                                 </div>
                                 <div className="bg-white/5 rounded-lg p-4 border border-white/10">
                                     <p className="text-gray-300 whitespace-pre-wrap leading-relaxed">
-                                        {opportunity.notes}
+                                        {displayOpportunity.notes}
                                     </p>
                                 </div>
                             </section>
                         )}
 
                         {/* External Link Section */}
-                        {opportunity.link && (
+                        {displayOpportunity.link && (
                             <section>
                                 <div className="flex items-center gap-2 text-gray-400 mb-2">
                                     <FaExternalLinkAlt size={14} />
                                     <h3 className="text-sm font-medium uppercase tracking-wide">Application Link</h3>
                                 </div>
                                 <a
-                                    href={opportunity.link}
+                                    href={displayOpportunity.link}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="flex items-center justify-center gap-2 w-full py-3 px-4 bg-white/5 border border-white/10 rounded-lg text-blue-400 hover:text-blue-300 hover:bg-white/10 transition-all"
@@ -281,10 +457,10 @@ const OpportunityDetailModal = ({ opportunity, isOpen, onClose, onEdit, onDelete
                     {/* Fixed Footer with Actions */}
                     <div className="p-6 border-t border-white/10 bg-[#0A0A0A]">
                         <div className="flex gap-3">
-                            {opportunity.category === 'hackathon' && onManage && (
+                            {displayOpportunity.category === 'hackathon' && onManage && (
                                 <Button
                                     variant="secondary"
-                                    onClick={() => onManage(opportunity.id)}
+                                    onClick={() => onManage(displayOpportunity.id)}
                                     className="flex-1"
                                 >
                                     <FaUsers className="mr-2" size={14} />
@@ -293,7 +469,7 @@ const OpportunityDetailModal = ({ opportunity, isOpen, onClose, onEdit, onDelete
                             )}
                             <Button
                                 variant="primary"
-                                onClick={() => onEdit(opportunity.id)}
+                                onClick={() => onEdit(displayOpportunity.id)}
                                 className="flex-1"
                             >
                                 <FaEdit className="mr-2" size={14} />
@@ -301,7 +477,7 @@ const OpportunityDetailModal = ({ opportunity, isOpen, onClose, onEdit, onDelete
                             </Button>
                             <Button
                                 variant="danger"
-                                onClick={() => onDelete(opportunity.id)}
+                                onClick={() => onDelete(displayOpportunity.id)}
                                 className="flex-1"
                             >
                                 <FaTrash className="mr-2" size={14} />
@@ -311,6 +487,15 @@ const OpportunityDetailModal = ({ opportunity, isOpen, onClose, onEdit, onDelete
                     </div>
                 </div>
             </div>
+
+            <AddRoundModal
+                isOpen={roundModalOpen}
+                onClose={handleCloseRoundModal}
+                onSubmit={handleRoundSubmit}
+                roundNumber={getNextRoundNumber(rounds)}
+                initialRound={editingRound}
+                saving={roundSaving}
+            />
         </div>
     );
 };

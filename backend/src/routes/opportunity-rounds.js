@@ -53,7 +53,7 @@ function logAudit(action, userId, resourceId = null, outcome = 'success', detail
 async function verifyInternshipOpportunity(opportunityId, userId) {
     const { data, error } = await supabase
         .from('opportunities')
-        .select('id, category')
+        .select('id, category, status')
         .eq('id', opportunityId)
         .eq('user_id', userId)
         .single();
@@ -73,24 +73,35 @@ async function verifyInternshipOpportunity(opportunityId, userId) {
     return { valid: true, data };
 }
 
-async function getNextRoundNumber(opportunityId, userId) {
+async function listOpportunityRounds(opportunityId, userId) {
     const { data, error } = await supabase
         .from('opportunity_rounds')
-        .select('round_number')
+        .select('*')
         .eq('opportunity_id', opportunityId)
         .eq('user_id', userId)
-        .order('round_number', { ascending: false })
-        .limit(1);
+        .order('round_number', { ascending: true });
 
     if (error) {
         throw error;
     }
 
-    if (!data?.length) {
+    return data || [];
+}
+
+function getNextRoundNumberFromRounds(rounds) {
+    if (!rounds.length) {
         return 1;
     }
 
-    return data[0].round_number + 1;
+    return Math.max(...rounds.map((round) => round.round_number)) + 1;
+}
+
+function toSyncRoundFields(rounds) {
+    return rounds.map((round) => ({
+        round_number: round.round_number,
+        round_type: round.round_type,
+        result: round.result
+    }));
 }
 
 /**
@@ -135,7 +146,8 @@ router.post('/', validate(opportunityIdOnlyParamsSchema, 'params'), validate(cre
             return res.status(ownership.status).json({ error: ownership.error });
         }
 
-        const assignedRoundNumber = round_number ?? await getNextRoundNumber(opportunityId, userId);
+        const existingRounds = await listOpportunityRounds(opportunityId, userId);
+        const assignedRoundNumber = round_number ?? getNextRoundNumberFromRounds(existingRounds);
 
         const { data, error } = await supabase
             .from('opportunity_rounds')
@@ -158,14 +170,18 @@ router.post('/', validate(opportunityIdOnlyParamsSchema, 'params'), validate(cre
             throw error;
         }
 
-        await syncOpportunityFromRounds(supabase, opportunityId, userId);
+        const allRounds = [...existingRounds, data];
+        const opportunity = await syncOpportunityFromRounds(supabase, opportunityId, userId, {
+            existingStatus: ownership.data.status,
+            rounds: toSyncRoundFields(allRounds)
+        });
 
         logAudit('CREATE_ROUND', userId, data.id, 'success', {
             opportunity_id: opportunityId,
             round_number: assignedRoundNumber
         });
 
-        res.status(201).json(data);
+        res.status(201).json({ round: data, opportunity, rounds: allRounds });
     } catch (error) {
         return handleRouteError(res, 'CREATE_ROUND', error, 'Failed to create interview round');
     }
@@ -210,14 +226,18 @@ router.patch(
                 throw error;
             }
 
-            await syncOpportunityFromRounds(supabase, opportunityId, userId);
+            const allRounds = await listOpportunityRounds(opportunityId, userId);
+            const opportunity = await syncOpportunityFromRounds(supabase, opportunityId, userId, {
+                existingStatus: ownership.data.status,
+                rounds: toSyncRoundFields(allRounds)
+            });
 
             logAudit('UPDATE_ROUND', userId, roundId, 'success', {
                 opportunity_id: opportunityId,
                 updatedFields: Object.keys(updateData)
             });
 
-            res.json(data);
+            res.json({ round: data, opportunity, rounds: allRounds });
         } catch (error) {
             return handleRouteError(res, 'UPDATE_ROUND', error, 'Failed to update interview round');
         }
@@ -237,24 +257,31 @@ router.delete('/:roundId', validate(opportunityRoundParamsSchema, 'params'), asy
             return res.status(ownership.status).json({ error: ownership.error });
         }
 
-        const { error, count } = await supabase
+        const existingRounds = await listOpportunityRounds(opportunityId, userId);
+        const roundToDelete = existingRounds.find((round) => round.id === roundId);
+
+        if (!roundToDelete) {
+            return res.status(404).json({ error: 'Round not found' });
+        }
+
+        const { error } = await supabase
             .from('opportunity_rounds')
-            .delete({ count: 'exact' })
+            .delete()
             .eq('id', roundId)
             .eq('opportunity_id', opportunityId)
             .eq('user_id', userId);
 
         if (error) throw error;
 
-        if (count === 0) {
-            return res.status(404).json({ error: 'Round not found' });
-        }
-
-        await syncOpportunityFromRounds(supabase, opportunityId, userId);
+        const remainingRounds = existingRounds.filter((round) => round.id !== roundId);
+        const opportunity = await syncOpportunityFromRounds(supabase, opportunityId, userId, {
+            existingStatus: ownership.data.status,
+            rounds: toSyncRoundFields(remainingRounds)
+        });
 
         logAudit('DELETE_ROUND', userId, roundId, 'success', { opportunity_id: opportunityId });
 
-        res.json({ success: true, message: 'Round deleted' });
+        res.json({ success: true, message: 'Round deleted', opportunity, rounds: remainingRounds });
     } catch (error) {
         return handleRouteError(res, 'DELETE_ROUND', error, 'Failed to delete interview round');
     }

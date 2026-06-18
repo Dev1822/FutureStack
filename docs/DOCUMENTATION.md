@@ -313,7 +313,48 @@ erDiagram
     }
 ```
 
-Interview rounds track multi-stage hiring pipelines (OA, technical, HR, etc.) per **internship** opportunity. See [`docs/opportunity-rounds-migration.sql`](opportunity-rounds-migration.sql).
+Interview rounds track multi-stage hiring pipelines (OA, technical, HR, etc.) per **internship** opportunity. See [`docs/opportunity-rounds-migration.sql`](opportunity-rounds-migration.sql) and the full guide [`docs/interview-rounds.md`](interview-rounds.md).
+
+---
+
+## Interview Round Tracking
+
+Multi-round hiring pipeline for internships: timeline UI, per-round results, and automatic sync of Kanban `status` plus `current_round_number` / `rejected_round_number`.
+
+**Quick reference for interviews:** [`docs/interview-rounds.md`](interview-rounds.md)
+
+### API routes
+
+Nested under opportunities (internships only):
+
+| Method | Endpoint | Notes |
+|--------|----------|-------|
+| GET | `/api/opportunities/:opportunityId/rounds` | Ordered by `round_number` |
+| POST | `/api/opportunities/:opportunityId/rounds` | Returns `{ round, opportunity, rounds }` |
+| PATCH | `/api/opportunities/:opportunityId/rounds/:roundId` | Same unified response |
+| DELETE | `/api/opportunities/:opportunityId/rounds/:roundId` | Same + `success` flag |
+
+Frontend uses `roundService` in `src/services/api.js` only — no direct Supabase CRUD for rounds.
+
+### Performance: slow round save (fixed)
+
+**Problem:** Creating a round felt sluggish — users waited several seconds before the success toast.
+
+**Root cause:**
+
+- Backend ran **6 sequential Supabase queries** on create (verify, next-number lookup, insert, then sync re-fetched opportunity + rounds before update).
+- Frontend then fired **2 more API calls** (`getById` + list rounds) and kept the modal on “Saving…” until both finished.
+
+**Fix:**
+
+1. **Batch reads** — list rounds once; reuse for next `round_number` and for `deriveOpportunityFieldsFromRounds()`.
+2. **Skip redundant sync SELECTs** — `syncOpportunityFromRounds(supabase, id, userId, { existingStatus, rounds })`.
+3. **Unified mutation response** — POST/PATCH/DELETE return `{ round, opportunity, rounds }`.
+4. **Frontend applies response in place** — `applyRoundMutationResult()` in `OpportunityDetailModal`; no blocking refetch.
+
+**Result:** Create path **6 → 4** DB round-trips; UI updates from a single HTTP response.
+
+See [`docs/interview-rounds.md`](interview-rounds.md#performance-issue--fix) for the interview one-liner and file map.
 
 ### Row Level Security (RLS)
 
@@ -355,7 +396,14 @@ USING (
 - **Auto-logout on 401**: Expired sessions handled gracefully
 - **Skeleton Loading**: Premium loading states for all data-heavy views
 
-### 5. Product Analytics (PostHog)
+### 5. Interview Round Tracking (internships)
+- **Multi-round pipeline**: OA, technical, HR, final — per-round type, date, result, notes
+- **Timeline UI** in internship detail drawer; compact badge on cards
+- **Auto status sync**: Round results update Kanban `status` and `current_round_number` / `rejected_round_number`
+- **Performance**: Mutations return `{ round, opportunity, rounds }`; UI applies in one shot (no blocking refetch)
+- **Docs**: [`docs/interview-rounds.md`](interview-rounds.md)
+
+### 6. Product Analytics (PostHog)
 - **User Behavior Tracking**: Page views, feature usage, and user flows
 - **Event Tracking**: Custom events for opportunity creation, updates, deletions
 - **Autocapture**: Automatic click and form submission tracking
@@ -457,6 +505,25 @@ api.interceptors.response.use(
 **Problem**: The custom calendar view was showing misaligned days, with the Sunday column wrapping to the next line, causing significant confusion.
 
 **Solution**: Removed the margin and relied on borders for visual separation, ensuring the 7-column grid fits perfectly within the container.
+
+---
+
+### Challenge 5: Interview Round Save Latency
+
+**Problem**: After adding interview round tracking, saving a round felt slow — users stared at “Saving…” for several seconds before seeing success feedback.
+
+**Root cause**: A naive create flow chained **6 sequential Supabase calls** (verify opportunity, query max round number, insert, then sync re-read opportunity + rounds, then update). The frontend then issued **two more REST calls** to refetch opportunity and rounds before closing the modal.
+
+**Solution**:
+
+1. Fetch rounds once at the start of create; derive next `round_number` in memory.
+2. Pass `existingStatus` and `rounds` into `syncOpportunityFromRounds()` so sync only runs the final `UPDATE`.
+3. Return `{ round, opportunity, rounds }` from POST/PATCH/DELETE.
+4. Apply that payload in `OpportunityDetailModal` via `applyRoundMutationResult()` — toast and modal close immediately.
+
+**Interview takeaway**: Reduced DB round-trips and eliminated redundant client refetches by designing the API response for the UI’s exact needs.
+
+Full write-up: [`docs/interview-rounds.md`](interview-rounds.md#performance-issue--fix)
 
 ---
 

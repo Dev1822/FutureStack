@@ -34,6 +34,7 @@ export REACT_APP_API_URL=http://localhost:3001/api
 | `backend/src/routes/*` or `backend/src/middleware/*` | `cd backend && npm test` — **add or update tests** in `backend/tests/` |
 | `backend/src/lib/validation.js` | `cd backend && npm test -- validation` |
 | `docs/*-migration.sql` | Manual: run migration on a dev Supabase project; document steps in the PR |
+| Interview rounds (`backend/src/routes/opportunity-rounds.js`, `src/components/rounds/*`) | `cd backend && npm test -- rounds`, manual flow in [`docs/interview-rounds.md`](interview-rounds.md#testing), optional `./scripts/test-rounds-api.sh` |
 
 ### Backend route changes require tests
 
@@ -54,6 +55,20 @@ Use this after automated tests pass:
 5. Exercise the happy path once
 6. Try one edge case (empty state, invalid input, expired deadline, etc.)
 7. If you touched auth or API wiring: hard-refresh and confirm data still loads on first paint
+
+### Interview rounds (if you changed round API or UI)
+
+See [`docs/interview-rounds.md`](interview-rounds.md#testing).
+
+1. Open an internship → detail drawer → **Interview Pipeline**
+2. Add a round — save should complete quickly (toast + timeline without long **Saving…**)
+3. Edit result to `rejected` — status badge and card summary update
+4. Confirm hackathon detail drawer has **no** rounds section
+
+```bash
+export CLERK_TOKEN="<paste from browser Clerk session>"
+./scripts/test-rounds-api.sh
+```
 
 ## What CI runs
 

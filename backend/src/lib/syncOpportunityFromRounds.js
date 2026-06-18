@@ -62,31 +62,43 @@ function deriveOpportunityFieldsFromRounds(rounds, existingStatus = 'applied') {
 
 /**
  * Load rounds for an opportunity and patch derived fields on opportunities row.
+ * Pass `existingStatus` and/or `rounds` to skip redundant reads when the caller already has them.
  */
-async function syncOpportunityFromRounds(supabase, opportunityId, userId) {
-    const { data: opportunity, error: oppError } = await supabase
-        .from('opportunities')
-        .select('id, status')
-        .eq('id', opportunityId)
-        .eq('user_id', userId)
-        .single();
+async function syncOpportunityFromRounds(supabase, opportunityId, userId, options = {}) {
+    let existingStatus = options.existingStatus;
+    let rounds = options.rounds;
 
-    if (oppError) {
-        throw oppError;
+    if (existingStatus === undefined) {
+        const { data: opportunity, error: oppError } = await supabase
+            .from('opportunities')
+            .select('id, status')
+            .eq('id', opportunityId)
+            .eq('user_id', userId)
+            .single();
+
+        if (oppError) {
+            throw oppError;
+        }
+
+        existingStatus = opportunity.status;
     }
 
-    const { data: rounds, error: roundsError } = await supabase
-        .from('opportunity_rounds')
-        .select('round_number, round_type, result')
-        .eq('opportunity_id', opportunityId)
-        .eq('user_id', userId)
-        .order('round_number', { ascending: true });
+    if (rounds === undefined) {
+        const { data: roundsData, error: roundsError } = await supabase
+            .from('opportunity_rounds')
+            .select('round_number, round_type, result')
+            .eq('opportunity_id', opportunityId)
+            .eq('user_id', userId)
+            .order('round_number', { ascending: true });
 
-    if (roundsError) {
-        throw roundsError;
+        if (roundsError) {
+            throw roundsError;
+        }
+
+        rounds = roundsData;
     }
 
-    const derived = deriveOpportunityFieldsFromRounds(rounds || [], opportunity.status);
+    const derived = deriveOpportunityFieldsFromRounds(rounds || [], existingStatus);
     const patch = {
         current_round_number: derived.current_round_number,
         rejected_round_number: derived.rejected_round_number

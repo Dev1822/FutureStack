@@ -96,12 +96,6 @@ describe('Interview rounds API', () => {
                         error: null
                     });
                 }
-                if (opportunityCalls === 2) {
-                    return createChain({
-                        data: { id: OPPORTUNITY_ID, status: 'applied' },
-                        error: null
-                    });
-                }
                 return createChain({
                     data: {
                         id: OPPORTUNITY_ID,
@@ -135,7 +129,8 @@ describe('Interview rounds API', () => {
             .send({ round_type: 'oa', result: 'rejected' });
 
         expect(res.status).toBe(201);
-        expect(res.body.round_type).toBe('oa');
+        expect(res.body.round.round_type).toBe('oa');
+        expect(res.body.opportunity.status).toBe('rejected');
         expect(mockFrom).toHaveBeenCalledWith('opportunity_rounds');
     });
 
@@ -149,12 +144,6 @@ describe('Interview rounds API', () => {
                 if (opportunityCalls === 1) {
                     return createChain({
                         data: { id: OPPORTUNITY_ID, category: 'internship', status: 'applied' },
-                        error: null
-                    });
-                }
-                if (opportunityCalls === 2) {
-                    return createChain({
-                        data: { id: OPPORTUNITY_ID, status: 'applied' },
                         error: null
                     });
                 }
@@ -185,7 +174,13 @@ describe('Interview rounds API', () => {
                     });
                 }
                 return listChain([
-                    { round_number: 1, round_type: 'oa', result: 'rejected' }
+                    {
+                        id: ROUND_ID,
+                        opportunity_id: OPPORTUNITY_ID,
+                        round_number: 1,
+                        round_type: 'oa',
+                        result: 'rejected'
+                    }
                 ]);
             }
 
@@ -198,7 +193,8 @@ describe('Interview rounds API', () => {
             .send({ result: 'rejected' });
 
         expect(res.status).toBe(200);
-        expect(res.body.result).toBe('rejected');
+        expect(res.body.round.result).toBe('rejected');
+        expect(res.body.opportunity.status).toBe('rejected');
     });
 
     it('GET /api/opportunities/:id/rounds returns 404 for unknown opportunity', async () => {

@@ -116,8 +116,8 @@ let getAuthToken = null; // Global state
 - **Value**: Find opportunities quickly as list grows
 
 #### 8. Interview Tracker
-- [ ] Track interview rounds (Phone → Technical → Onsite → HR)
-- [ ] Add interviewer names & notes
+- [x] Track interview rounds (OA → Technical → HR → Final) — see [`docs/interview-rounds.md`](interview-rounds.md)
+- [x] Per-round notes and results with timeline UI
 - [ ] Interview prep checklists per company
 - [ ] Calendar integration for interview scheduling
 - **Value**: Comprehensive interview management

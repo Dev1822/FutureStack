@@ -6,10 +6,11 @@
  * Edit/Delete buttons remain for quick actions.
  */
 import React from 'react';
-import { FaEdit, FaTrash, FaExternalLinkAlt } from 'react-icons/fa';
+import { FaEdit, FaTrash, FaExternalLinkAlt, FaLayerGroup } from 'react-icons/fa';
 import Card from '../common/Card';
 import Button from '../common/Button';
 import { getDaysRemaining, isOverdue, formatDate } from '../../utils/dateHelpers';
+import { getRoundSummaryLabel, getRoundSummaryStyle } from '../../utils/roundHelpers';
 
 // Status badge color mappings
 const statusColors = {
@@ -36,6 +37,7 @@ const categoryColors = {
 const OpportunityCard = ({ opportunity, onView, onEdit, onDelete }) => {
   const daysRemaining = getDaysRemaining(opportunity.deadline);
   const overdue = isOverdue(opportunity.deadline);
+  const roundSummary = getRoundSummaryLabel(opportunity);
 
   const handleCardClick = () => {
     if (onView) {
@@ -94,13 +96,21 @@ const OpportunityCard = ({ opportunity, onView, onEdit, onDelete }) => {
           </div>
 
           {/* Status Badge */}
-          <div className="mb-4">
+          <div className="mb-4 flex flex-wrap items-center gap-2">
             <span
               className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${statusColors[opportunity.status] || 'bg-gray-500/10 text-gray-400 border border-gray-500/20'
                 }`}
             >
               {opportunity.status.charAt(0).toUpperCase() + opportunity.status.slice(1)}
             </span>
+            {roundSummary && (
+              <span
+                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border ${getRoundSummaryStyle(opportunity)}`}
+              >
+                <FaLayerGroup size={10} aria-hidden="true" />
+                {roundSummary}
+              </span>
+            )}
           </div>
 
           {/* External Link */}

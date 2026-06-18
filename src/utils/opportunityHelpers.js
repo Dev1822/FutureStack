@@ -20,6 +20,12 @@ export const supportsDocuments = (category) => {
  */
 export const DOCUMENT_SUPPORTED_CATEGORIES = ['internship'];
 
+/** Internship statuses no longer in the active pipeline (hidden by default on Internships page). */
+export const INACTIVE_INTERNSHIP_STATUSES = ['rejected', 'selected', 'ghosted'];
+
+export const isActiveInternshipStatus = (status) =>
+  !INACTIVE_INTERNSHIP_STATUSES.includes(status);
+
 /**
  * Get a user-friendly message explaining why documents are not available
  * @param {string} category - The opportunity category
