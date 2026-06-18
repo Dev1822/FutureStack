@@ -2,6 +2,7 @@ const express = require('express');
 const { supabase } = require('../lib/supabase');
 const { validate } = require('../middleware/validate');
 const { createOpportunitySchema, updateOpportunitySchema, idParamSchema } = require('../validation/schemas');
+const opportunityRoundsRouter = require('./opportunity-rounds');
 
 const router = express.Router();
 
@@ -70,6 +71,9 @@ router.get('/', async (req, res) => {
         return handleRouteError(res, 'FETCH_OPPORTUNITIES', error, 'Failed to fetch opportunities');
     }
 });
+
+// Interview rounds (must be registered before /:id to avoid route shadowing)
+router.use('/:opportunityId/rounds', opportunityRoundsRouter);
 
 /**
  * GET /api/opportunities/:id
