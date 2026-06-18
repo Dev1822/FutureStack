@@ -271,6 +271,8 @@ graph TD
 ```mermaid
 erDiagram
     USERS ||--o{ OPPORTUNITIES : has
+    USERS ||--o{ OPPORTUNITY_ROUNDS : owns
+    OPPORTUNITIES ||--o{ OPPORTUNITY_ROUNDS : has
     
     USERS {
         uuid id PK
@@ -290,11 +292,28 @@ erDiagram
         date deadline
         text category
         text status
+        int current_round_number
+        int rejected_round_number
+        text notes
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    OPPORTUNITY_ROUNDS {
+        uuid id PK
+        uuid opportunity_id FK
+        uuid user_id FK
+        int round_number
+        text round_type
+        date scheduled_date
+        text result
         text notes
         timestamp created_at
         timestamp updated_at
     }
 ```
+
+Interview rounds track multi-stage hiring pipelines (OA, technical, HR, etc.) per **internship** opportunity. See [`docs/opportunity-rounds-migration.sql`](opportunity-rounds-migration.sql).
 
 ### Row Level Security (RLS)
 

@@ -121,3 +121,9 @@ CREATE TRIGGER update_opportunities_updated_at
 -- =============================================================================
 -- For documents table, opportunity_documents junction table, and related
 -- RLS policies, indexes, and triggers, see: docs/documents-migration.sql
+
+-- =============================================================================
+-- Interview Rounds (internship application pipeline)
+-- =============================================================================
+-- For opportunity_rounds table, opportunity round columns, RLS, and indexes,
+-- see: docs/opportunity-rounds-migration.sql

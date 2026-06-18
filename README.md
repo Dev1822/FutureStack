@@ -150,7 +150,9 @@ flowchart TB
 erDiagram
     USERS ||--o{ OPPORTUNITIES : tracks
     USERS ||--o{ DOCUMENTS : owns
+    USERS ||--o{ OPPORTUNITY_ROUNDS : owns
     OPPORTUNITIES ||--o{ OPPORTUNITY_DOCUMENTS : uses
+    OPPORTUNITIES ||--o{ OPPORTUNITY_ROUNDS : has
     DOCUMENTS ||--o{ OPPORTUNITY_DOCUMENTS : linked_to
 
     USERS {
@@ -171,6 +173,21 @@ erDiagram
         date deadline
         text category
         text status
+        int current_round_number
+        int rejected_round_number
+        text notes
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    OPPORTUNITY_ROUNDS {
+        uuid id PK
+        uuid opportunity_id FK
+        uuid user_id FK
+        int round_number
+        text round_type
+        date scheduled_date
+        text result
         text notes
         timestamptz created_at
         timestamptz updated_at
@@ -195,7 +212,7 @@ erDiagram
     }
 ```
 
-All tables use **Row-Level Security (RLS)** so each user only accesses their own data. Full SQL migrations live in [`docs/supabase-schema.sql`](docs/supabase-schema.sql) and [`docs/documents-migration.sql`](docs/documents-migration.sql).
+All tables use **Row-Level Security (RLS)** so each user only accesses their own data. Full SQL migrations live in [`docs/supabase-schema.sql`](docs/supabase-schema.sql), [`docs/documents-migration.sql`](docs/documents-migration.sql), and [`docs/opportunity-rounds-migration.sql`](docs/opportunity-rounds-migration.sql).
 
 ## 🚀 Getting Started
 
