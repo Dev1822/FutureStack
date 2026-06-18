@@ -217,7 +217,9 @@ const OpportunityDetailModal = ({
             applyRoundMutationResult(result);
             setRoundModalOpen(false);
             setEditingRound(null);
-            toast.success(wasEditing ? 'Round updated' : 'Round added');
+            if (result?.opportunity?.status !== 'rejected') {
+                toast.success(wasEditing ? 'Round updated' : 'Round added');
+            }
         } catch (error) {
             console.error('Error saving round:', error);
             toast.error(error.response?.data?.error || 'Failed to save round');

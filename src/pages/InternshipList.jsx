@@ -17,13 +17,14 @@ import OpportunityDetailModal from '../components/opportunities/OpportunityDetai
 import Modal from '../components/common/Modal';
 import Button from '../components/common/Button';
 import { opportunityService } from '../services/api';
+import { isActiveInternshipStatus } from '../utils/opportunityHelpers';
 
 const InternshipList = () => {
   const navigate = useNavigate();
   const [opportunities, setOpportunities] = useState([]);
   const [filteredOpportunities, setFilteredOpportunities] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('active');
   const [loading, setLoading] = useState(true);
 
   // Modal states
@@ -74,7 +75,9 @@ const InternshipList = () => {
       );
     }
 
-    if (statusFilter !== 'all') {
+    if (statusFilter === 'active') {
+      filtered = filtered.filter((opp) => isActiveInternshipStatus(opp.status));
+    } else if (statusFilter !== 'all') {
       filtered = filtered.filter(opp => opp.status === statusFilter);
     }
 
@@ -94,6 +97,15 @@ const InternshipList = () => {
     setOpportunities((prev) =>
       prev.map((opp) => (opp.id === updatedOpportunity.id ? updatedOpportunity : opp))
     );
+
+    if (!isActiveInternshipStatus(updatedOpportunity.status)) {
+      setSelectedOpportunity(null);
+      if (updatedOpportunity.status === 'rejected') {
+        toast.info('Internship marked as rejected and removed from your active list.');
+      }
+      return;
+    }
+
     setSelectedOpportunity(updatedOpportunity);
   };
 
@@ -132,7 +144,7 @@ const InternshipList = () => {
 
   const clearFilters = () => {
     setSearchQuery('');
-    setStatusFilter('all');
+    setStatusFilter('active');
   };
 
   return (
@@ -184,6 +196,7 @@ const InternshipList = () => {
                 onChange={(e) => setStatusFilter(e.target.value)}
                 className="px-4 py-2.5 bg-gray-900 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all w-full sm:w-auto"
               >
+                <option value="active" style={{ backgroundColor: '#111827', color: 'white' }}>Active</option>
                 <option value="all" style={{ backgroundColor: '#111827', color: 'white' }}>All Statuses</option>
                 <option value="applied" style={{ backgroundColor: '#111827', color: 'white' }}>Applied</option>
                 <option value="shortlisted" style={{ backgroundColor: '#111827', color: 'white' }}>Shortlisted</option>
@@ -193,7 +206,7 @@ const InternshipList = () => {
                 <option value="ghosted" style={{ backgroundColor: '#111827', color: 'white' }}>Ghosted</option>
               </select>
 
-              {(searchQuery || statusFilter !== 'all') && (
+              {(searchQuery || statusFilter !== 'active') && (
                 <Button variant="secondary" onClick={clearFilters} className="w-full sm:w-auto">
                   Clear
                 </Button>
@@ -204,6 +217,7 @@ const InternshipList = () => {
           {/* Results Count */}
           <div className="mt-3 text-sm text-gray-400">
             Showing {filteredOpportunities.length} of {opportunities.length} internships
+            {statusFilter === 'active' && ' (active only)'}
           </div>
         </div>
 

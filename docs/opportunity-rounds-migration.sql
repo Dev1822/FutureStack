@@ -3,7 +3,7 @@
 -- Multi-round application pipeline tracking (internships only)
 -- =============================================================================
 
--- Round types: oa, assignment, technical, hr, group_discussion, managerial, final, other
+-- Round types: resume_shortlisted, oa, assignment, technical_assignment, technical, hr, ...
 -- Results: pending, cleared, rejected, skipped
 
 CREATE TABLE IF NOT EXISTS opportunity_rounds (
@@ -12,8 +12,10 @@ CREATE TABLE IF NOT EXISTS opportunity_rounds (
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   round_number INTEGER NOT NULL CHECK (round_number >= 1),
   round_type TEXT NOT NULL CHECK (round_type IN (
+    'resume_shortlisted',
     'oa',
     'assignment',
+    'technical_assignment',
     'technical',
     'hr',
     'group_discussion',

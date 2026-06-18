@@ -1,8 +1,10 @@
 const Joi = require('joi');
 
 const ROUND_TYPES = [
+    'resume_shortlisted',
     'oa',
     'assignment',
+    'technical_assignment',
     'technical',
     'hr',
     'group_discussion',

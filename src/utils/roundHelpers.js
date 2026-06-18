@@ -3,8 +3,10 @@
  */
 
 export const ROUND_TYPES = [
+  'resume_shortlisted',
   'oa',
   'assignment',
+  'technical_assignment',
   'technical',
   'hr',
   'group_discussion',
@@ -16,8 +18,10 @@ export const ROUND_TYPES = [
 export const ROUND_RESULTS = ['pending', 'cleared', 'rejected', 'skipped'];
 
 export const ROUND_TYPE_LABELS = {
+  resume_shortlisted: 'Resume Shortlisted',
   oa: 'Online Assessment',
   assignment: 'Assignment',
+  technical_assignment: 'Technical Assignment',
   technical: 'Technical Interview',
   hr: 'HR Interview',
   group_discussion: 'Group Discussion',
@@ -104,6 +108,6 @@ export const getRoundSummaryStyle = (opportunity) => {
 export const ROUND_RESULT_HINTS = {
   pending: 'Scheduled or awaiting outcome',
   cleared: 'Passed — you can add the next round',
-  rejected: 'Marks the pipeline as rejected',
+  rejected: 'Marks the pipeline as rejected — internship moves out of your active list',
   skipped: 'Round was cancelled or not required',
 };

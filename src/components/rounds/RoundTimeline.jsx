@@ -15,6 +15,8 @@ import {
   FaUserTie,
   FaFlagCheckered,
   FaEllipsisH,
+  FaFileAlt,
+  FaLaptopCode,
 } from 'react-icons/fa';
 import { formatDate, getDaysRemaining } from '../../utils/dateHelpers';
 import {
@@ -32,8 +34,10 @@ const RESULT_ICONS = {
 };
 
 const ROUND_TYPE_ICONS = {
+  resume_shortlisted: FaFileAlt,
   oa: FaClipboardList,
   assignment: FaCode,
+  technical_assignment: FaLaptopCode,
   technical: FaCode,
   hr: FaUserTie,
   group_discussion: FaComments,

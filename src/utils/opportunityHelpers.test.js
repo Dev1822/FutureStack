@@ -2,6 +2,8 @@ import {
     supportsDocuments,
     DOCUMENT_SUPPORTED_CATEGORIES,
     getDocumentUnavailableMessage,
+    isActiveInternshipStatus,
+    INACTIVE_INTERNSHIP_STATUSES,
 } from './opportunityHelpers';
 
 describe('opportunityHelpers', () => {
@@ -28,6 +30,20 @@ describe('opportunityHelpers', () => {
 
         it('returns explanation when documents are not supported', () => {
             expect(getDocumentUnavailableMessage('hackathon')).toMatch(/internship/i);
+        });
+    });
+
+    describe('isActiveInternshipStatus', () => {
+        it('treats applied and interviewed as active', () => {
+            expect(isActiveInternshipStatus('applied')).toBe(true);
+            expect(isActiveInternshipStatus('interviewed')).toBe(true);
+            expect(isActiveInternshipStatus('shortlisted')).toBe(true);
+        });
+
+        it('treats rejected, selected, and ghosted as inactive', () => {
+            INACTIVE_INTERNSHIP_STATUSES.forEach((status) => {
+                expect(isActiveInternshipStatus(status)).toBe(false);
+            });
         });
     });
 });
