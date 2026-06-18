@@ -6,11 +6,11 @@
  * Edit/Delete buttons remain for quick actions.
  */
 import React from 'react';
-import { FaEdit, FaTrash, FaExternalLinkAlt } from 'react-icons/fa';
+import { FaEdit, FaTrash, FaExternalLinkAlt, FaLayerGroup } from 'react-icons/fa';
 import Card from '../common/Card';
 import Button from '../common/Button';
 import { getDaysRemaining, isOverdue, formatDate } from '../../utils/dateHelpers';
-import { getRoundSummaryLabel } from '../../utils/roundHelpers';
+import { getRoundSummaryLabel, getRoundSummaryStyle } from '../../utils/roundHelpers';
 
 // Status badge color mappings
 const statusColors = {
@@ -104,7 +104,10 @@ const OpportunityCard = ({ opportunity, onView, onEdit, onDelete }) => {
               {opportunity.status.charAt(0).toUpperCase() + opportunity.status.slice(1)}
             </span>
             {roundSummary && (
-              <span className="inline-block px-3 py-1 rounded-full text-xs font-medium bg-purple-500/10 text-purple-300 border border-purple-500/20">
+              <span
+                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border ${getRoundSummaryStyle(opportunity)}`}
+              >
+                <FaLayerGroup size={10} aria-hidden="true" />
                 {roundSummary}
               </span>
             )}

@@ -71,3 +71,39 @@ export const getNextRoundNumber = (rounds) => {
   if (!rounds?.length) return 1;
   return Math.max(...rounds.map((r) => r.round_number)) + 1;
 };
+
+export const NOTES_MAX_LENGTH = 5000;
+
+/**
+ * Aggregate stats for pipeline header / progress bar.
+ */
+export const getRoundProgressStats = (rounds = []) => {
+  const sorted = [...rounds].sort((a, b) => a.round_number - b.round_number);
+  const total = sorted.length;
+  const cleared = sorted.filter((r) => r.result === 'cleared').length;
+  const pending = sorted.filter((r) => r.result === 'pending').length;
+  const skipped = sorted.filter((r) => r.result === 'skipped').length;
+  const hasRejection = sorted.some((r) => r.result === 'rejected');
+  const completed = cleared + skipped;
+  const progressPercent = total === 0 ? 0 : Math.round((completed / total) * 100);
+
+  return { total, cleared, pending, skipped, hasRejection, completed, progressPercent };
+};
+
+/** Card badge Tailwind classes keyed off synced opportunity fields. */
+export const getRoundSummaryStyle = (opportunity) => {
+  if (opportunity?.rejected_round_number) {
+    return 'bg-red-500/10 text-red-300 border-red-500/20';
+  }
+  if (opportunity?.current_round_number) {
+    return 'bg-purple-500/10 text-purple-300 border-purple-500/20';
+  }
+  return 'bg-gray-500/10 text-gray-400 border-gray-500/20';
+};
+
+export const ROUND_RESULT_HINTS = {
+  pending: 'Scheduled or awaiting outcome',
+  cleared: 'Passed — you can add the next round',
+  rejected: 'Marks the pipeline as rejected',
+  skipped: 'Round was cancelled or not required',
+};

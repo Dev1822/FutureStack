@@ -27,12 +27,13 @@ import {
     FaLayerGroup,
 } from 'react-icons/fa';
 import Button from '../common/Button';
-import RoundTimeline from '../rounds/RoundTimeline';
+import RoundTimeline, { RoundTimelineSkeleton } from '../rounds/RoundTimeline';
 import AddRoundModal from '../rounds/AddRoundModal';
 import { getDaysRemaining, isOverdue, formatDate } from '../../utils/dateHelpers';
 import { supportsDocuments } from '../../utils/opportunityHelpers';
 import {
     getNextRoundNumber,
+    getRoundProgressStats,
     supportsInterviewRounds,
 } from '../../utils/roundHelpers';
 import { documentService, roundService } from '../../services/api';
@@ -87,6 +88,7 @@ const OpportunityDetailModal = ({
     const [roundModalOpen, setRoundModalOpen] = useState(false);
     const [editingRound, setEditingRound] = useState(null);
     const [roundSaving, setRoundSaving] = useState(false);
+    const [deletingRoundId, setDeletingRoundId] = useState(null);
 
     useEffect(() => {
         setDisplayOpportunity(opportunity);
@@ -179,6 +181,8 @@ const OpportunityDetailModal = ({
         }
     }, [onOpportunityUpdated]);
 
+    const roundStats = getRoundProgressStats(rounds);
+
     if (!isOpen || !displayOpportunity) return null;
 
     const daysRemaining = getDaysRemaining(displayOpportunity.deadline);
@@ -223,15 +227,16 @@ const OpportunityDetailModal = ({
     };
 
     const handleDeleteRound = async (round) => {
-        if (!window.confirm(`Delete Round ${round.round_number}?`)) return;
-
         try {
+            setDeletingRoundId(round.id);
             const result = await roundService.delete(displayOpportunity.id, round.id);
             applyRoundMutationResult(result);
             toast.success('Round deleted');
         } catch (error) {
             console.error('Error deleting round:', error);
             toast.error(error.response?.data?.error || 'Failed to delete round');
+        } finally {
+            setDeletingRoundId(null);
         }
     };
 
@@ -260,6 +265,12 @@ const OpportunityDetailModal = ({
                                 <span className={`px-3 py-1 rounded-full text-xs font-medium ${statusColors[displayOpportunity.status] || 'bg-gray-500/10 text-gray-400 border border-gray-500/20'}`}>
                                     {displayOpportunity.status.charAt(0).toUpperCase() + displayOpportunity.status.slice(1)}
                                 </span>
+                                {roundStats.total > 0 && (
+                                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-purple-500/10 text-purple-300 border border-purple-500/20">
+                                        <FaLayerGroup size={10} aria-hidden="true" />
+                                        {roundStats.total} round{roundStats.total !== 1 ? 's' : ''}
+                                    </span>
+                                )}
                             </div>
                         </div>
                         <button
@@ -308,57 +319,52 @@ const OpportunityDetailModal = ({
                             </section>
                         )}
 
-                        {/* Attached Documents Section (Internships only) */}
+                        {/* Interview Pipeline (internships only) */}
                         {showInterviewRounds && (
                             <section>
-                                <div className="flex items-center justify-between gap-2 text-gray-400 mb-2">
-                                    <div className="flex items-center gap-2">
-                                        <FaLayerGroup size={14} />
-                                        <h3 className="text-sm font-medium uppercase tracking-wide">Interview Pipeline</h3>
+                                <div className="flex items-center justify-between gap-3 text-gray-400 mb-2">
+                                    <div className="flex items-center gap-2 min-w-0">
+                                        <FaLayerGroup size={14} className="shrink-0 text-purple-400" />
+                                        <div className="min-w-0">
+                                            <h3 className="text-sm font-medium uppercase tracking-wide text-gray-300">
+                                                Interview Pipeline
+                                            </h3>
+                                            {!roundsLoading && roundStats.total > 0 && (
+                                                <p className="text-xs text-gray-500 normal-case tracking-normal mt-0.5">
+                                                    {roundStats.total} round{roundStats.total !== 1 ? 's' : ''} logged
+                                                </p>
+                                            )}
+                                        </div>
                                     </div>
                                     <Button
                                         variant="outline"
                                         onClick={handleOpenAddRound}
-                                        className="!px-3 !py-1.5 text-xs"
+                                        disabled={roundsLoading || roundSaving}
+                                        className="!px-3 !py-1.5 text-xs shrink-0"
                                     >
                                         <FaPlus className="mr-1.5" size={12} />
                                         Add round
                                     </Button>
                                 </div>
-                                <div className="bg-white/5 rounded-lg p-4 border border-white/10">
+                                <div className="rounded-xl border border-white/10 bg-gradient-to-b from-white/[0.04] to-transparent p-4">
                                     {roundsLoading ? (
-                                        <div className="text-center text-gray-500 text-sm py-4">
-                                            <span className="animate-spin inline-block mr-2">⟳</span>
-                                            Loading rounds...
-                                        </div>
+                                        <RoundTimelineSkeleton />
                                     ) : (
-                                        <>
-                                            <RoundTimeline
-                                                rounds={rounds}
-                                                currentRoundNumber={displayOpportunity.current_round_number}
-                                                rejectedRoundNumber={displayOpportunity.rejected_round_number}
-                                                onEditRound={handleEditRound}
-                                            />
-                                            {rounds.length > 0 && (
-                                                <div className="mt-4 flex flex-wrap gap-2 border-t border-white/10 pt-4">
-                                                    {rounds.map((round) => (
-                                                        <button
-                                                            key={round.id}
-                                                            type="button"
-                                                            onClick={() => handleDeleteRound(round)}
-                                                            className="text-xs text-red-400 hover:text-red-300"
-                                                        >
-                                                            Delete Round {round.round_number}
-                                                        </button>
-                                                    ))}
-                                                </div>
-                                            )}
-                                        </>
+                                        <RoundTimeline
+                                            rounds={rounds}
+                                            currentRoundNumber={displayOpportunity.current_round_number}
+                                            rejectedRoundNumber={displayOpportunity.rejected_round_number}
+                                            onEditRound={handleEditRound}
+                                            onDeleteRound={handleDeleteRound}
+                                            onAddRound={handleOpenAddRound}
+                                            deletingRoundId={deletingRoundId}
+                                        />
                                     )}
                                 </div>
                             </section>
                         )}
 
+                        {/* Attached Documents Section (Internships only) */}
                         {supportsDocuments(displayOpportunity.category) && (
                             <section>
                                 <div className="flex items-center gap-2 text-gray-400 mb-2">
