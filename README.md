@@ -64,6 +64,7 @@ FutureTracker is a modern, full-featured SaaS application designed to help stude
 - **📈 Analytics**: Charts for status distribution, weekly trends, conversion funnels, and deadline heatmaps
 - **📄 PDF Export**: Generate professional reports with multiple export options
 - **📎 Documents**: Upload resumes, cover letters, and portfolio links; track which documents were used for each internship
+- **🎯 Interview pipeline**: Multi-round tracking for internships (OA → technical → HR → final) with timeline UI and auto-synced Kanban status — see [`docs/interview-rounds.md`](docs/interview-rounds.md)
 - **🎨 Modern UI**: Clean, dark-themed interface with smooth animations
 - **📱 Responsive**: Fully responsive design for all screen sizes
 
@@ -410,6 +411,10 @@ Authorization: Bearer <clerk_jwt_token>
 | POST | `/opportunities` | Create opportunity | ✅ |
 | PATCH | `/opportunities/:id` | Update opportunity | ✅ |
 | DELETE | `/opportunities/:id` | Delete opportunity | ✅ |
+| GET | `/opportunities/:id/rounds` | List interview rounds (internships) | ✅ |
+| POST | `/opportunities/:id/rounds` | Create round; returns `{ round, opportunity, rounds }` | ✅ |
+| PATCH | `/opportunities/:id/rounds/:roundId` | Update round; returns synced payload | ✅ |
+| DELETE | `/opportunities/:id/rounds/:roundId` | Delete round; returns synced payload | ✅ |
 | GET | `/analytics` | Get dashboard analytics | ✅ |
 | GET | `/me` | Get current user info | ✅ |
 
@@ -481,7 +486,8 @@ FutureStack is part of **GSSoC 2026**. Please read [CONTRIBUTING.md](CONTRIBUTIN
 ## 📚 Documentation
 
 - [Devin Wiki](https://app.devin.ai/wiki/Venkat-Kolasani/FutureStack) – canonical, always-current runbook with high-level decisions, architecture diagrams, and demo notes.
-- Local references: `docs/ARCHITECTURE.md`, `docs/DOCUMENTATION.md`, `docs/INTEGRATION_TEST_RESULTS.md`, and `docs/PROJECT_SUMMARY.md` provide offline deep dives, test evidence, and executive summaries.
+- [**Interview rounds**](docs/interview-rounds.md) – feature design, status sync, performance fix (good for technical interviews).
+- Local references: `docs/DOCUMENTATION.md`, `docs/TESTING.md`, and `docs/opportunity-rounds-migration.sql` provide offline deep dives, test steps, and schema.
 
 ---
 
