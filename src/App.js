@@ -24,6 +24,7 @@ const Dashboard = lazy(() => import('./pages/Dashboard'));
 const InternshipList = lazy(() => import('./pages/InternshipList'));
 const HackathonList = lazy(() => import('./pages/HackathonList'));
 const HackathonDetail = lazy(() => import('./pages/HackathonDetail'));
+const InterviewPrepDetail = lazy(() => import('./pages/InterviewPrepDetail'));
 const AddOpportunity = lazy(() => import('./pages/AddOpportunity'));
 const EditOpportunity = lazy(() => import('./pages/EditOpportunity'));
 const StatusBoard = lazy(() => import('./pages/StatusBoard'));
@@ -95,6 +96,11 @@ function AppContent() {
             <Route path="/hackathons/:id" element={
               <ProtectedRoute>
                 <HackathonDetail />
+              </ProtectedRoute>
+            } />
+            <Route path="/internships/:id/prep" element={
+              <ProtectedRoute>
+                <InterviewPrepDetail />
               </ProtectedRoute>
             } />
             <Route path="/add" element={
