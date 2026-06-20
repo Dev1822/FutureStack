@@ -2,7 +2,7 @@ const {
     createOpportunitySchema,
     updateOpportunitySchema,
 } = require('../../src/validation/schemas');
-const { createDocumentSchema } = require('../../src/validation/documents-schemas');
+const { createDocumentSchema, updateDocumentSchema } = require('../../src/validation/documents-schemas');
 
 describe('createOpportunitySchema', () => {
     it('accepts a valid opportunity payload', () => {
@@ -72,5 +72,17 @@ describe('createDocumentSchema', () => {
             type: 'invoice',
         });
         expect(error).toBeDefined();
+    });
+
+    it('accepts ats fields on update when provided', () => {
+        const { error, value } = updateDocumentSchema.validate({
+            ats_score: 82,
+            ats_analyzed_at: '2026-06-20T12:00:00.000Z',
+            ats_analysis: { score: 82, breakdown: { structure: 40, content: 25, atsFriendly: 15 } }
+        });
+        expect(error).toBeUndefined();
+        expect(value.ats_score).toBe(82);
+        expect(value.ats_analyzed_at).toBeDefined();
+        expect(value.ats_analysis).toBeDefined();
     });
 });

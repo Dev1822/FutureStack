@@ -4,7 +4,7 @@
  *
  * @module components/documents/DocumentCard
  */
-import React from 'react';
+import React, { useMemo, useState } from 'react';
 import { FaFile, FaFilePdf, FaLink, FaDownload, FaEdit, FaTrash, FaBriefcase } from 'react-icons/fa';
 
 const typeIcons = {
@@ -28,6 +28,52 @@ const typeLabels = {
     other: 'Other'
 };
 
+const parseAtsAnalysis = (analysis) => {
+    if (!analysis) return null;
+    if (typeof analysis === 'object') return analysis;
+
+    try {
+        return JSON.parse(analysis);
+    } catch (error) {
+        return null;
+    }
+};
+
+const getScoreClasses = (score) => {
+    if (score >= 75) return { text: 'text-emerald-300', stroke: 'stroke-emerald-400', bg: 'bg-emerald-500/15' };
+    if (score >= 50) return { text: 'text-amber-300', stroke: 'stroke-amber-400', bg: 'bg-amber-500/15' };
+    return { text: 'text-red-300', stroke: 'stroke-red-400', bg: 'bg-red-500/15' };
+};
+
+const ScoreRing = ({ score }) => {
+    const classes = getScoreClasses(score);
+    const radius = 18;
+    const circumference = 2 * Math.PI * radius;
+    const offset = circumference - (score / 100) * circumference;
+
+    return (
+        <div className="relative h-12 w-12 shrink-0">
+            <svg className="-rotate-90 h-12 w-12" viewBox="0 0 48 48" aria-hidden="true">
+                <circle className="stroke-white/10" cx="24" cy="24" r={radius} fill="none" strokeWidth="4" />
+                <circle
+                    className={classes.stroke}
+                    cx="24"
+                    cy="24"
+                    r={radius}
+                    fill="none"
+                    strokeWidth="4"
+                    strokeLinecap="round"
+                    strokeDasharray={circumference}
+                    strokeDashoffset={offset}
+                />
+            </svg>
+            <span className={`absolute inset-0 flex items-center justify-center text-xs font-semibold ${classes.text}`}>
+                {score}
+            </span>
+        </div>
+    );
+};
+
 /**
  * Card component for displaying a document with actions.
  *
@@ -40,6 +86,11 @@ const typeLabels = {
 const DocumentCard = ({ document, onEdit, onDelete }) => {
     const Icon = typeIcons[document.type] || FaFile;
     const colorClass = typeColors[document.type] || 'text-gray-400';
+    const atsScore = document.type === 'resume' ? document.ats_score : null;
+    const atsAnalysis = useMemo(() => parseAtsAnalysis(document.ats_analysis), [document.ats_analysis]);
+    const [isAtsOpen, setIsAtsOpen] = useState(false);
+    const [showScoring, setShowScoring] = useState(false);
+    const scoreClasses = atsScore != null ? getScoreClasses(atsScore) : null;
 
     // Count how many opportunities use this document
     const usageCount = document.opportunity_documents?.length || 0;
@@ -69,7 +120,14 @@ const DocumentCard = ({ document, onEdit, onDelete }) => {
                     <Icon size={20} />
                 </div>
                 <div className="flex-1 min-w-0">
-                    <h3 className="text-white font-medium truncate">{document.name}</h3>
+                    <div className="flex items-center gap-2">
+                        <h3 className="text-white font-medium truncate">{document.name}</h3>
+                        {document.type === 'resume' && document.ats_score != null && (
+                            <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-semibold ${scoreClasses.bg} ${scoreClasses.text}`}>
+                                ATS {document.ats_score}
+                            </span>
+                        )}
+                    </div>
                     <div className="flex items-center gap-2 text-sm text-gray-400">
                         <span>{typeLabels[document.type]}</span>
                         {document.version && (
@@ -80,6 +138,7 @@ const DocumentCard = ({ document, onEdit, onDelete }) => {
                         )}
                     </div>
                 </div>
+                {atsScore != null && <ScoreRing score={atsScore} />}
             </div>
 
             {/* Metadata */}
@@ -103,6 +162,89 @@ const DocumentCard = ({ document, onEdit, onDelete }) => {
                 <div className="mt-3 flex items-center gap-1 text-xs text-blue-400">
                     <FaBriefcase size={12} />
                     <span>Used in {usageCount} {usageCount === 1 ? 'opportunity' : 'opportunities'}</span>
+                </div>
+            )}
+
+            {atsScore != null && (
+                <div className="mt-3 rounded-lg border border-white/10 bg-black/20 p-3">
+                    <div className="flex items-center justify-between gap-3">
+                        <p className="text-xs text-gray-400">Rule-based hints - not an official ATS score</p>
+                        <button
+                            type="button"
+                            onClick={() => setIsAtsOpen(open => !open)}
+                            className="text-xs font-medium text-blue-300 hover:text-blue-200"
+                        >
+                            {isAtsOpen ? 'Hide' : 'Details'}
+                        </button>
+                    </div>
+
+                    {isAtsOpen && (
+                        <div className="mt-3 space-y-3">
+                            <div className="grid grid-cols-3 gap-2 text-xs">
+                                <div className="rounded-md bg-white/5 p-2">
+                                    <p className="text-gray-500">Structure</p>
+                                    <p className="mt-1 text-white">{atsAnalysis?.breakdown?.structure ?? '--'}/60</p>
+                                </div>
+                                <div className="rounded-md bg-white/5 p-2">
+                                    <p className="text-gray-500">Content</p>
+                                    <p className="mt-1 text-white">{atsAnalysis?.breakdown?.content ?? '--'}/25</p>
+                                </div>
+                                <div className="rounded-md bg-white/5 p-2">
+                                    <p className="text-gray-500">ATS</p>
+                                    <p className="mt-1 text-white">{atsAnalysis?.breakdown?.atsFriendly ?? '--'}/15</p>
+                                </div>
+                            </div>
+
+                            {atsAnalysis?.missingSections?.length > 0 && (
+                                <div>
+                                    <p className="text-xs font-medium text-gray-300">Missing sections</p>
+                                    <div className="mt-2 flex flex-wrap gap-1.5">
+                                        {atsAnalysis.missingSections.map(section => (
+                                            <span key={section} className="rounded-md bg-red-500/10 px-2 py-1 text-xs text-red-300">
+                                                {section}
+                                            </span>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {atsAnalysis?.suggestions?.length > 0 && (
+                                <div>
+                                    <p className="text-xs font-medium text-gray-300">Top suggestions</p>
+                                    <ul className="mt-2 space-y-1 text-xs text-gray-400">
+                                        {atsAnalysis.suggestions.slice(0, 3).map(suggestion => (
+                                            <li key={suggestion}>{suggestion}</li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            )}
+
+                            {atsAnalysis?.matchedKeywords?.length > 0 && (
+                                <p className="text-xs text-gray-400">
+                                    Keywords matched: {atsAnalysis.matchedKeywords.slice(0, 6).join(', ')}
+                                </p>
+                            )}
+
+                            <button
+                                type="button"
+                                onClick={() => setShowScoring(open => !open)}
+                                className="text-xs font-medium text-blue-300 hover:text-blue-200"
+                            >
+                                How is this scored?
+                            </button>
+                            {showScoring && (
+                                <ul className="space-y-1 text-xs text-gray-500">
+                                    {(atsAnalysis?.howScored || [
+                                        'Structure: 60 points across required resume sections.',
+                                        'Content: 25 points for skills depth, projects, and experience bullets.',
+                                        'ATS-friendly: 15 points for length, contact details, and LinkedIn/GitHub.'
+                                    ]).map(item => (
+                                        <li key={item}>{item}</li>
+                                    ))}
+                                </ul>
+                            )}
+                        </div>
+                    )}
                 </div>
             )}
 

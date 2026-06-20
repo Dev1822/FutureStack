@@ -66,7 +66,16 @@ const Documents = () => {
     const handleUpload = async (file, metadata) => {
         try {
             setActionLoading(true);
-            await documentService.upload(file, metadata);
+            const { ats_score, ats_analyzed_at, ats_analysis, ...uploadMetadata } = metadata;
+            const uploadedDocument = await documentService.upload(file, uploadMetadata);
+
+            if (ats_score !== undefined && uploadedDocument?.id) {
+                await documentService.update(uploadedDocument.id, {
+                    ats_score,
+                    ats_analyzed_at,
+                    ats_analysis
+                });
+            }
             toast.success('Document uploaded successfully!');
             setIsUploadOpen(false);
             fetchDocuments();
