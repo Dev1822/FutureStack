@@ -18,7 +18,7 @@ const PrepProgressBar = ({ questions, topics, behavioral }) => {
     const topicsTotal = topics.length;
 
     const behavioralComplete = behavioral.filter(b =>
-        b.situation && b.task && b.action && b.result
+        b.situation?.trim() && b.task?.trim() && b.action?.trim() && b.result?.trim()
     ).length;
     const behavioralTotal = behavioral.length;
 

@@ -41,10 +41,12 @@ describe('Interview Prep API', () => {
     });
 
     it('GET /api/interview-prep/:opportunityId returns 503 when tables do not exist', async () => {
-        mockFrom.mockReturnValue(
+        // First call: verifyInternshipOwnership should succeed
+        mockFrom.mockReturnValueOnce(
             createChain({ data: { category: 'internship' }, error: null })
         );
 
+        // Second call: getPrepForOpportunity should return table-not-exists error
         mockFrom.mockReturnValueOnce(
             createChain({ data: null, error: { code: '42P01', message: 'relation does not exist' } })
         );
@@ -58,10 +60,12 @@ describe('Interview Prep API', () => {
     });
 
     it('GET /api/interview-prep/:opportunityId returns empty state when no prep exists', async () => {
-        mockFrom.mockReturnValue(
+        // First call: verifyInternshipOwnership
+        mockFrom.mockReturnValueOnce(
             createChain({ data: { category: 'internship' }, error: null })
         );
-
+    
+        // Second call: getPrepForOpportunity (no prep found)
         mockFrom.mockReturnValueOnce(
             createChain({ data: null, error: { code: 'PGRST116' } })
         );
@@ -86,14 +90,17 @@ describe('Interview Prep API', () => {
             reflection_notes: null,
         };
 
-        mockFrom.mockReturnValue(
+        // First call: verifyInternshipOwnership
+        mockFrom.mockReturnValueOnce(
             createChain({ data: { category: 'internship' }, error: null })
         );
-
+    
+        // Second call: getPrepForOpportunity (no existing prep)
         mockFrom.mockReturnValueOnce(
             createChain({ data: null, error: { code: 'PGRST116' } })
         );
-
+    
+        // Third call: insert new prep
         mockFrom.mockReturnValueOnce(
             createChain({ data: created, error: null })
         );
@@ -114,10 +121,12 @@ describe('Interview Prep API', () => {
             user_id: TEST_AUTH.internalUserId,
         };
 
-        mockFrom.mockReturnValue(
+        // First call: verifyInternshipOwnership
+        mockFrom.mockReturnValueOnce(
             createChain({ data: { category: 'internship' }, error: null })
         );
 
+        // Second call: getPrepForOpportunity (prep already exists)
         mockFrom.mockReturnValueOnce(
             createChain({ data: existing, error: null })
         );
