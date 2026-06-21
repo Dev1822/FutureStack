@@ -340,4 +340,74 @@ export const hackathonService = {
     }
 };
 
+// =============================================================================
+// INTERVIEW PREPARATION SERVICE
+// =============================================================================
+
+export const interviewPrepService = {
+    // Main prep record
+    getPrep: async (opportunityId) => {
+        const response = await api.get(`/interview-prep/${opportunityId}`);
+        return response.data;
+    },
+
+    createPrep: async (opportunityId, data) => {
+        const response = await api.post(`/interview-prep/${opportunityId}`, data);
+        return response.data;
+    },
+
+    updatePrep: async (opportunityId, data) => {
+        const response = await api.put(`/interview-prep/${opportunityId}`, data);
+        return response.data;
+    },
+
+    // Interview questions
+    createQuestion: async (opportunityId, data) => {
+        const response = await api.post(`/interview-prep/${opportunityId}/questions`, data);
+        return response.data;
+    },
+
+    updateQuestion: async (opportunityId, questionId, data) => {
+        const response = await api.put(`/interview-prep/${opportunityId}/questions/${questionId}`, data);
+        return response.data;
+    },
+
+    deleteQuestion: async (opportunityId, questionId) => {
+        const response = await api.delete(`/interview-prep/${opportunityId}/questions/${questionId}`);
+        return response.data;
+    },
+
+    // Technical topics
+    createTopic: async (opportunityId, data) => {
+        const response = await api.post(`/interview-prep/${opportunityId}/topics`, data);
+        return response.data;
+    },
+
+    updateTopic: async (opportunityId, topicId, data) => {
+        const response = await api.put(`/interview-prep/${opportunityId}/topics/${topicId}`, data);
+        return response.data;
+    },
+
+    deleteTopic: async (opportunityId, topicId) => {
+        const response = await api.delete(`/interview-prep/${opportunityId}/topics/${topicId}`);
+        return response.data;
+    },
+
+    // Behavioral prep (STAR method)
+    createBehavioral: async (opportunityId, data) => {
+        const response = await api.post(`/interview-prep/${opportunityId}/behavioral`, data);
+        return response.data;
+    },
+
+    updateBehavioral: async (opportunityId, behavioralId, data) => {
+        const response = await api.put(`/interview-prep/${opportunityId}/behavioral/${behavioralId}`, data);
+        return response.data;
+    },
+
+    deleteBehavioral: async (opportunityId, behavioralId) => {
+        const response = await api.delete(`/interview-prep/${opportunityId}/behavioral/${behavioralId}`);
+        return response.data;
+    }
+};
+
 export default api;
