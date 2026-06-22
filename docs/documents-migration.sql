@@ -14,6 +14,9 @@ CREATE TABLE IF NOT EXISTS documents (
   file_size INTEGER,                   -- Size in bytes (for uploaded files)
   storage_path TEXT,                   -- Supabase Storage path (for deletion)
   version TEXT DEFAULT 'v1',           -- User-defined version label
+  ats_score INTEGER,                    -- Rule-based ATS score from client-side analysis
+  ats_analyzed_at TIMESTAMPTZ,          -- When client-side ATS analysis was last saved
+  ats_analysis JSONB,                  -- Raw client-side ATS analysis metadata
   notes TEXT,
   is_external BOOLEAN DEFAULT FALSE,   -- True for portfolio links, false for uploads
   created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -168,3 +171,13 @@ CREATE TRIGGER unlink_documents_on_rejection
 --    Target roles: authenticated
 --    USING expression:
 --      (bucket_id = 'documents' AND (storage.foldername(name))[1] = auth.uid()::text)
+
+
+-- =============================================================================
+-- ATS score columns (for existing deployments that already have documents table)
+-- =============================================================================
+
+ALTER TABLE documents
+  ADD COLUMN IF NOT EXISTS ats_score INTEGER,
+  ADD COLUMN IF NOT EXISTS ats_analyzed_at TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS ats_analysis JSONB;

@@ -99,6 +99,27 @@ const updateDocumentSchema = Joi.object({
             'string.max': 'Version cannot exceed 50 characters'
         }),
 
+    ats_score: Joi.number()
+        .integer()
+        .min(0)
+        .max(100)
+        .optional(),
+
+    ats_analyzed_at: Joi.date()
+        .iso()
+        .optional(),
+
+    ats_analysis: Joi.alternatives()
+        .try(
+            Joi.object().unknown(true),
+            Joi.string().trim().max(10000)
+        )
+        .optional()
+        .messages({
+            'alternatives.match': 'ATS analysis metadata must be valid JSON',
+            'string.max': 'ATS analysis metadata cannot exceed 10000 characters'
+        }),
+
     notes: Joi.string()
         .trim()
         .max(2000)

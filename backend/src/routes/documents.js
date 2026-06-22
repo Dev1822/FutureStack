@@ -27,6 +27,24 @@ const ALLOWED_MIME_TYPES = [
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
 ];
 
+function parseAtsAnalysis(value) {
+    if (!value) return null;
+    if (typeof value === 'object') return value;
+
+    try {
+        return JSON.parse(value);
+    } catch (error) {
+        return null;
+    }
+}
+
+function parseAtsScore(value) {
+    if (value === undefined || value === null || value === '') return null;
+    const score = Number(value);
+    if (!Number.isInteger(score) || score < 0 || score > 100) return null;
+    return score;
+}
+
 // Configure multer for memory storage (we'll upload to Supabase Storage)
 const upload = multer({
     storage: multer.memoryStorage(),
@@ -403,7 +421,7 @@ router.post('/upload', upload.single('file'), async (req, res) => {
 router.patch('/:id', validate(documentIdParamSchema, 'params'), validate(updateDocumentSchema), async (req, res) => {
     try {
         const { id } = req.params;
-        const { name, type, file_url, version, notes, is_external } = req.body;
+        const { name, type, file_url, version, notes, is_external, ats_score, ats_analysis, ats_analyzed_at } = req.body;
 
         const updateData = {};
         if (name !== undefined) updateData.name = name;
@@ -412,6 +430,9 @@ router.patch('/:id', validate(documentIdParamSchema, 'params'), validate(updateD
         if (version !== undefined) updateData.version = version;
         if (notes !== undefined) updateData.notes = notes;
         if (is_external !== undefined) updateData.is_external = is_external;
+        if (ats_score !== undefined) updateData.ats_score = parseAtsScore(ats_score);
+        if (ats_analyzed_at !== undefined) updateData.ats_analyzed_at = ats_analyzed_at;
+        if (ats_analysis !== undefined) updateData.ats_analysis = parseAtsAnalysis(ats_analysis);
 
         const { data, error } = await supabase
             .from('documents')
