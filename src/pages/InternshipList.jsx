@@ -115,6 +115,12 @@ const InternshipList = () => {
     navigate(`/edit/${id}`);
   };
 
+  // Prep handler - closes detail modal and navigates to prep page
+  const handlePrep = (id) => {
+    setSelectedOpportunity(null);
+    navigate(`/internships/${id}/prep`);
+  };
+
   // Delete handlers
   const handleDeleteClick = (id) => {
     setSelectedOpportunity(null);
@@ -243,6 +249,7 @@ const InternshipList = () => {
           onClose={handleCloseDetail}
           onEdit={handleEdit}
           onDelete={handleDeleteClick}
+          onPrep={handlePrep}
           onOpportunityUpdated={handleOpportunityUpdated}
         />
 

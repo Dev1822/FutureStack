@@ -171,3 +171,13 @@ CREATE TRIGGER unlink_documents_on_rejection
 --    Target roles: authenticated
 --    USING expression:
 --      (bucket_id = 'documents' AND (storage.foldername(name))[1] = auth.uid()::text)
+
+
+-- =============================================================================
+-- ATS score columns (for existing deployments that already have documents table)
+-- =============================================================================
+
+ALTER TABLE documents
+  ADD COLUMN IF NOT EXISTS ats_score INTEGER,
+  ADD COLUMN IF NOT EXISTS ats_analyzed_at TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS ats_analysis JSONB;

@@ -25,6 +25,7 @@ import {
     FaUsers,
     FaPlus,
     FaLayerGroup,
+    FaGraduationCap,
 } from 'react-icons/fa';
 import Button from '../common/Button';
 import RoundTimeline, { RoundTimelineSkeleton } from '../rounds/RoundTimeline';
@@ -69,6 +70,7 @@ const documentTypeConfig = {
  * @param {Function} props.onEdit - Callback when Edit is clicked (receives opportunity.id)
  * @param {Function} props.onDelete - Callback when Delete is clicked (receives opportunity.id)
  * @param {Function} props.onManage - Callback when Manage is clicked for hackathons (receives opportunity.id)
+ * @param {Function} props.onPrep - Callback when Interview Prep is clicked for internships (receives opportunity.id)
  * @param {Function} props.onOpportunityUpdated - Callback when opportunity fields change (e.g. after round sync)
  */
 const OpportunityDetailModal = ({
@@ -78,6 +80,7 @@ const OpportunityDetailModal = ({
     onEdit,
     onDelete,
     onManage,
+    onPrep,
     onOpportunityUpdated,
 }) => {
     const [displayOpportunity, setDisplayOpportunity] = useState(opportunity);
@@ -465,6 +468,16 @@ const OpportunityDetailModal = ({
                                 >
                                     <FaUsers className="mr-2" size={14} />
                                     Manage Project
+                                </Button>
+                            )}
+                            {displayOpportunity.category === 'internship' && onPrep && (
+                                <Button
+                                    variant="secondary"
+                                    onClick={() => onPrep(displayOpportunity.id)}
+                                    className="flex-1"
+                                >
+                                    <FaGraduationCap className="mr-2" size={14} />
+                                    Interview Prep
                                 </Button>
                             )}
                             <Button
