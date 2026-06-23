@@ -6,16 +6,33 @@
 
 ## Table of Contents
 1. [Project Overview](#project-overview)
-2. [Tech Stack](#tech-stack)
-3. [System Architecture](#system-architecture)
-4. [Authentication Flow](#authentication-flow)
-5. [Backend Implementation](#backend-implementation)
-6. [Frontend Implementation](#frontend-implementation)
-7. [Database Design](#database-design)
-8. [Key Features](#key-features)
-9. [Unique Technical Challenges](#unique-technical-challenges)
-10. [Performance & SEO Optimizations](#performance--seo-optimizations)
-11. [Future Roadmap](#future-roadmap)
+2. [Recent Updates](#recent-updates)
+3. [Tech Stack](#tech-stack)
+4. [System Architecture](#system-architecture)
+5. [Authentication Flow](#authentication-flow)
+6. [Backend Implementation](#backend-implementation)
+7. [Frontend Implementation](#frontend-implementation)
+8. [Database Design](#database-design)
+9. [Key Features](#key-features)
+10. [Unique Technical Challenges](#unique-technical-challenges)
+11. [Performance & SEO Optimizations](#performance--seo-optimizations)
+12. [Future Roadmap](#future-roadmap)
+
+---
+
+## Recent Updates
+
+Merged to `main` (2026):
+
+| PR / change | What shipped |
+|-------------|--------------|
+| **#60** ATS scorer | Client-side PDF/DOCX analysis; scores stored on `documents` via API |
+| **#58** Interview prep | Per-internship workspace: research, Q&A, topics, STAR, reflection |
+| **#56** Interview rounds UI | Timeline, modal, Kanban sync (builds on rounds API) |
+| **#29** CI & guardrails | `test:ci`, backend tests, `check:architecture` |
+| **Status indicator** | UptimeRobot link in navbar, footer, README |
+
+**New docs:** [`CODEBASE_GUIDE.md`](CODEBASE_GUIDE.md) · [`interview-prep.md`](interview-prep.md) · [`documents-and-ats.md`](documents-and-ats.md)
 
 ---
 
@@ -174,25 +191,38 @@ flowchart TD
 ```
 backend/
 ├── src/
-│   ├── server.js           # Express entry point
+│   ├── server.js              # HTTP server entry (imports app.js)
+│   ├── app.js                 # Express app, middleware, route mounts
 │   ├── middleware/
-│   │   └── auth.js         # Clerk JWT verification
-│   └── routes/
-│       ├── opportunities.js # CRUD endpoints
-│       ├── analytics.js     # Dashboard stats
-│       └── health.js        # Health check
+│   │   ├── auth.js            # Clerk JWT verification
+│   │   └── validate.js        # Request body validation
+│   ├── routes/
+│   │   ├── opportunities.js   # Opportunities CRUD
+│   │   ├── opportunity-rounds.js  # Nested /rounds routes
+│   │   ├── interview-prep.js  # Prep workspace
+│   │   ├── documents.js       # Document vault + upload
+│   │   ├── hackathons.js      # Team collaboration
+│   │   └── analytics.js       # Dashboard stats
+│   ├── validation/            # Zod schemas per domain
+│   └── lib/
+│       ├── supabase.js        # Admin client
+│       └── syncOpportunityFromRounds.js
 ```
 
-### API Endpoints
+See [`backend/README.md`](../backend/README.md) for the full endpoint list.
 
-| Method | Endpoint | Description | Auth |
-|--------|----------|-------------|------|
-| GET | `/api/opportunities` | List user's opportunities | ✅ |
-| POST | `/api/opportunities` | Create new opportunity | ✅ |
-| PATCH | `/api/opportunities/:id` | Update opportunity | ✅ |
-| DELETE | `/api/opportunities/:id` | Delete opportunity | ✅ |
-| GET | `/api/analytics` | Get dashboard analytics | ✅ |
-| GET | `/api/health` | Server health check | ❌ |
+### API Endpoints (summary)
+
+| Area | Mount | Details |
+|------|-------|---------|
+| Health | `GET /api/health`, `/api/health/deps` | Public |
+| Opportunities | `/api/opportunities` | CRUD |
+| Interview rounds | `/api/opportunities/:id/rounds` | [`interview-rounds.md`](interview-rounds.md) |
+| Interview prep | `/api/interview-prep/:opportunityId` | [`interview-prep.md`](interview-prep.md) |
+| Documents | `/api/documents` | [`documents-and-ats.md`](documents-and-ats.md) |
+| Hackathons | `/api/hackathons/:id/*` | Team, ideas, tasks, checklist |
+| Analytics | `/api/analytics` | Dashboard charts data |
+| Me | `GET /api/me` | Current user |
 
 ### Auth Middleware Logic
 
@@ -231,6 +261,10 @@ graph TD
     
     Routes --> Home
     Routes --> Dashboard
+    Routes --> InternshipList
+    Routes --> InterviewPrepDetail[Interview Prep]
+    Routes --> HackathonDetail
+    Routes --> Documents
     Routes --> StatusBoard[Status Board / Kanban]
     Routes --> Analytics
     Routes --> Calendar
@@ -401,9 +435,20 @@ USING (
 - **Timeline UI** in internship detail drawer; compact badge on cards
 - **Auto status sync**: Round results update Kanban `status` and `current_round_number` / `rejected_round_number`
 - **Performance**: Mutations return `{ round, opportunity, rounds }`; UI applies in one shot (no blocking refetch)
-- **Docs**: [`docs/interview-rounds.md`](interview-rounds.md)
+- **Docs**: [`interview-rounds.md`](interview-rounds.md)
 
-### 6. Product Analytics (PostHog)
+### 6. Interview Preparation (internships)
+- **Per-company workspace**: Research notes, question bank, technical topics, STAR behavioral, reflection
+- **Progress bar**: Aggregates prepared questions, reviewed topics, behavioral entries
+- **Route**: `/internships/:id/prep` from detail drawer
+- **Docs**: [`interview-prep.md`](interview-prep.md)
+
+### 7. Documents & ATS hints
+- **Vault**: Upload resumes/cover letters; assign to opportunities
+- **ATS analysis**: Client-side PDF/DOCX scoring on upload (structure + content heuristics)
+- **Docs**: [`documents-and-ats.md`](documents-and-ats.md)
+
+### 8. Product Analytics (PostHog)
 - **User Behavior Tracking**: Page views, feature usage, and user flows
 - **Event Tracking**: Custom events for opportunity creation, updates, deletions
 - **Autocapture**: Automatic click and form submission tracking
@@ -524,6 +569,42 @@ api.interceptors.response.use(
 **Interview takeaway**: Reduced DB round-trips and eliminated redundant client refetches by designing the API response for the UI’s exact needs.
 
 Full write-up: [`docs/interview-rounds.md`](interview-rounds.md#performance-issue--fix)
+
+---
+
+## Interview Preparation Module
+
+Per-internship study workspace — separate from round tracking (pipeline status vs. preparation content).
+
+| Layer | Location |
+|-------|----------|
+| Page | `src/pages/InterviewPrepDetail.jsx` → `/internships/:id/prep` |
+| API | `backend/src/routes/interview-prep.js` |
+| Service | `interviewPrepService` in `src/services/api.js` |
+| Migration | `docs/interview-prep-migration.sql` |
+
+**Tabs:** Overview, Company Research, Questions, Technical Topics, Behavioral (STAR), Reflection.
+
+**Entry:** Internship detail drawer → **Interview Prep** button.
+
+**Interview takeaway:** One GET returns `{ prep, questions, topics, behavioral }`; internship-only guard on every route; same “API-only, no frontend Supabase CRUD” rule as rounds.
+
+Full guide: [`interview-prep.md`](interview-prep.md)
+
+---
+
+## Documents Vault & ATS Scorer
+
+| Layer | Location |
+|-------|----------|
+| Page | `src/pages/Documents.jsx` |
+| ATS logic | `src/utils/atsScorer.js` (client-side PDF/DOCX) |
+| Upload UI | `src/components/documents/DocumentUpload.jsx` |
+| API | `backend/src/routes/documents.js` |
+
+On upload, the browser extracts text, computes a 0–100 rule-based score, and saves `ats_score` + `ats_analysis` JSON on the document record. Not an external ATS API.
+
+Full guide: [`documents-and-ats.md`](documents-and-ats.md)
 
 ---
 
@@ -1077,7 +1158,7 @@ Implemented 4 Schema.org schemas in `public/index.html`:
 
 ## Quick Pitch Summary
 
-> "FutureTracker is a full-stack SaaS application I built to solve my own pain point of tracking internship applications. The standout features are **real-time sync using Supabase WebSockets**, **premium analytics with Recharts**, and **production-grade error handling**. The biggest challenge was integrating Supabase Realtime with Clerk authentication - I solved it by understanding RLS policy conflicts and implementing a hybrid security model. The app is mobile-responsive, follows React best practices, and is **deployed in production** at [futuretracker.online](https://futuretracker.online) with a Render-hosted Express backend."
+> "FutureTracker is a full-stack SaaS application I built to solve my own pain point of tracking internship applications. The standout features are **real-time sync using Supabase WebSockets**, **multi-round interview pipelines with a performance-optimized API**, **per-internship prep workspaces**, **client-side ATS resume hints**, and **production-grade error handling**. The biggest challenge was integrating Supabase Realtime with Clerk authentication - I solved it by understanding RLS policy conflicts and implementing a hybrid security model. The app is mobile-responsive, follows React best practices, and is **deployed in production** at [futuretracker.online](https://futuretracker.online) with a Render-hosted Express backend."
 
 ---
 

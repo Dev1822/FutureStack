@@ -34,7 +34,9 @@ export REACT_APP_API_URL=http://localhost:3001/api
 | `backend/src/routes/*` or `backend/src/middleware/*` | `cd backend && npm test` — **add or update tests** in `backend/tests/` |
 | `backend/src/lib/validation.js` | `cd backend && npm test -- validation` |
 | `docs/*-migration.sql` | Manual: run migration on a dev Supabase project; document steps in the PR |
-| Interview rounds (`backend/src/routes/opportunity-rounds.js`, `src/components/rounds/*`) | `cd backend && npm test -- rounds`, manual flow in [`docs/interview-rounds.md`](interview-rounds.md#testing), optional `./scripts/test-rounds-api.sh` |
+| Interview rounds (`backend/src/routes/opportunity-rounds.js`, `src/components/rounds/*`) | `cd backend && npm test -- rounds`, manual flow in [`docs/interview-rounds.md`](interview-rounds.md#testing) |
+| Interview prep (`backend/src/routes/interview-prep.js`, `src/components/interview-prep/*`) | `cd backend && npm test -- interview-prep`, manual flow in [`docs/interview-prep.md`](interview-prep.md#testing) |
+| ATS scorer (`src/utils/atsScorer.js`, `DocumentUpload.jsx`) | `npm test -- atsScorer`, upload PDF/DOCX on `/documents` |
 
 ### Backend route changes require tests
 
@@ -68,6 +70,33 @@ See [`docs/interview-rounds.md`](interview-rounds.md#testing).
 ```bash
 export CLERK_TOKEN="<paste from browser Clerk session>"
 ./scripts/test-rounds-api.sh
+```
+
+### Interview prep (if you changed prep API or UI)
+
+See [`docs/interview-prep.md`](interview-prep.md#testing).
+
+1. Open an internship → detail drawer → **Interview Prep**
+2. Confirm route `/internships/<id>/prep` loads all tabs
+3. Add a question and mark it prepared — progress bar updates
+4. Save company research and reflection — persists after refresh
+5. Confirm hackathon detail has **no** Interview Prep button
+
+```bash
+cd backend && npm test -- interview-prep
+```
+
+### Documents & ATS (if you changed upload or scorer)
+
+See [`docs/documents-and-ats.md`](documents-and-ats.md).
+
+1. Go to **Documents** → upload a PDF or DOCX resume
+2. Confirm ATS breakdown appears before save
+3. Save — `ats_score` visible on document card
+4. Assign document to an internship from opportunity flow
+
+```bash
+npm test -- atsScorer
 ```
 
 ## What CI runs

@@ -4,10 +4,11 @@ Thank you for contributing to FutureStack through **GirlScript Summer of Code (G
 
 ## Before you start
 
-1. Read the [README](README.md) and skim [docs/DOCUMENTATION.md](docs/DOCUMENTATION.md) for architecture context.
-2. Pick **one open issue** you want to work on.
-3. **Do not open a PR** until a maintainer has assigned the issue to you.
-4. Comment on the issue with your approach (see below). Wait for assignment before coding.
+1. Read the [README](README.md) and **[docs/CODEBASE_GUIDE.md](docs/CODEBASE_GUIDE.md)** for architecture and file orientation.
+2. Skim feature docs for your area: [interview-rounds](docs/interview-rounds.md), [interview-prep](docs/interview-prep.md), [documents-and-ats](docs/documents-and-ats.md).
+3. Pick **one open issue** you want to work on.
+4. **Do not open a PR** until a maintainer has assigned the issue to you.
+5. Comment on the issue with your approach (see below). Wait for assignment before coding.
 
 ## How to get an issue assigned
 
