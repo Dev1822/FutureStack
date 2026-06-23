@@ -1,4 +1,5 @@
 import { FiGithub, FiTwitter, FiLinkedin } from 'react-icons/fi';
+import StatusIndicator from './StatusIndicator';
 
 const Footer = () => {
     return (
@@ -64,9 +65,12 @@ const Footer = () => {
                 </div>
 
                 <div className="border-t border-white/10 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
-                    <p className="text-sm text-gray-600">
-                        © {new Date().getFullYear()} FutureTracker. All rights reserved.
-                    </p>
+                    <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-6">
+                        <p className="text-sm text-gray-600">
+                            © {new Date().getFullYear()} FutureTracker. All rights reserved.
+                        </p>
+                        <StatusIndicator />
+                    </div>
                     <div className="flex gap-8 text-sm text-gray-600">
                         <a href="/privacy" className="hover:text-gray-400 transition-colors">Privacy Policy</a>
                         <a href="/terms" className="hover:text-gray-400 transition-colors">Terms of Service</a>

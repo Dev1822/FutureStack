@@ -9,6 +9,7 @@
 [![Supabase](https://img.shields.io/badge/Database-Supabase-3ECF8E.svg)](https://supabase.com/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Live Demo](https://img.shields.io/badge/Live%20Demo-futuretracker.online-black.svg)](https://futuretracker.online/)
+[![Service Status](https://img.shields.io/badge/Service%20Status-uptime%20monitor-2ea44f.svg)](https://stats.uptimerobot.com/ArICmEg95Y)
 [![Docs on Devin](https://img.shields.io/badge/Docs-Devin-6C63FF.svg)](https://app.devin.ai/wiki/Venkat-Kolasani/FutureStack)
 
 ## 📋 Table of Contents
@@ -49,7 +50,8 @@ FutureTracker is a modern, full-featured SaaS application designed to help stude
 ## 🌐 Live Demo
 
 **Frontend**: [https://futuretracker.online](https://futuretracker.online)  
-**Backend API**: [https://futurestack-api.onrender.com](https://futurestack-api.onrender.com)
+**Backend API**: [https://futurestack-api.onrender.com](https://futurestack-api.onrender.com)  
+**Service Status**: [UptimeRobot status page](https://stats.uptimerobot.com/ArICmEg95Y)
 
 ## ✨ Features
 

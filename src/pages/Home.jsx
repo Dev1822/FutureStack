@@ -6,6 +6,7 @@ import { SignInButton, SignUpButton, SignedIn, SignedOut, UserButton } from '@cl
 import SEO from '../components/seo/SEO';
 import FAQ from '../components/common/FAQ';
 import Footer from '../components/common/Footer';
+import StatusIndicator from '../components/common/StatusIndicator';
 
 const Home = () => {
   const navigate = useNavigate();
@@ -51,6 +52,7 @@ const Home = () => {
           </div>
 
           <div className="flex items-center gap-2 md:gap-4">
+            <StatusIndicator className="hidden sm:inline-flex" />
             <SignedOut>
               {/* Sign In hidden on mobile - users can use hero CTA */}
               <SignInButton mode="modal">
