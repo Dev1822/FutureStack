@@ -32,6 +32,7 @@ const Calendar = lazy(() => import('./pages/Calendar'));
 const Reports = lazy(() => import('./pages/Reports'));
 const Analytics = lazy(() => import('./pages/Analytics'));
 const Documents = lazy(() => import('./pages/Documents'));
+const PublicSharePage = lazy(() => import('./pages/PublicSharePage'));
 
 // Loading fallback component for Suspense
 const PageLoader = () => (
@@ -43,6 +44,7 @@ const PageLoader = () => (
 function AppContent() {
   const location = useLocation();
   const isHomePage = location.pathname === '/';
+  const isPublicSharePage = location.pathname.startsWith('/share/');
   const { user, isSignedIn } = useUser();
 
   // Initialize auth token getter for API calls
@@ -72,12 +74,13 @@ function AppContent() {
         Skip to main content
       </a>
 
-      {!isHomePage && <Navbar />}
+      {!isHomePage && !isPublicSharePage && <Navbar />}
 
       <main id="main-content" role="main">
         <Suspense fallback={<PageLoader />}>
           <Routes>
             <Route path="/" element={<Home />} />
+            <Route path="/share/:token" element={<PublicSharePage />} />
             <Route path="/dashboard" element={
               <ProtectedRoute>
                 <Dashboard />
