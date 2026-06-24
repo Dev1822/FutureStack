@@ -23,10 +23,12 @@ const shareFieldsSchema = Joi.object({
 const createShareLinkSchema = Joi.object({
     opportunityIds: Joi.array()
         .items(Joi.string().uuid())
+        .min(1)
         .max(100)
         .unique()
         .optional()
         .messages({
+            'array.min': 'Select at least one opportunity when sharing specific items',
             'array.max': 'You can share up to 100 opportunities at a time',
             'array.unique': 'Opportunity selections must be unique',
         }),

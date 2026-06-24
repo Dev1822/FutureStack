@@ -95,7 +95,6 @@ CREATE POLICY "Users can delete own share links" ON share_links
   ));
 
 CREATE INDEX IF NOT EXISTS idx_share_links_user_id ON share_links(user_id);
-CREATE INDEX IF NOT EXISTS idx_share_links_token_hash ON share_links(token_hash);
 CREATE INDEX IF NOT EXISTS idx_share_links_active_token_hash
   ON share_links(token_hash)
   WHERE is_active = TRUE;

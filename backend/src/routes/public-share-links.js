@@ -1,9 +1,10 @@
 const express = require('express');
+const rateLimit = require('express-rate-limit');
 const { supabase } = require('../lib/supabase');
 const { validate } = require('../middleware/validate');
 const {
     hashToken,
-    isShareUnavailable,
+    isShareExpired,
     sanitizeShareForPublic,
     verifyPasscode,
 } = require('../lib/shareLinks');
@@ -17,6 +18,33 @@ const router = express.Router();
 const PUBLIC_SHARE_FIELDS =
     'id, token_hash, snapshot, snapshot_type, expires_at, is_active, view_count, passcode_hash, passcode_salt, created_at, updated_at';
 
+const publicShareReadLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 120,
+    standardHeaders: true,
+    legacyHeaders: false,
+    handler: (req, res) => {
+        res.status(429).json({
+            error: 'Share Link Rate Limit Exceeded',
+            message: 'Too many share link requests. Please wait and try again.',
+        });
+    },
+});
+
+const publicShareVerifyLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 15,
+    standardHeaders: true,
+    legacyHeaders: false,
+    keyGenerator: (req) => `${req.params.token}:${req.ip}`,
+    handler: (req, res) => {
+        res.status(429).json({
+            error: 'Passcode Rate Limit Exceeded',
+            message: 'Too many passcode attempts. Please wait and try again.',
+        });
+    },
+});
+
 function handlePublicShareError(res, action, error, defaultMessage) {
     console.error(`${action} error:`, {
         type: 'ROUTE_ERROR',
@@ -28,11 +56,12 @@ function handlePublicShareError(res, action, error, defaultMessage) {
     return res.status(500).json({ error: defaultMessage });
 }
 
-async function findShareByToken(token) {
+async function findActiveShareByToken(token) {
     const { data, error } = await supabase
         .from('share_links')
         .select(PUBLIC_SHARE_FIELDS)
         .eq('token_hash', hashToken(token))
+        .eq('is_active', true)
         .single();
 
     if (error) {
@@ -42,14 +71,24 @@ async function findShareByToken(token) {
         throw error;
     }
 
+    if (isShareExpired(data)) {
+        return null;
+    }
+
     return data;
 }
 
-async function incrementViewCount(share) {
-    await supabase
-        .from('share_links')
-        .update({ view_count: (share.view_count || 0) + 1 })
-        .eq('id', share.id);
+async function serveActiveShare(shareId) {
+    const { data, error } = await supabase.rpc('serve_public_share_link', {
+        p_share_id: shareId,
+    });
+
+    if (error) {
+        throw error;
+    }
+
+    const served = Array.isArray(data) ? data[0] : data;
+    return served || null;
 }
 
 function sendUnavailable(res) {
@@ -60,10 +99,7 @@ function sendUnavailable(res) {
 }
 
 function sendPublicShare(res, share) {
-    return res.json(sanitizeShareForPublic({
-        ...share,
-        view_count: (share.view_count || 0) + 1,
-    }));
+    return res.json(sanitizeShareForPublic(share));
 }
 
 /**
@@ -71,11 +107,11 @@ function sendPublicShare(res, share) {
  * Public read. If a passcode is configured, return a gated response without the
  * snapshot until POST /verify succeeds.
  */
-router.get('/:token', validate(publicTokenParamSchema, 'params'), async (req, res) => {
+router.get('/:token', publicShareReadLimiter, validate(publicTokenParamSchema, 'params'), async (req, res) => {
     try {
-        const share = await findShareByToken(req.params.token);
+        const share = await findActiveShareByToken(req.params.token);
 
-        if (isShareUnavailable(share)) {
+        if (!share) {
             return sendUnavailable(res);
         }
 
@@ -88,8 +124,12 @@ router.get('/:token', validate(publicTokenParamSchema, 'params'), async (req, re
             });
         }
 
-        await incrementViewCount(share);
-        return sendPublicShare(res, share);
+        const served = await serveActiveShare(share.id);
+        if (!served) {
+            return sendUnavailable(res);
+        }
+
+        return sendPublicShare(res, served);
     } catch (error) {
         return handlePublicShareError(res, 'FETCH_PUBLIC_SHARE', error, 'Failed to fetch shared dashboard');
     }
@@ -101,13 +141,14 @@ router.get('/:token', validate(publicTokenParamSchema, 'params'), async (req, re
  */
 router.post(
     '/:token/verify',
+    publicShareVerifyLimiter,
     validate(publicTokenParamSchema, 'params'),
     validate(verifyPasscodeSchema),
     async (req, res) => {
         try {
-            const share = await findShareByToken(req.params.token);
+            const share = await findActiveShareByToken(req.params.token);
 
-            if (isShareUnavailable(share)) {
+            if (!share) {
                 return sendUnavailable(res);
             }
 
@@ -118,8 +159,12 @@ router.post(
                 });
             }
 
-            await incrementViewCount(share);
-            return sendPublicShare(res, share);
+            const served = await serveActiveShare(share.id);
+            if (!served) {
+                return sendUnavailable(res);
+            }
+
+            return sendPublicShare(res, served);
         } catch (error) {
             return handlePublicShareError(res, 'VERIFY_PUBLIC_SHARE', error, 'Failed to verify shared dashboard');
         }

@@ -15,6 +15,7 @@ import Button from '../components/common/Button';
 import Card from '../components/common/Card';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import { shareLinkService } from '../services/api';
+import { formatDate, getDaysRemaining } from '../utils/dateHelpers';
 
 const STATUS_STYLES = {
   applied: 'bg-blue-500/10 text-blue-200 border-blue-500/20',
@@ -30,8 +31,12 @@ const statusLabel = (status) => {
   return status.charAt(0).toUpperCase() + status.slice(1);
 };
 
-const formatDate = (value) => {
+const formatSharedTimestamp = (value) => {
   if (!value) return 'Not shown';
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return formatDate(value);
+  }
+
   return new Date(value).toLocaleDateString(undefined, {
     month: 'short',
     day: 'numeric',
@@ -42,11 +47,7 @@ const formatDate = (value) => {
 const getDeadlineState = (deadline) => {
   if (!deadline) return { label: 'No deadline shared', className: 'text-gray-400' };
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const date = new Date(deadline);
-  date.setHours(0, 0, 0, 0);
-  const diffDays = Math.ceil((date - today) / (1000 * 60 * 60 * 24));
+  const diffDays = getDaysRemaining(deadline);
 
   if (diffDays < 0) {
     return { label: `${Math.abs(diffDays)} day${Math.abs(diffDays) === 1 ? '' : 's'} overdue`, className: 'text-red-300' };
@@ -278,7 +279,7 @@ const PublicSharePage = () => {
                 <FaBriefcase className="text-blue-300" />
                 Shared opportunities
               </h2>
-              <span className="text-sm text-gray-500">Generated {formatDate(snapshot.generatedAt)}</span>
+              <span className="text-sm text-gray-500">Generated {formatSharedTimestamp(snapshot.generatedAt)}</span>
             </div>
 
             {opportunities.length === 0 ? (
@@ -337,7 +338,7 @@ const PublicSharePage = () => {
                       {fields.dateApplied && (
                         <div className="rounded-xl bg-white/[0.03] p-3">
                           <p className="text-xs text-gray-500">Date applied</p>
-                          <p className="mt-1 text-sm font-medium text-white">{formatDate(opportunity.dateApplied)}</p>
+                          <p className="mt-1 text-sm font-medium text-white">{formatSharedTimestamp(opportunity.dateApplied)}</p>
                         </div>
                       )}
                     </div>

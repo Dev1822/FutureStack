@@ -11,9 +11,11 @@ jest.mock('../../src/middleware/auth', () => ({
 }));
 
 const mockFrom = jest.fn();
+const mockRpc = jest.fn();
 jest.mock('../../src/lib/supabase', () => ({
     supabase: {
         from: (...args) => mockFrom(...args),
+        rpc: (...args) => mockRpc(...args),
     },
 }));
 
@@ -22,6 +24,7 @@ const app = require('../../src/app');
 
 const authHeader = { Authorization: 'Bearer test-token' };
 const VALID_TOKEN = 'valid-token_123456789012345678901234';
+const OPPORTUNITY_ID = '00000000-0000-4000-8000-000000000001';
 
 const sampleSnapshot = {
     version: 2,
@@ -53,7 +56,7 @@ const sampleSnapshot = {
     },
     opportunities: [
         {
-            id: '00000000-0000-4000-8000-000000000001',
+            id: OPPORTUNITY_ID,
             title: 'Backend Intern',
             category: 'internship',
             status: 'rejected',
@@ -89,9 +92,17 @@ function shareRow(overrides = {}) {
     };
 }
 
+function mockServeShare(row) {
+    mockRpc.mockResolvedValueOnce({
+        data: [row],
+        error: null,
+    });
+}
+
 describe('Share Links API', () => {
     beforeEach(() => {
         mockFrom.mockReset();
+        mockRpc.mockReset();
     });
 
     it('GET /api/share-links returns 401 without auth', async () => {
@@ -116,10 +127,25 @@ describe('Share Links API', () => {
         );
     });
 
+    it('POST /api/share-links rejects empty opportunityIds', async () => {
+        const res = await request(app)
+            .post('/api/share-links')
+            .set(authHeader)
+            .send({
+                expiry: '7d',
+                opportunityIds: [],
+            });
+
+        expect(res.status).toBe(400);
+        expect(res.body.details).toEqual(
+            expect.arrayContaining([expect.objectContaining({ field: 'opportunityIds' })])
+        );
+    });
+
     it('POST /api/share-links creates a rich frozen share and returns token once', async () => {
         const opportunities = [
             {
-                id: '00000000-0000-4000-8000-000000000001',
+                id: OPPORTUNITY_ID,
                 title: 'Backend Intern',
                 description: 'Work on APIs and infrastructure.',
                 link: 'https://example.com/apply',
@@ -173,6 +199,58 @@ describe('Share Links API', () => {
         expect(mockFrom).toHaveBeenCalledWith('share_links');
     });
 
+    it('POST /api/share-links creates a specific-opportunity share snapshot', async () => {
+        const opportunities = [
+            {
+                id: OPPORTUNITY_ID,
+                title: 'Backend Intern',
+                description: 'Work on APIs and infrastructure.',
+                link: 'https://example.com/apply',
+                deadline: '2026-07-01',
+                category: 'internship',
+                status: 'rejected',
+                created_at: '2026-06-01T00:00:00.000Z',
+                rejected_round_number: 2,
+                current_round_number: 2,
+            },
+        ];
+        const opportunitiesChain = createChain({ data: opportunities, error: null });
+        const insertChain = createChain({ data: shareRow({ view_count: 0 }), error: null });
+
+        mockFrom
+            .mockReturnValueOnce(opportunitiesChain)
+            .mockReturnValueOnce(insertChain);
+
+        const res = await request(app)
+            .post('/api/share-links')
+            .set(authHeader)
+            .send({
+                expiry: '7d',
+                opportunityIds: [OPPORTUNITY_ID],
+            });
+
+        expect(res.status).toBe(201);
+        expect(opportunitiesChain.in).toHaveBeenCalledWith('id', [OPPORTUNITY_ID]);
+        const insertedShare = insertChain.insert.mock.calls[0][0];
+        expect(insertedShare.snapshot.options.selectionMode).toBe('specific');
+        expect(insertedShare.snapshot.summary.total).toBe(1);
+    });
+
+    it('POST /api/share-links rejects unknown opportunity IDs', async () => {
+        mockFrom.mockReturnValueOnce(createChain({ data: [], error: null }));
+
+        const res = await request(app)
+            .post('/api/share-links')
+            .set(authHeader)
+            .send({
+                expiry: '7d',
+                opportunityIds: [OPPORTUNITY_ID],
+            });
+
+        expect(res.status).toBe(400);
+        expect(res.body.error).toBe('Invalid opportunity selection');
+    });
+
     it('GET /api/share-links lists owner metadata with a copyable URL and without raw token fields', async () => {
         mockFrom.mockReturnValue(createChain({ data: [shareRow()], error: null }));
 
@@ -223,9 +301,8 @@ describe('Share Links API', () => {
     });
 
     it('GET /api/public/share-links/:token returns public snapshot without auth or owner fields', async () => {
-        mockFrom
-            .mockReturnValueOnce(createChain({ data: shareRow(), error: null }))
-            .mockReturnValueOnce(createChain({ data: null, error: null }));
+        mockFrom.mockReturnValueOnce(createChain({ data: shareRow(), error: null }));
+        mockServeShare(shareRow({ view_count: 4 }));
 
         const res = await request(app).get(`/api/public/share-links/${VALID_TOKEN}`);
 
@@ -240,14 +317,17 @@ describe('Share Links API', () => {
         expect(res.body).not.toHaveProperty('user_id');
         expect(res.body).not.toHaveProperty('token_hash');
         expect(JSON.stringify(res.body)).not.toContain('must never leak');
+        expect(mockRpc).toHaveBeenCalledWith('serve_public_share_link', {
+            p_share_id: '00000000-0000-4000-8000-000000000099',
+        });
     });
 
     it('GET /api/public/share-links/:token can be opened repeatedly while active', async () => {
         mockFrom
             .mockReturnValueOnce(createChain({ data: shareRow({ view_count: 3 }), error: null }))
-            .mockReturnValueOnce(createChain({ data: null, error: null }))
-            .mockReturnValueOnce(createChain({ data: shareRow({ view_count: 4 }), error: null }))
-            .mockReturnValueOnce(createChain({ data: null, error: null }));
+            .mockReturnValueOnce(createChain({ data: shareRow({ view_count: 4 }), error: null }));
+        mockServeShare(shareRow({ view_count: 4 }));
+        mockServeShare(shareRow({ view_count: 5 }));
 
         const first = await request(app).get(`/api/public/share-links/${VALID_TOKEN}`);
         const second = await request(app).get(`/api/public/share-links/${VALID_TOKEN}`);
@@ -260,8 +340,8 @@ describe('Share Links API', () => {
 
     it('GET /api/public/share-links/:token gracefully rejects expired or revoked links', async () => {
         mockFrom.mockReturnValue(createChain({
-            data: shareRow({ is_active: false }),
-            error: null,
+            data: null,
+            error: { code: 'PGRST116' },
         }));
 
         const res = await request(app).get(`/api/public/share-links/${VALID_TOKEN}`);
@@ -282,6 +362,7 @@ describe('Share Links API', () => {
         expect(res.status).toBe(200);
         expect(res.body.requiresPasscode).toBe(true);
         expect(res.body).not.toHaveProperty('snapshot');
+        expect(mockRpc).not.toHaveBeenCalled();
     });
 
     it('POST /api/public/share-links/:token/verify rejects wrong passcode', async () => {
@@ -297,16 +378,16 @@ describe('Share Links API', () => {
 
         expect(res.status).toBe(401);
         expect(res.body.error).toBe('Invalid Passcode');
+        expect(mockRpc).not.toHaveBeenCalled();
     });
 
     it('POST /api/public/share-links/:token/verify returns snapshot on correct passcode', async () => {
         const { passcodeHash, passcodeSalt } = createPasscodeHash('1234');
-        mockFrom
-            .mockReturnValueOnce(createChain({
-                data: shareRow({ passcode_hash: passcodeHash, passcode_salt: passcodeSalt }),
-                error: null,
-            }))
-            .mockReturnValueOnce(createChain({ data: null, error: null }));
+        mockFrom.mockReturnValueOnce(createChain({
+            data: shareRow({ passcode_hash: passcodeHash, passcode_salt: passcodeSalt }),
+            error: null,
+        }));
+        mockServeShare(shareRow({ view_count: 4, passcode_hash: passcodeHash, passcode_salt: passcodeSalt }));
 
         const res = await request(app)
             .post(`/api/public/share-links/${VALID_TOKEN}/verify`)

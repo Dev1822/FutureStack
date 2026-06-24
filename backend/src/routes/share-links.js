@@ -59,6 +59,7 @@ router.get('/', async (req, res) => {
             .from('share_links')
             .select(OWNER_SHARE_FIELDS)
             .eq('user_id', req.auth.internalUserId)
+            .eq('is_active', true)
             .order('created_at', { ascending: false });
 
         if (error) throw error;
@@ -90,6 +91,17 @@ router.post('/', validate(createShareLinkSchema), async (req, res) => {
 
         const { data: opportunities, error: opportunitiesError } = await query;
         if (opportunitiesError) throw opportunitiesError;
+
+        if (opportunityIds?.length) {
+            const foundIds = new Set((opportunities || []).map((opportunity) => opportunity.id));
+            const missingIds = opportunityIds.filter((id) => !foundIds.has(id));
+            if (missingIds.length > 0) {
+                return res.status(400).json({
+                    error: 'Invalid opportunity selection',
+                    message: 'One or more selected opportunities were not found.',
+                });
+            }
+        }
 
         const snapshot = buildShareSnapshot({
             opportunities: opportunities || [],

@@ -49,46 +49,49 @@ const OpportunityCard = ({ opportunity, onView, onEdit, onDelete, onShare }) => 
   return (
     <Card hover className="p-5">
       <div className="flex flex-col h-full">
-        {/* Clickable area for viewing details */}
-        {/* Clickable area for viewing details */}
+        <div className="mb-3 flex items-start justify-between gap-2">
+          <div
+            className="min-w-0 flex-1 cursor-pointer outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-900 rounded-lg"
+            onClick={handleCardClick}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                handleCardClick();
+              }
+            }}
+          >
+            <h3 className="text-lg font-semibold text-white hover:text-blue-400 transition-colors">
+              {opportunity.title}
+            </h3>
+          </div>
+          <div className="flex items-center gap-1.5 shrink-0">
+            {onShare && (
+              <button
+                type="button"
+                onClick={() => onShare(opportunity)}
+                className="rounded-md p-1.5 text-gray-500 transition-colors hover:bg-blue-500/10 hover:text-blue-300"
+                aria-label={`Share ${opportunity.title}`}
+                title="Share internship"
+              >
+                <FaShareAlt size={13} />
+              </button>
+            )}
+            <span
+              className={`px-2.5 py-1 rounded-full text-xs font-medium whitespace-nowrap ${categoryColors[opportunity.category] || 'bg-gray-500/10 text-gray-400 border border-gray-500/20'
+                }`}
+            >
+              {opportunity.category}
+            </span>
+          </div>
+        </div>
+
         <div
           className="cursor-pointer flex-1 outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-900 rounded-lg"
           onClick={handleCardClick}
-          role="button"
-          tabIndex={0}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault();
-              handleCardClick();
-            }
-          }}
+          role="presentation"
         >
-          {/* Header with badges */}
-          <div className="flex items-start justify-between mb-3">
-            <h3 className="text-lg font-semibold text-white flex-1 mr-2 hover:text-blue-400 transition-colors">
-              {opportunity.title}
-            </h3>
-            <div className="flex items-center gap-1.5 shrink-0">
-              {onShare && (
-                <button
-                  type="button"
-                  onClick={(e) => { e.stopPropagation(); onShare(opportunity); }}
-                  className="rounded-md p-1.5 text-gray-500 transition-colors hover:bg-blue-500/10 hover:text-blue-300"
-                  aria-label={`Share ${opportunity.title}`}
-                  title="Share internship"
-                >
-                  <FaShareAlt size={13} />
-                </button>
-              )}
-              <span
-                className={`px-2.5 py-1 rounded-full text-xs font-medium whitespace-nowrap ${categoryColors[opportunity.category] || 'bg-gray-500/10 text-gray-400 border border-gray-500/20'
-                  }`}
-              >
-                {opportunity.category}
-              </span>
-            </div>
-          </div>
-
           {/* Description (truncated) */}
           {opportunity.description && (
             <p className="text-gray-400 text-sm mb-3 line-clamp-2">

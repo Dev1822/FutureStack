@@ -227,12 +227,16 @@ erDiagram
         uuid id PK
         uuid user_id FK
         text token_hash UK
+        text token_ciphertext
+        text token_iv
+        text token_auth_tag
         jsonb snapshot
         text snapshot_type
         timestamptz expires_at
         boolean is_active
         int view_count
         text passcode_hash
+        text passcode_salt
     }
 ```
 

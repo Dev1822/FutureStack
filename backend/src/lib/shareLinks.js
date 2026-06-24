@@ -133,8 +133,8 @@ function isShareUnavailable(share) {
 function normalizeFieldOptions(fields = {}) {
     return {
         status: fields.status !== false,
-        rounds: fields.rounds !== false && fields.rejectedRound !== false,
-        rejectedRound: fields.rounds !== false && fields.rejectedRound !== false,
+        rounds: fields.rounds !== false,
+        rejectedRound: fields.rejectedRound !== false,
         dateApplied: fields.dateApplied !== false,
         description: fields.description !== false,
         deadline: fields.deadline !== false,
@@ -166,8 +166,11 @@ function toPublicOpportunity(opportunity, fields) {
     }
 
     if (fields.rounds) {
-        item.rejectedRoundNumber = opportunity.rejected_round_number || null;
         item.currentRoundNumber = opportunity.current_round_number || null;
+    }
+
+    if (fields.rejectedRound) {
+        item.rejectedRoundNumber = opportunity.rejected_round_number || null;
     }
 
     if (fields.dateApplied) {
@@ -302,6 +305,7 @@ module.exports = {
     generateShareToken,
     getPublicAppUrl,
     hashToken,
+    isShareExpired,
     isShareUnavailable,
     resolveExpiresAt,
     sanitizeShareForOwner,

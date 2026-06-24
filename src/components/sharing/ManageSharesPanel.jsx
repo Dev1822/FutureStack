@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { toast } from 'react-toastify';
 import { FaCopy, FaEye, FaLink, FaPlus, FaRegClock, FaTrashAlt } from 'react-icons/fa';
 import Button from '../common/Button';
@@ -37,6 +37,15 @@ const ManageSharesPanel = ({ refreshKey = 0, onCreateShare }) => {
   const [revokingId, setRevokingId] = useState(null);
   const [confirmRevokeId, setConfirmRevokeId] = useState(null);
   const [copiedId, setCopiedId] = useState(null);
+  const copyTimeoutRef = useRef(null);
+
+  useEffect(() => {
+    return () => {
+      if (copyTimeoutRef.current) {
+        clearTimeout(copyTimeoutRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     fetchShares();
@@ -82,7 +91,10 @@ const ManageSharesPanel = ({ refreshKey = 0, onCreateShare }) => {
       await navigator.clipboard.writeText(share.url);
       setCopiedId(share.id);
       toast.success('Link copied to clipboard');
-      setTimeout(() => setCopiedId(null), 2000);
+      if (copyTimeoutRef.current) {
+        clearTimeout(copyTimeoutRef.current);
+      }
+      copyTimeoutRef.current = setTimeout(() => setCopiedId(null), 2000);
     } catch (error) {
       console.error('Error copying share link:', error);
       toast.error('Copy failed. Please try again.');

@@ -50,10 +50,15 @@ function AppContent() {
   // Initialize auth token getter for API calls
   useAuthToken();
 
-  // Track page views on route changes
+  // Track page views on route changes (redact public share tokens)
   useEffect(() => {
+    if (isPublicSharePage) {
+      trackPageView('/share/[token]');
+      return;
+    }
+
     trackPageView(location.pathname);
-  }, [location.pathname]);
+  }, [location.pathname, isPublicSharePage]);
 
   // Identify user when signed in
   useEffect(() => {
