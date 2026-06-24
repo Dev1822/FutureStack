@@ -143,7 +143,8 @@ const AtsAnalysisPanel = ({
 
                     {parsedAnalysis?.matchedKeywords?.length > 0 && (
                         <p className="text-xs text-gray-400">
-                            Keywords matched: {parsedAnalysis.matchedKeywords.slice(0, 6).join(', ')}
+                            Role keywords matched ({parsedAnalysis.matchedKeywords.length}): {parsedAnalysis.matchedKeywords.slice(0, 8).join(', ')}
+                            {parsedAnalysis.matchedKeywords.length > 8 ? '…' : ''}
                         </p>
                     )}
 

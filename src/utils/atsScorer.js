@@ -26,6 +26,7 @@ const HOW_SCORED = [
   'Structure: up to 60 points for Contact, Education, Skills, Experience, and Projects.',
   'Content: up to 25 points for skills depth, matched role keywords, projects, and experience detail.',
   'ATS-friendly: up to 15 points for resume length, contact details, and LinkedIn/GitHub signals.',
+  'Keywords are matched from skills, experience, and projects — not your contact header.',
   'Different resumes should score differently when skills, projects, or experience change.'
 ];
 
@@ -119,17 +120,18 @@ export function analyzeText(text = '') {
   let structureScore = 0;
   Object.values(sections).forEach(present => { if (present) structureScore += structurePerSection; });
 
-  const matchedKeywords = KEYWORDS.filter(keyword => normalized.includes(keyword));
-  const suggestedKeywords = KEYWORDS.filter(keyword => !matchedKeywords.includes(keyword));
-
   const skillsText = extractSection(normalized, /(?:^|\s)(skills?|technical skills|proficiencies|stack)\b/i);
   const experienceText = extractSection(normalized, /(?:^|\s)(experience|employment|work history|professional experience)\b/i);
   const projectsText = extractSection(normalized, /(?:^|\s)(projects?|portfolio|personal projects)\b/i);
+  const scoringText = [skillsText, experienceText, projectsText].filter(Boolean).join('\n');
 
   const skillItems = countDelimitedItems(skillsText);
   const skillsDepthScore = Math.min(8, Math.floor(skillItems / 2) + (skillItems >= 10 ? 2 : skillItems >= 6 ? 1 : 0));
 
-  const keywordScore = Math.min(10, matchedKeywords.length);
+  // Match keywords in role content only — not contact/header (github, git appear on every resume)
+  const matchedKeywords = KEYWORDS.filter(keyword => scoringText.includes(keyword));
+  const suggestedKeywords = KEYWORDS.filter(keyword => !matchedKeywords.includes(keyword));
+  const keywordScore = Math.min(12, matchedKeywords.length);
 
   const projectsCount = (projectsText.match(/project[s]?/g) || []).length;
   const projectsScore = Math.min(

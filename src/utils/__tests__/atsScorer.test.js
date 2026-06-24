@@ -99,5 +99,22 @@ ${projects}`;
   expect(swe.score).not.toBe(ml.score);
   expect(swe.matchedKeywords).toEqual(expect.arrayContaining(['javascript', 'react', 'docker']));
   expect(ml.matchedKeywords).toEqual(expect.arrayContaining(['python', 'machine learning', 'pytorch']));
-  expect(swe.breakdown.keywordMatches).toBeGreaterThan(ml.breakdown.keywordMatches);
+  expect(swe.matchedKeywords).not.toEqual(expect.arrayContaining(['pytorch']));
+  expect(ml.matchedKeywords).not.toEqual(expect.arrayContaining(['react']));
+  expect(swe.score).not.toBe(ml.score);
+});
+
+test('analyzeText differentiates flattened PDF-style resume versions', () => {
+  const flat = (skills) => `Venkat Kolasani venkat@email.com +1 555 0100 linkedin.com/in/venkat github.com/venkat
+Education Bachelor of Science Computer Science 2024
+Skills ${skills}
+Experience Built systems improved metrics by 40% deployed services
+Projects Portfolio application with relevant stack`;
+
+  const ml = analyzeText(flat('Python TensorFlow PyTorch machine learning SQL pandas numpy'));
+  const swe = analyzeText(flat('JavaScript React Node.js TypeScript Docker AWS Git'));
+
+  expect(ml.score).not.toBe(swe.score);
+  expect(ml.matchedKeywords).toEqual(expect.arrayContaining(['python', 'pytorch']));
+  expect(swe.matchedKeywords).toEqual(expect.arrayContaining(['javascript', 'react']));
 });
