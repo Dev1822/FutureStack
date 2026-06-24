@@ -76,7 +76,7 @@ sequenceDiagram
 | Path | Page | Auth | Notes |
 |------|------|------|-------|
 | `/` | `Home.jsx` | Public | Landing + footer status link |
-| `/share/:token` | `PublicSharePage.jsx` | Public | Read-only redacted dashboard snapshot, optional passcode |
+| `/share/:token` | `PublicSharePage.jsx` | Public | Read-only redacted opportunity share, optional passcode |
 | `/dashboard` | `Dashboard.jsx` | ✅ | Stats, deadlines |
 | `/internships` | `InternshipList.jsx` | ✅ | Detail drawer → rounds + prep |
 | `/internships/:id/prep` | `InterviewPrepDetail.jsx` | ✅ | Interview prep workspace |
@@ -132,7 +132,7 @@ Always add new endpoints here — pages should not construct URLs manually.
 | Interview rounds | [`interview-rounds.md`](interview-rounds.md) | `opportunity-rounds-migration.sql` |
 | Interview prep | [`interview-prep.md`](interview-prep.md) | `interview-prep-migration.sql` |
 | Documents + ATS | [`documents-and-ats.md`](documents-and-ats.md) | `documents-migration.sql` |
-| Dashboard share links | [`share-links.md`](share-links.md) | `share-links-migration.sql`, `supabase/migrations/20260624163000_create_share_links.sql` |
+| Dashboard share links | [`share-links.md`](share-links.md) | `share-links-migration.sql`, `supabase/migrations/20260624163000_create_share_links.sql`, `supabase/migrations/20260624171000_add_recoverable_share_tokens.sql` |
 | Hackathon collaboration | [`DOCUMENTATION.md`](DOCUMENTATION.md#hackathon-team-collaboration-new) | `hackathon-collaboration-migration.sql` |
 | Architecture & challenges | [`DOCUMENTATION.md`](DOCUMENTATION.md) | `supabase-schema.sql` |
 | Testing & CI | [`TESTING.md`](TESTING.md) | — |

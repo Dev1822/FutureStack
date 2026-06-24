@@ -64,10 +64,13 @@ Use this after automated tests pass:
 See [`docs/share-links.md`](share-links.md).
 
 1. Open `/dashboard` while signed in and click **Share Dashboard**.
-2. Generate a link with all internships and no passcode, then open it in a signed-out/private browser session.
-3. Generate a passcode-protected link and verify wrong and correct passcodes.
-4. Revoke a link from the dashboard and confirm the public page shows the expired/revoked state.
-5. Confirm the public response and UI do not expose owner identity, notes, documents, or prep data.
+2. Generate a link with opportunities that include descriptions, deadlines, and application links.
+3. Open it in a signed-out/private browser session and confirm the opportunity details and **Apply / Open opportunity** links work.
+4. Refresh the public link more than once and confirm it remains viewable while active.
+5. Copy the same active URL again from **Active Share Links**.
+6. Generate a passcode-protected link and verify wrong and correct passcodes.
+7. Revoke a link from the dashboard and confirm the public page shows the expired/revoked state.
+8. Confirm the public response and UI do not expose owner identity, notes, documents, or prep data.
 
 ```bash
 cd backend && npm test -- share-links

@@ -6,7 +6,7 @@
  * Edit/Delete buttons remain for quick actions.
  */
 import React from 'react';
-import { FaEdit, FaTrash, FaExternalLinkAlt, FaLayerGroup } from 'react-icons/fa';
+import { FaEdit, FaShareAlt, FaTrash, FaExternalLinkAlt, FaLayerGroup } from 'react-icons/fa';
 import Card from '../common/Card';
 import Button from '../common/Button';
 import { getDaysRemaining, isOverdue, formatDate } from '../../utils/dateHelpers';
@@ -33,8 +33,9 @@ const categoryColors = {
  * @param {Function} props.onView - Callback when card is clicked (receives full opportunity)
  * @param {Function} props.onEdit - Callback when Edit is clicked (receives opportunity.id)
  * @param {Function} props.onDelete - Callback when Delete is clicked (receives opportunity.id)
+ * @param {Function} [props.onShare] - Callback when Share is clicked (receives full opportunity)
  */
-const OpportunityCard = ({ opportunity, onView, onEdit, onDelete }) => {
+const OpportunityCard = ({ opportunity, onView, onEdit, onDelete, onShare }) => {
   const daysRemaining = getDaysRemaining(opportunity.deadline);
   const overdue = isOverdue(opportunity.deadline);
   const roundSummary = getRoundSummaryLabel(opportunity);
@@ -67,12 +68,25 @@ const OpportunityCard = ({ opportunity, onView, onEdit, onDelete }) => {
             <h3 className="text-lg font-semibold text-white flex-1 mr-2 hover:text-blue-400 transition-colors">
               {opportunity.title}
             </h3>
-            <span
-              className={`px-2.5 py-1 rounded-full text-xs font-medium whitespace-nowrap ${categoryColors[opportunity.category] || 'bg-gray-500/10 text-gray-400 border border-gray-500/20'
-                }`}
-            >
-              {opportunity.category}
-            </span>
+            <div className="flex items-center gap-1.5 shrink-0">
+              {onShare && (
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); onShare(opportunity); }}
+                  className="rounded-md p-1.5 text-gray-500 transition-colors hover:bg-blue-500/10 hover:text-blue-300"
+                  aria-label={`Share ${opportunity.title}`}
+                  title="Share internship"
+                >
+                  <FaShareAlt size={13} />
+                </button>
+              )}
+              <span
+                className={`px-2.5 py-1 rounded-full text-xs font-medium whitespace-nowrap ${categoryColors[opportunity.category] || 'bg-gray-500/10 text-gray-400 border border-gray-500/20'
+                  }`}
+              >
+                {opportunity.category}
+              </span>
+            </div>
           </div>
 
           {/* Description (truncated) */}
@@ -129,7 +143,7 @@ const OpportunityCard = ({ opportunity, onView, onEdit, onDelete }) => {
         </div>
 
         {/* Action Buttons */}
-        <div className="flex gap-2 mt-auto pt-2">
+        <div className="mt-auto flex gap-2 pt-2">
           <Button
             variant="primary"
             onClick={(e) => { e.stopPropagation(); onEdit(opportunity.id); }}

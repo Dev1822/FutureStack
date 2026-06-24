@@ -1,6 +1,10 @@
 const { createChain } = require('../mocks/supabase');
 const { mockRequireAuth, TEST_AUTH } = require('../mocks/auth');
-const { createPasscodeHash, hashToken } = require('../../src/lib/shareLinks');
+const {
+    createPasscodeHash,
+    encryptShareToken,
+    hashToken,
+} = require('../../src/lib/shareLinks');
 
 jest.mock('../../src/middleware/auth', () => ({
     requireAuth: (...args) => mockRequireAuth(...args),
@@ -17,16 +21,20 @@ const request = require('supertest');
 const app = require('../../src/app');
 
 const authHeader = { Authorization: 'Bearer test-token' };
+const VALID_TOKEN = 'valid-token_123456789012345678901234';
 
 const sampleSnapshot = {
-    version: 1,
+    version: 2,
     generatedAt: '2026-06-24T12:00:00.000Z',
     shareType: 'placement_dashboard',
     options: {
         fields: {
             status: true,
-            rejectedRound: true,
+            rounds: true,
             dateApplied: true,
+            description: true,
+            deadline: true,
+            applicationLink: true,
         },
         expiry: '7d',
         selectionMode: 'all',
@@ -39,6 +47,9 @@ const sampleSnapshot = {
         rejected: 1,
         ghosted: 0,
         inProgress: 0,
+        opportunitiesWithLinks: 1,
+        upcomingDeadlineCount: 1,
+        expiredDeadlineCount: 0,
     },
     opportunities: [
         {
@@ -46,6 +57,9 @@ const sampleSnapshot = {
             title: 'Backend Intern',
             category: 'internship',
             status: 'rejected',
+            description: 'Work on APIs and infrastructure.',
+            deadline: '2026-07-01',
+            applicationLink: 'https://example.com/apply',
             rejectedRoundNumber: 2,
             currentRoundNumber: 2,
             dateApplied: '2026-06-01T00:00:00.000Z',
@@ -54,10 +68,14 @@ const sampleSnapshot = {
 };
 
 function shareRow(overrides = {}) {
+    const encryptedToken = encryptShareToken(VALID_TOKEN);
     return {
         id: '00000000-0000-4000-8000-000000000099',
         user_id: TEST_AUTH.internalUserId,
-        token_hash: hashToken('valid-token_123456789012345678901234'),
+        token_hash: hashToken(VALID_TOKEN),
+        token_ciphertext: encryptedToken.tokenCiphertext,
+        token_iv: encryptedToken.tokenIv,
+        token_auth_tag: encryptedToken.tokenAuthTag,
         snapshot: sampleSnapshot,
         snapshot_type: 'frozen',
         expires_at: null,
@@ -98,11 +116,14 @@ describe('Share Links API', () => {
         );
     });
 
-    it('POST /api/share-links creates a redacted frozen share and returns token once', async () => {
+    it('POST /api/share-links creates a rich frozen share and returns token once', async () => {
         const opportunities = [
             {
                 id: '00000000-0000-4000-8000-000000000001',
                 title: 'Backend Intern',
+                description: 'Work on APIs and infrastructure.',
+                link: 'https://example.com/apply',
+                deadline: '2026-07-01',
                 category: 'internship',
                 status: 'rejected',
                 created_at: '2026-06-01T00:00:00.000Z',
@@ -111,10 +132,11 @@ describe('Share Links API', () => {
                 notes: 'must never leak',
             },
         ];
+        const insertChain = createChain({ data: shareRow({ view_count: 0 }), error: null });
 
         mockFrom
             .mockReturnValueOnce(createChain({ data: opportunities, error: null }))
-            .mockReturnValueOnce(createChain({ data: shareRow({ view_count: 0 }), error: null }));
+            .mockReturnValueOnce(insertChain);
 
         const res = await request(app)
             .post('/api/share-links')
@@ -123,8 +145,11 @@ describe('Share Links API', () => {
                 expiry: '7d',
                 fields: {
                     status: true,
-                    rejectedRound: true,
+                    rounds: true,
                     dateApplied: true,
+                    description: true,
+                    deadline: true,
+                    applicationLink: true,
                 },
             });
 
@@ -134,11 +159,21 @@ describe('Share Links API', () => {
         expect(res.body.hasPasscode).toBe(false);
         expect(res.body).not.toHaveProperty('user_id');
         expect(res.body.summary.total).toBe(1);
+        expect(res.body.canCopy).toBe(true);
+        const insertedShare = insertChain.insert.mock.calls[0][0];
+        expect(insertedShare.token_hash).toBe(hashToken(res.body.token));
+        expect(insertedShare.token_ciphertext).toEqual(expect.any(String));
+        expect(insertedShare.snapshot.opportunities[0]).toMatchObject({
+            description: 'Work on APIs and infrastructure.',
+            deadline: '2026-07-01',
+            applicationLink: 'https://example.com/apply',
+        });
+        expect(JSON.stringify(insertedShare.snapshot)).not.toContain('must never leak');
         expect(mockFrom).toHaveBeenCalledWith('opportunities');
         expect(mockFrom).toHaveBeenCalledWith('share_links');
     });
 
-    it('GET /api/share-links lists owner metadata without raw token or user id', async () => {
+    it('GET /api/share-links lists owner metadata with a copyable URL and without raw token fields', async () => {
         mockFrom.mockReturnValue(createChain({ data: [shareRow()], error: null }));
 
         const res = await request(app).get('/api/share-links').set(authHeader);
@@ -147,9 +182,30 @@ describe('Share Links API', () => {
         expect(res.body[0].id).toBe('00000000-0000-4000-8000-000000000099');
         expect(res.body[0].viewCount).toBe(3);
         expect(res.body[0].summary.total).toBe(1);
+        expect(res.body[0].canCopy).toBe(true);
+        expect(res.body[0].url).toBe(`http://localhost:3000/share/${VALID_TOKEN}`);
         expect(res.body[0]).not.toHaveProperty('token');
         expect(res.body[0]).not.toHaveProperty('token_hash');
         expect(res.body[0]).not.toHaveProperty('user_id');
+    });
+
+    it('GET /api/share-links marks legacy shares without encrypted tokens as not copyable', async () => {
+        mockFrom.mockReturnValue(createChain({
+            data: [
+                shareRow({
+                    token_ciphertext: null,
+                    token_iv: null,
+                    token_auth_tag: null,
+                }),
+            ],
+            error: null,
+        }));
+
+        const res = await request(app).get('/api/share-links').set(authHeader);
+
+        expect(res.status).toBe(200);
+        expect(res.body[0].canCopy).toBe(false);
+        expect(res.body[0].url).toBeNull();
     });
 
     it('DELETE /api/share-links/:id revokes owner share', async () => {
@@ -171,14 +227,35 @@ describe('Share Links API', () => {
             .mockReturnValueOnce(createChain({ data: shareRow(), error: null }))
             .mockReturnValueOnce(createChain({ data: null, error: null }));
 
-        const res = await request(app).get('/api/public/share-links/valid-token_123456789012345678901234');
+        const res = await request(app).get(`/api/public/share-links/${VALID_TOKEN}`);
 
         expect(res.status).toBe(200);
         expect(res.body.snapshot.summary.total).toBe(1);
         expect(res.body.viewCount).toBe(4);
+        expect(res.body.snapshot.opportunities[0]).toMatchObject({
+            description: 'Work on APIs and infrastructure.',
+            deadline: '2026-07-01',
+            applicationLink: 'https://example.com/apply',
+        });
         expect(res.body).not.toHaveProperty('user_id');
         expect(res.body).not.toHaveProperty('token_hash');
         expect(JSON.stringify(res.body)).not.toContain('must never leak');
+    });
+
+    it('GET /api/public/share-links/:token can be opened repeatedly while active', async () => {
+        mockFrom
+            .mockReturnValueOnce(createChain({ data: shareRow({ view_count: 3 }), error: null }))
+            .mockReturnValueOnce(createChain({ data: null, error: null }))
+            .mockReturnValueOnce(createChain({ data: shareRow({ view_count: 4 }), error: null }))
+            .mockReturnValueOnce(createChain({ data: null, error: null }));
+
+        const first = await request(app).get(`/api/public/share-links/${VALID_TOKEN}`);
+        const second = await request(app).get(`/api/public/share-links/${VALID_TOKEN}`);
+
+        expect(first.status).toBe(200);
+        expect(second.status).toBe(200);
+        expect(first.body.viewCount).toBe(4);
+        expect(second.body.viewCount).toBe(5);
     });
 
     it('GET /api/public/share-links/:token gracefully rejects expired or revoked links', async () => {
@@ -187,7 +264,7 @@ describe('Share Links API', () => {
             error: null,
         }));
 
-        const res = await request(app).get('/api/public/share-links/valid-token_123456789012345678901234');
+        const res = await request(app).get(`/api/public/share-links/${VALID_TOKEN}`);
 
         expect(res.status).toBe(410);
         expect(res.body.message).toBe('This link has expired or been revoked.');
@@ -200,7 +277,7 @@ describe('Share Links API', () => {
             error: null,
         }));
 
-        const res = await request(app).get('/api/public/share-links/valid-token_123456789012345678901234');
+        const res = await request(app).get(`/api/public/share-links/${VALID_TOKEN}`);
 
         expect(res.status).toBe(200);
         expect(res.body.requiresPasscode).toBe(true);
@@ -215,7 +292,7 @@ describe('Share Links API', () => {
         }));
 
         const res = await request(app)
-            .post('/api/public/share-links/valid-token_123456789012345678901234/verify')
+            .post(`/api/public/share-links/${VALID_TOKEN}/verify`)
             .send({ passcode: '9999' });
 
         expect(res.status).toBe(401);
@@ -232,7 +309,7 @@ describe('Share Links API', () => {
             .mockReturnValueOnce(createChain({ data: null, error: null }));
 
         const res = await request(app)
-            .post('/api/public/share-links/valid-token_123456789012345678901234/verify')
+            .post(`/api/public/share-links/${VALID_TOKEN}/verify`)
             .send({ passcode: '1234' });
 
         expect(res.status).toBe(200);

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import {
   FaBriefcase,
+  FaCalendarAlt,
   FaChartLine,
   FaExternalLinkAlt,
   FaLock,
@@ -36,6 +37,30 @@ const formatDate = (value) => {
     day: 'numeric',
     year: 'numeric',
   });
+};
+
+const getDeadlineState = (deadline) => {
+  if (!deadline) return { label: 'No deadline shared', className: 'text-gray-400' };
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const date = new Date(deadline);
+  date.setHours(0, 0, 0, 0);
+  const diffDays = Math.ceil((date - today) / (1000 * 60 * 60 * 24));
+
+  if (diffDays < 0) {
+    return { label: `${Math.abs(diffDays)} day${Math.abs(diffDays) === 1 ? '' : 's'} overdue`, className: 'text-red-300' };
+  }
+
+  if (diffDays === 0) {
+    return { label: 'Due today', className: 'text-amber-300' };
+  }
+
+  if (diffDays <= 7) {
+    return { label: `${diffDays} day${diffDays === 1 ? '' : 's'} left`, className: 'text-amber-300' };
+  }
+
+  return { label: `${diffDays} days left`, className: 'text-green-300' };
 };
 
 const PublicSharePage = () => {
@@ -95,10 +120,10 @@ const PublicSharePage = () => {
 
   const heroStats = useMemo(
     () => [
-      { label: 'Tracked', value: summary.total || 0, accent: 'text-blue-200' },
+      { label: 'Opportunities', value: summary.total || 0, accent: 'text-blue-200' },
+      { label: 'Apply links', value: summary.opportunitiesWithLinks || 0, accent: 'text-purple-200' },
+      { label: 'Upcoming deadlines', value: summary.upcomingDeadlineCount || 0, accent: 'text-amber-200' },
       { label: 'Selected', value: summary.selected || 0, accent: 'text-green-200' },
-      { label: 'Rejected', value: summary.rejected || 0, accent: 'text-red-200' },
-      { label: 'Ghosted', value: summary.ghosted || 0, accent: 'text-slate-200' },
     ],
     [summary]
   );
@@ -134,13 +159,13 @@ const PublicSharePage = () => {
       <div className="flex min-h-screen items-center justify-center bg-black text-white">
         <SEO
           title="Loading Shared Dashboard"
-          description="Loading a shared FutureStack placement dashboard."
+          description="Loading shared FutureStack opportunities."
           canonical={`/share/${token}`}
           noindex={true}
         />
         <div className="text-center">
           <LoadingSpinner size="lg" />
-          <p className="mt-4 text-gray-400">Loading shared dashboard...</p>
+          <p className="mt-4 text-gray-400">Loading shared opportunities...</p>
         </div>
       </div>
     );
@@ -155,7 +180,7 @@ const PublicSharePage = () => {
       <div className="min-h-screen bg-black px-4 py-12 text-white">
         <SEO
           title="Passcode Required"
-          description="Enter the passcode to view this shared FutureStack placement dashboard."
+          description="Enter the passcode to view these shared FutureStack opportunities."
           canonical={`/share/${token}`}
           noindex={true}
         />
@@ -166,7 +191,7 @@ const PublicSharePage = () => {
             </div>
             <h1 className="text-center text-2xl font-bold text-white">Passcode required</h1>
             <p className="mt-3 text-center text-gray-300">
-              This shared dashboard is protected. Enter the 4-digit passcode from the sender.
+              These shared opportunities are protected. Enter the 4-digit passcode from the sender.
             </p>
             <form onSubmit={verifyPasscode} className="mt-6 space-y-4">
               <label className="block">
@@ -201,8 +226,8 @@ const PublicSharePage = () => {
   return (
     <div className="min-h-screen overflow-hidden bg-black text-white">
       <SEO
-        title="Shared Placement Dashboard"
-        description="A read-only FutureStack placement tracker snapshot."
+        title="Shared Opportunities"
+        description="Read-only FutureStack opportunities with deadlines and application links."
         canonical={`/share/${token}`}
         noindex={true}
       />
@@ -218,14 +243,14 @@ const PublicSharePage = () => {
             <div className="max-w-3xl">
               <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-blue-500/20 bg-blue-500/10 px-3 py-1 text-sm text-blue-200">
                 <FaShieldAlt />
-                Read-only placement snapshot
+                Read-only opportunity share
               </div>
               <h1 className="text-3xl font-bold tracking-tight text-white sm:text-5xl">
-                A placement dashboard worth sharing.
+                Shared opportunities you can act on.
               </h1>
               <p className="mt-4 text-base leading-7 text-gray-300 sm:text-lg">
-                This student is tracking applications, outcomes, and interview progress in FutureStack.
-                Private notes and owner identity are hidden.
+                Review the opportunity details, deadlines, progress, and application links shared from FutureStack.
+                Private notes, documents, prep work, and owner identity stay hidden.
               </p>
             </div>
             <Link to="/" className="inline-flex">
@@ -251,14 +276,14 @@ const PublicSharePage = () => {
             <div className="flex items-center justify-between">
               <h2 className="flex items-center gap-2 text-xl font-semibold text-white">
                 <FaBriefcase className="text-blue-300" />
-                Shared companies
+                Shared opportunities
               </h2>
               <span className="text-sm text-gray-500">Generated {formatDate(snapshot.generatedAt)}</span>
             </div>
 
             {opportunities.length === 0 ? (
               <Card className="p-8 text-center">
-                <p className="text-gray-400">No companies were included in this shared snapshot.</p>
+                <p className="text-gray-400">No opportunities were included in this shared snapshot.</p>
               </Card>
             ) : (
               <div className="grid gap-4">
@@ -278,7 +303,25 @@ const PublicSharePage = () => {
                       )}
                     </div>
 
+                    {fields.description && opportunity.description && (
+                      <p className="mt-4 rounded-xl border border-white/10 bg-white/[0.03] p-4 text-sm leading-6 text-gray-300">
+                        {opportunity.description}
+                      </p>
+                    )}
+
                     <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                      {fields.deadline && (
+                        <div className="rounded-xl bg-white/[0.03] p-3">
+                          <p className="flex items-center gap-2 text-xs text-gray-500">
+                            <FaCalendarAlt />
+                            Deadline
+                          </p>
+                          <p className="mt-1 text-sm font-medium text-white">{formatDate(opportunity.deadline)}</p>
+                          <p className={`mt-1 text-xs ${getDeadlineState(opportunity.deadline).className}`}>
+                            {getDeadlineState(opportunity.deadline).label}
+                          </p>
+                        </div>
+                      )}
                       {fields.rejectedRound && (
                         <div className="rounded-xl bg-white/[0.03] p-3">
                           <p className="text-xs text-gray-500">Pipeline stage</p>
@@ -298,6 +341,20 @@ const PublicSharePage = () => {
                         </div>
                       )}
                     </div>
+
+                    {fields.applicationLink && opportunity.applicationLink && (
+                      <div className="mt-5">
+                        <a
+                          href={opportunity.applicationLink}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex w-full items-center justify-center rounded-lg border border-blue-500/30 bg-blue-500/10 px-5 py-3 font-semibold text-blue-200 transition-colors hover:bg-blue-500 hover:text-white sm:w-auto"
+                        >
+                          Apply / Open opportunity
+                          <FaExternalLinkAlt className="ml-2 text-xs" />
+                        </a>
+                      </div>
+                    )}
                   </Card>
                 ))}
               </div>
@@ -313,6 +370,30 @@ const PublicSharePage = () => {
               <div className="mt-5 space-y-4">
                 <div>
                   <div className="flex justify-between text-sm text-gray-400">
+                    <span>Has application link</span>
+                    <span>{summary.opportunitiesWithLinks || 0}</span>
+                  </div>
+                  <div className="mt-2 h-2 overflow-hidden rounded-full bg-white/10">
+                    <div
+                      className="h-full rounded-full bg-purple-400"
+                      style={{ width: `${summary.total ? ((summary.opportunitiesWithLinks || 0) / summary.total) * 100 : 0}%` }}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <div className="flex justify-between text-sm text-gray-400">
+                    <span>Upcoming deadlines</span>
+                    <span>{summary.upcomingDeadlineCount || 0}</span>
+                  </div>
+                  <div className="mt-2 h-2 overflow-hidden rounded-full bg-white/10">
+                    <div
+                      className="h-full rounded-full bg-amber-400"
+                      style={{ width: `${summary.total ? ((summary.upcomingDeadlineCount || 0) / summary.total) * 100 : 0}%` }}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <div className="flex justify-between text-sm text-gray-400">
                     <span>In progress</span>
                     <span>{summary.inProgress || 0}</span>
                   </div>
@@ -320,30 +401,6 @@ const PublicSharePage = () => {
                     <div
                       className="h-full rounded-full bg-blue-400"
                       style={{ width: `${summary.total ? ((summary.inProgress || 0) / summary.total) * 100 : 0}%` }}
-                    />
-                  </div>
-                </div>
-                <div>
-                  <div className="flex justify-between text-sm text-gray-400">
-                    <span>Selected</span>
-                    <span>{summary.selected || 0}</span>
-                  </div>
-                  <div className="mt-2 h-2 overflow-hidden rounded-full bg-white/10">
-                    <div
-                      className="h-full rounded-full bg-green-400"
-                      style={{ width: `${summary.total ? ((summary.selected || 0) / summary.total) * 100 : 0}%` }}
-                    />
-                  </div>
-                </div>
-                <div>
-                  <div className="flex justify-between text-sm text-gray-400">
-                    <span>Rejected or ghosted</span>
-                    <span>{(summary.rejected || 0) + (summary.ghosted || 0)}</span>
-                  </div>
-                  <div className="mt-2 h-2 overflow-hidden rounded-full bg-white/10">
-                    <div
-                      className="h-full rounded-full bg-red-400"
-                      style={{ width: `${summary.total ? (((summary.rejected || 0) + (summary.ghosted || 0)) / summary.total) * 100 : 0}%` }}
                     />
                   </div>
                 </div>

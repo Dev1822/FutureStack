@@ -40,7 +40,7 @@ FutureTracker is a modern, full-featured SaaS application designed to help stude
 - **📈 Analytics Dashboard**: Track success rates, trends, and conversion funnels
 - **📅 Deadline Management**: Never miss an important deadline with calendar integration
 - **📄 PDF Reports**: Export detailed reports for your records
-- **🔗 Share links**: Generate revocable read-only placement dashboard links with field selection, expiry, and optional passcode
+- **🔗 Share links**: Generate revocable read-only opportunity links with descriptions, deadlines, application CTAs, expiry, and optional passcode
 - **🧠 Interview prep**: Per-internship workspace for company research, Q&A, technical topics, STAR behavioral answers, and reflections — see [`docs/interview-prep.md`](docs/interview-prep.md)
 - **📊 ATS resume hints**: Client-side PDF/DOCX analysis with rule-based scoring on upload — see [`docs/documents-and-ats.md`](docs/documents-and-ats.md)
 - **🟢 Service status**: Live uptime page linked from the app footer and navbar
@@ -69,7 +69,7 @@ FutureTracker is a modern, full-featured SaaS application designed to help stude
 - **📋 Status Board**: Kanban-style board with drag-and-drop status updates
 - **📈 Analytics**: Charts for status distribution, weekly trends, conversion funnels, and deadline heatmaps
 - **📄 PDF Export**: Generate professional reports with multiple export options
-- **🔗 Dashboard sharing**: Share a redacted, read-only placement snapshot at `/share/:token` without requiring viewer sign-in
+- **🔗 Opportunity sharing**: Share redacted, read-only opportunity details at `/share/:token` without requiring viewer sign-in
 - **📎 Documents**: Upload resumes, cover letters, and portfolio links; track which documents were used for each internship; optional **ATS-style score** on PDF/DOCX upload
 - **🎯 Interview pipeline**: Multi-round tracking for internships (OA → technical → HR → final) with timeline UI and auto-synced Kanban status — see [`docs/interview-rounds.md`](docs/interview-rounds.md)
 - **🧠 Interview preparation**: Tabbed prep workspace per internship (research, questions, topics, STAR behavioral, reflection) — see [`docs/interview-prep.md`](docs/interview-prep.md)

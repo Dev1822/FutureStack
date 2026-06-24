@@ -4,12 +4,20 @@ const tokenPattern = /^[A-Za-z0-9_-]{32,128}$/;
 
 const shareFieldsSchema = Joi.object({
     status: Joi.boolean().default(true),
+    rounds: Joi.boolean().default(true),
     rejectedRound: Joi.boolean().default(true),
     dateApplied: Joi.boolean().default(true),
+    description: Joi.boolean().default(true),
+    deadline: Joi.boolean().default(true),
+    applicationLink: Joi.boolean().default(true),
 }).default({
     status: true,
+    rounds: true,
     rejectedRound: true,
     dateApplied: true,
+    description: true,
+    deadline: true,
+    applicationLink: true,
 });
 
 const createShareLinkSchema = Joi.object({

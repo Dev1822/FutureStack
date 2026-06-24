@@ -16,6 +16,9 @@ CREATE TABLE IF NOT EXISTS share_links (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   token_hash TEXT NOT NULL UNIQUE,
+  token_ciphertext TEXT,
+  token_iv TEXT,
+  token_auth_tag TEXT,
   snapshot JSONB NOT NULL,
   snapshot_type share_snapshot_type NOT NULL DEFAULT 'frozen',
   expires_at TIMESTAMPTZ,
@@ -28,6 +31,10 @@ CREATE TABLE IF NOT EXISTS share_links (
   CONSTRAINT share_links_passcode_pair CHECK (
     (passcode_hash IS NULL AND passcode_salt IS NULL)
     OR (passcode_hash IS NOT NULL AND passcode_salt IS NOT NULL)
+  ),
+  CONSTRAINT share_links_encrypted_token_triplet CHECK (
+    (token_ciphertext IS NULL AND token_iv IS NULL AND token_auth_tag IS NULL)
+    OR (token_ciphertext IS NOT NULL AND token_iv IS NOT NULL AND token_auth_tag IS NOT NULL)
   )
 );
 

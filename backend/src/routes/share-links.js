@@ -4,6 +4,7 @@ const { validate } = require('../middleware/validate');
 const {
     buildShareSnapshot,
     createPasscodeHash,
+    encryptShareToken,
     generateShareToken,
     getPublicAppUrl,
     hashToken,
@@ -18,7 +19,10 @@ const {
 const router = express.Router();
 
 const OPPORTUNITY_SHARE_FIELDS =
-    'id, title, status, category, created_at, rejected_round_number, current_round_number';
+    'id, title, description, link, deadline, status, category, created_at, rejected_round_number, current_round_number';
+
+const OWNER_SHARE_FIELDS =
+    'id, snapshot, snapshot_type, expires_at, is_active, view_count, passcode_hash, token_ciphertext, token_iv, token_auth_tag, created_at, updated_at';
 
 function logShareAudit(action, userId, shareId = null, outcome = 'success', details = {}) {
     console.info(JSON.stringify({
@@ -53,7 +57,7 @@ router.get('/', async (req, res) => {
     try {
         const { data, error } = await supabase
             .from('share_links')
-            .select('id, snapshot, snapshot_type, expires_at, is_active, view_count, passcode_hash, created_at, updated_at')
+            .select(OWNER_SHARE_FIELDS)
             .eq('user_id', req.auth.internalUserId)
             .order('created_at', { ascending: false });
 
@@ -96,6 +100,7 @@ router.post('/', validate(createShareLinkSchema), async (req, res) => {
 
         const token = generateShareToken();
         const tokenHash = hashToken(token);
+        const { tokenCiphertext, tokenIv, tokenAuthTag } = encryptShareToken(token);
         const { passcodeHash, passcodeSalt } = createPasscodeHash(passcode);
 
         const { data: share, error: insertError } = await supabase
@@ -103,6 +108,9 @@ router.post('/', validate(createShareLinkSchema), async (req, res) => {
             .insert({
                 user_id: userId,
                 token_hash: tokenHash,
+                token_ciphertext: tokenCiphertext,
+                token_iv: tokenIv,
+                token_auth_tag: tokenAuthTag,
                 snapshot,
                 snapshot_type: 'frozen',
                 expires_at: resolveExpiresAt(expiry),
@@ -110,7 +118,7 @@ router.post('/', validate(createShareLinkSchema), async (req, res) => {
                 passcode_hash: passcodeHash,
                 passcode_salt: passcodeSalt,
             })
-            .select('id, snapshot, snapshot_type, expires_at, is_active, view_count, passcode_hash, created_at, updated_at')
+            .select(OWNER_SHARE_FIELDS)
             .single();
 
         if (insertError) throw insertError;
@@ -144,7 +152,7 @@ router.delete('/:id', validate(shareIdParamSchema, 'params'), async (req, res) =
             .update({ is_active: false })
             .eq('id', id)
             .eq('user_id', req.auth.internalUserId)
-            .select('id, snapshot, snapshot_type, expires_at, is_active, view_count, passcode_hash, created_at, updated_at')
+            .select(OWNER_SHARE_FIELDS)
             .single();
 
         if (error) {
