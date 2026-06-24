@@ -56,8 +56,6 @@ const AtsAnalysisPanel = ({
     onToggle,
     isAnalyzing = false,
     showEmptyState = false,
-    onCheckAts,
-    checkLabel = 'Check ATS Score',
 }) => {
     const [showScoring, setShowScoring] = useState(false);
     const parsedAnalysis = parseAtsAnalysis(analysis);
@@ -74,21 +72,11 @@ const AtsAnalysisPanel = ({
 
     if (showEmptyState && !hasScore) {
         return (
-            <div className="mt-3 rounded-lg border border-dashed border-white/15 bg-white/[0.03] p-4">
+            <div className="mt-3 rounded-lg border border-dashed border-white/15 bg-white/[0.03] px-4 py-3">
                 <p className="text-sm font-medium text-white">No ATS score yet</p>
-                <p className="mt-1 text-xs text-gray-400">
-                    Run a quick rule-based check on this uploaded resume.
+                <p className="mt-1 text-xs text-gray-400 leading-relaxed">
+                    Use Check ATS Score below to analyze this resume. Rule-based hints only — not an official ATS score.
                 </p>
-                {onCheckAts && (
-                    <button
-                        type="button"
-                        onClick={onCheckAts}
-                        className="mt-3 inline-flex items-center justify-center rounded-lg border border-blue-500/30 bg-blue-500/10 px-3 py-2 text-sm font-medium text-blue-300 hover:bg-blue-500/20 hover:text-blue-200 transition-colors"
-                    >
-                        {checkLabel}
-                    </button>
-                )}
-                <p className="mt-3 text-xs text-gray-500">Rule-based hints — not an official ATS score.</p>
             </div>
         );
     }

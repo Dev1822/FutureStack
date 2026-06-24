@@ -46,7 +46,7 @@ const DocumentCard = ({ document, onEdit, onDelete, onCheckAts, isCheckingAts = 
     const colorClass = typeColors[document.type] || 'text-gray-400';
     const canCheckAts = isAtsEligible(document);
     const atsScore = canCheckAts ? document.ats_score : null;
-    const [isAtsOpen, setIsAtsOpen] = useState(atsScore == null);
+    const [isAtsOpen, setIsAtsOpen] = useState(false);
     const wasCheckingRef = useRef(false);
     const scoreClasses = atsScore != null ? getScoreClasses(atsScore) : null;
     const atsButtonLabel = atsScore != null ? 'Refresh score' : 'Check ATS Score';
@@ -85,9 +85,6 @@ const DocumentCard = ({ document, onEdit, onDelete, onCheckAts, isCheckingAts = 
 
     const handleCheckAts = () => {
         if (!canCheckAts || isCheckingAts) return;
-        if (atsScore == null) {
-            setIsAtsOpen(true);
-        }
         onCheckAts?.(document);
     };
 
@@ -152,8 +149,6 @@ const DocumentCard = ({ document, onEdit, onDelete, onCheckAts, isCheckingAts = 
                     onToggle={() => setIsAtsOpen(open => !open)}
                     isAnalyzing={isCheckingAts}
                     showEmptyState={atsScore == null}
-                    onCheckAts={handleCheckAts}
-                    checkLabel={atsButtonLabel}
                 />
             )}
 
