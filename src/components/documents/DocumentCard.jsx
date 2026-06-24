@@ -49,7 +49,8 @@ const DocumentCard = ({ document, onEdit, onDelete, onCheckAts, isCheckingAts = 
     const [isAtsOpen, setIsAtsOpen] = useState(atsScore == null);
     const wasCheckingRef = useRef(false);
     const scoreClasses = atsScore != null ? getScoreClasses(atsScore) : null;
-    const atsButtonLabel = atsScore != null ? 'Re-check ATS Score' : 'Check ATS Score';
+    const atsButtonLabel = atsScore != null ? 'Refresh score' : 'Check ATS Score';
+    const actionButtonClass = 'flex-1 min-w-0 h-10 flex items-center justify-center gap-1.5 px-2.5 rounded-lg text-xs sm:text-sm whitespace-nowrap transition-colors';
 
     useEffect(() => {
         if (isCheckingAts) {
@@ -157,15 +158,15 @@ const DocumentCard = ({ document, onEdit, onDelete, onCheckAts, isCheckingAts = 
             )}
 
             {/* Actions */}
-            <div className="mt-auto pt-4 flex flex-wrap items-center gap-2">
+            <div className="mt-auto pt-4 flex flex-wrap items-stretch gap-2">
                 {document.file_url && (
                     <a
                         href={document.file_url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex-1 min-w-[120px] flex items-center justify-center gap-2 py-2 px-3 bg-blue-600/20 text-blue-400 rounded-lg hover:bg-blue-600/30 transition-colors text-sm"
+                        className={`${actionButtonClass} bg-blue-600/20 text-blue-400 hover:bg-blue-600/30`}
                     >
-                        {document.is_external ? <FaLink size={14} /> : <FaDownload size={14} />}
+                        {document.is_external ? <FaLink size={14} className="shrink-0" /> : <FaDownload size={14} className="shrink-0" />}
                         <span>{document.is_external ? 'Open' : 'Download'}</span>
                     </a>
                 )}
@@ -174,16 +175,17 @@ const DocumentCard = ({ document, onEdit, onDelete, onCheckAts, isCheckingAts = 
                         type="button"
                         onClick={handleCheckAts}
                         disabled={isCheckingAts}
-                        className="flex-1 min-w-[140px] flex items-center justify-center gap-2 py-2 px-3 bg-purple-600/15 text-purple-300 rounded-lg hover:bg-purple-600/25 transition-colors text-sm disabled:opacity-60 disabled:cursor-not-allowed"
+                        title={atsScore != null ? 'Re-check ATS Score' : 'Check ATS Score'}
+                        className={`${actionButtonClass} bg-purple-600/15 text-purple-300 hover:bg-purple-600/25 disabled:opacity-60 disabled:cursor-not-allowed`}
                     >
                         {isCheckingAts ? (
                             <>
-                                <FaSpinner className="animate-spin" size={14} />
+                                <FaSpinner className="animate-spin shrink-0" size={14} />
                                 <span>Analyzing...</span>
                             </>
                         ) : (
                             <>
-                                <FaChartBar size={14} />
+                                <FaChartBar size={14} className="shrink-0" />
                                 <span>{atsButtonLabel}</span>
                             </>
                         )}
@@ -191,14 +193,14 @@ const DocumentCard = ({ document, onEdit, onDelete, onCheckAts, isCheckingAts = 
                 )}
                 <button
                     onClick={() => onEdit(document)}
-                    className="p-2 bg-white/5 text-gray-400 rounded-lg hover:bg-white/10 hover:text-white transition-colors"
+                    className="h-10 w-10 shrink-0 flex items-center justify-center bg-white/5 text-gray-400 rounded-lg hover:bg-white/10 hover:text-white transition-colors"
                     title="Edit"
                 >
                     <FaEdit size={14} />
                 </button>
                 <button
                     onClick={() => onDelete(document)}
-                    className="p-2 bg-white/5 text-gray-400 rounded-lg hover:bg-red-600/20 hover:text-red-400 transition-colors"
+                    className="h-10 w-10 shrink-0 flex items-center justify-center bg-white/5 text-gray-400 rounded-lg hover:bg-red-600/20 hover:text-red-400 transition-colors"
                     title="Delete"
                 >
                     <FaTrash size={14} />
