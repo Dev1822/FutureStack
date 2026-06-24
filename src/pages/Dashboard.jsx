@@ -1,13 +1,15 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { FaClipboardList, FaStar, FaCheckCircle, FaPlus, FaList, FaTrash } from 'react-icons/fa';
+import { FaClipboardList, FaStar, FaCheckCircle, FaPlus, FaList, FaTrash, FaShareAlt } from 'react-icons/fa';
 import SEO from '../components/seo/SEO';
 import StatsCard from '../components/dashboard/StatsCard';
 import DeadlineWidget from '../components/dashboard/DeadlineWidget';
 import Card from '../components/common/Card';
 import Button from '../components/common/Button';
 import Modal from '../components/common/Modal';
+import ShareDashboardModal from '../components/sharing/ShareDashboardModal';
+import ManageSharesPanel from '../components/sharing/ManageSharesPanel';
 import { opportunityService } from '../services/api';
 import { isOverdue, getDaysRemaining } from '../utils/dateHelpers';
 
@@ -16,6 +18,8 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [opportunityToDelete, setOpportunityToDelete] = useState(null);
+  const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [sharesRefreshKey, setSharesRefreshKey] = useState(0);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -65,6 +69,10 @@ const Dashboard = () => {
     setOpportunityToDelete(null);
   };
 
+  const handleShareCreated = () => {
+    setSharesRefreshKey((current) => current + 1);
+  };
+
 
   // Calculate statistics
   const internshipsCount = opportunities.filter(opp => opp.category === 'internship').length;
@@ -109,9 +117,19 @@ const Dashboard = () => {
       />
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="mb-6 sm:mb-8">
-          <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">Dashboard</h1>
-          <p className="text-sm sm:text-base text-gray-400">Track your opportunities and upcoming deadlines</p>
+        <div className="mb-6 sm:mb-8 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">Dashboard</h1>
+            <p className="text-sm sm:text-base text-gray-400">Track your opportunities and upcoming deadlines</p>
+          </div>
+          <Button
+            onClick={() => setShareModalOpen(true)}
+            variant="outline"
+            className="w-full bg-gradient-to-r from-blue-500/10 to-purple-500/10 sm:w-auto"
+          >
+            <FaShareAlt className="mr-2" />
+            Share Dashboard
+          </Button>
         </div>
 
         {/* Statistics Cards */}
@@ -225,8 +243,20 @@ const Dashboard = () => {
               <FaList className="mr-2" />
               View All Hackathons
             </Button>
+            <Button
+              onClick={() => setShareModalOpen(true)}
+              variant="outline"
+              className="flex items-center"
+            >
+              <FaShareAlt className="mr-2" />
+              Share Progress
+            </Button>
           </div>
         </Card>
+
+        <div className="mt-6 sm:mt-8">
+          <ManageSharesPanel refreshKey={sharesRefreshKey} />
+        </div>
 
         {/* Delete Confirmation Modal */}
         <Modal
@@ -249,6 +279,13 @@ const Dashboard = () => {
             </div>
           </div>
         </Modal>
+
+        <ShareDashboardModal
+          isOpen={shareModalOpen}
+          onClose={() => setShareModalOpen(false)}
+          opportunities={opportunities}
+          onShareCreated={handleShareCreated}
+        />
       </div>
     </div>
   );
