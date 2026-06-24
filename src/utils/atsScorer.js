@@ -175,6 +175,59 @@ export async function extractTextFromDocx(arrayBuffer) {
   }
 }
 
+export function isAtsEligible(document) {
+  return Boolean(
+    document?.type === 'resume' &&
+    document?.file_url &&
+    !document?.is_external
+  );
+}
+
+export function inferResumeFileName(document) {
+  const url = document?.file_url || '';
+  const fromUrl = url.split('?')[0].split('/').pop() || '';
+  if (/\.(pdf|docx?)$/i.test(fromUrl)) {
+    return fromUrl;
+  }
+
+  const baseName = (document?.name || 'resume').replace(/\.[^/.]+$/, '');
+  if (/\.docx?(\?|$)/i.test(url)) {
+    return `${baseName}.docx`;
+  }
+  return `${baseName}.pdf`;
+}
+
+export function getAtsAnalysisErrorMessage(error) {
+  if (error?.message === 'no_text_extracted') {
+    return "Couldn't read text from this file. Scanned PDFs are not supported yet.";
+  }
+  if (error?.message === 'fetch_failed') {
+    return 'Unable to download the resume file. Please try again.';
+  }
+  if (error?.message === 'extraction_failed') {
+    return 'Unable to analyze the resume. Please try another PDF or DOCX file.';
+  }
+  return 'Unable to analyze the resume. Please try again.';
+}
+
+export async function analyzeFileFromUrl(fileUrl, fileName = 'resume.pdf') {
+  if (!fileUrl) {
+    throw new Error('fetch_failed');
+  }
+
+  const response = await fetch(fileUrl);
+  if (!response.ok) {
+    throw new Error('fetch_failed');
+  }
+
+  const blob = await response.blob();
+  const file = new File([blob], fileName, {
+    type: blob.type || 'application/pdf'
+  });
+
+  return analyzeFile(file);
+}
+
 export async function analyzeFile(file) {
   if (!file) throw new Error('No file provided');
 

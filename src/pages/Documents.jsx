@@ -10,6 +10,12 @@ import DocumentUpload from '../components/documents/DocumentUpload';
 import Button from '../components/common/Button';
 import Modal from '../components/common/Modal';
 import DocumentCard from '../components/documents/DocumentCard';
+import {
+    analyzeFileFromUrl,
+    getAtsAnalysisErrorMessage,
+    inferResumeFileName,
+    isAtsEligible
+} from '../utils/atsScorer';
 
 
 
@@ -24,6 +30,7 @@ const Documents = () => {
     const [isUploadOpen, setIsUploadOpen] = useState(false);
     const [editDocument, setEditDocument] = useState(null);
     const [deleteConfirm, setDeleteConfirm] = useState(null);
+    const [checkingAtsId, setCheckingAtsId] = useState(null);
 
     // Fetch documents
     const fetchDocuments = useCallback(async () => {
@@ -128,6 +135,36 @@ const Documents = () => {
             toast.error(error.response?.data?.message || error.response?.data?.error || 'Failed to update document. Please try again.');
         } finally {
             setActionLoading(false);
+        }
+    };
+
+    // Handle ATS re-check for existing uploaded resumes
+    const handleCheckAts = async (document) => {
+        if (!isAtsEligible(document)) return;
+
+        try {
+            setCheckingAtsId(document.id);
+            const analysis = await analyzeFileFromUrl(
+                document.file_url,
+                inferResumeFileName(document)
+            );
+            const updated = await documentService.update(document.id, {
+                ats_score: analysis.score,
+                ats_analyzed_at: new Date().toISOString(),
+                ats_analysis: analysis
+            });
+
+            setDocuments(prev => prev.map(doc => (
+                doc.id === document.id
+                    ? { ...doc, ...updated, file_url: doc.file_url }
+                    : doc
+            )));
+            toast.success(document.ats_score != null ? 'ATS score refreshed!' : 'ATS analysis complete!');
+        } catch (error) {
+            console.error('Error checking ATS score:', error);
+            toast.error(getAtsAnalysisErrorMessage(error));
+        } finally {
+            setCheckingAtsId(null);
         }
     };
 
@@ -246,6 +283,8 @@ const Documents = () => {
                                 document={doc}
                                 onEdit={setEditDocument}
                                 onDelete={setDeleteConfirm}
+                                onCheckAts={handleCheckAts}
+                                isCheckingAts={checkingAtsId === doc.id}
                             />
                         ))}
                     </div>

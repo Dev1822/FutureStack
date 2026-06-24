@@ -7,7 +7,7 @@
 import React, { useState, useRef } from 'react';
 import { FaUpload, FaLink, FaTimes, FaFile, FaSpinner } from 'react-icons/fa';
 import Button from '../common/Button';
-import { analyzeFile } from '../../utils/atsScorer';
+import { analyzeFile, getAtsAnalysisErrorMessage } from '../../utils/atsScorer';
 
 /**
  * Modal component for adding new documents via file upload or external link.
@@ -45,9 +45,7 @@ const DocumentUpload = ({ isOpen, onClose, onUpload, onCreateExternal, isLoading
         } catch (err) {
             setErrors(prev => ({
                 ...prev,
-                file: err.message === 'no_text_extracted'
-                    ? "Couldn't read text from this file. Scanned PDFs are not supported yet."
-                    : 'Unable to analyze the resume. Please try another PDF or DOCX file.'
+                file: getAtsAnalysisErrorMessage(err)
             }));
             setAtsAnalysis(null);
         } finally {
