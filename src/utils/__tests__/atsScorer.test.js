@@ -67,3 +67,37 @@ test('getAtsAnalysisErrorMessage maps known analysis failures', () => {
   expect(getAtsAnalysisErrorMessage(new Error('fetch_failed')))
     .toMatch(/download the resume file/i);
 });
+
+test('analyzeText differentiates SWE and ML resume versions', () => {
+  const base = (skills, exp, projects) => `Venkat Kolasani
+venkat@email.com | +1 555 0100 | linkedin.com/in/venkat | github.com/venkat
+
+Education
+Bachelor of Science in Computer Science, University of Example, 2024
+
+Skills
+${skills}
+
+Experience
+${exp}
+
+Projects
+${projects}`;
+
+  const swe = analyzeText(base(
+    'JavaScript, React, Node.js, TypeScript, Docker, AWS, Git',
+    '- Built web apps at Company A\n- Improved API latency by 40%',
+    '- Portfolio site with React and Node.js'
+  ));
+
+  const ml = analyzeText(base(
+    'Python, TensorFlow, PyTorch, machine learning, SQL, pandas',
+    '- Trained ML models at Company B\n- Improved model accuracy by 12%',
+    '- Image classifier with CNN and PyTorch'
+  ));
+
+  expect(swe.score).not.toBe(ml.score);
+  expect(swe.matchedKeywords).toEqual(expect.arrayContaining(['javascript', 'react', 'docker']));
+  expect(ml.matchedKeywords).toEqual(expect.arrayContaining(['python', 'machine learning', 'pytorch']));
+  expect(swe.breakdown.keywordMatches).toBeGreaterThan(ml.breakdown.keywordMatches);
+});

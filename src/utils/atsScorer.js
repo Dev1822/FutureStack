@@ -9,7 +9,9 @@ export const KEYWORDS = [
   'javascript', 'react', 'node', 'python', 'java', 'sql', 'html', 'css',
   'typescript', 'express', 'mongodb', 'postgresql', 'docker', 'kubernetes',
   'aws', 'azure', 'git', 'github', 'linux', 'rest api', 'graphql', 'testing',
-  'ci/cd', 'agile', 'machine learning', 'data structures', 'algorithms'
+  'ci/cd', 'agile', 'machine learning', 'data structures', 'algorithms',
+  'pytorch', 'tensorflow', 'scikit-learn', 'pandas', 'numpy', 'spark',
+  'figma', 'next.js', 'vue', 'angular', 'spring', 'django', 'flask', 'redis'
 ];
 
 const SECTION_LABELS = {
@@ -21,17 +23,65 @@ const SECTION_LABELS = {
 };
 
 const HOW_SCORED = [
-  'Structure: 60 points for Contact, Education, Skills, Experience, and Projects.',
-  'Content: 25 points for skills depth, projects, and experience bullets.',
-  'ATS-friendly: 15 points for resume length, contact details, and LinkedIn/GitHub signals.',
-  'Keywords use a static v1 list and do not affect the score.'
+  'Structure: up to 60 points for Contact, Education, Skills, Experience, and Projects.',
+  'Content: up to 25 points for skills depth, matched role keywords, projects, and experience detail.',
+  'ATS-friendly: up to 15 points for resume length, contact details, and LinkedIn/GitHub signals.',
+  'Different resumes should score differently when skills, projects, or experience change.'
 ];
+
+const SECTION_BOUNDARY = /(?:^|\s)(education|skills?|technical skills|experience|employment|projects?|certifications|summary|objective)\b/i;
+
+function extractSection(text, startPattern) {
+  const match = text.match(startPattern);
+  if (!match || match.index === undefined) return '';
+
+  const start = match.index + match[0].length;
+  const rest = text.slice(start);
+  const boundary = rest.search(SECTION_BOUNDARY);
+  return boundary === -1 ? rest.slice(0, 1200) : rest.slice(0, boundary);
+}
+
+function countDelimitedItems(text) {
+  if (!text) return 0;
+  return text
+    .split(/[,|•\n;/]+/)
+    .map(item => item.trim())
+    .filter(item => item.length > 1 && item.length < 80).length;
+}
+
+function countExperienceSignals(experienceText) {
+  if (!experienceText) return 0;
+
+  const newlineBullets = (experienceText.match(/(?:^|\n)\s*[-•*]\s+/g) || []).length;
+  const inlineBullets = (experienceText.match(/\s[-•*]\s+\w/g) || []).length;
+  const actionVerbs = (experienceText.match(
+    /\b(built|led|developed|designed|implemented|improved|reduced|increased|created|managed|optimized|automated|deployed|trained|analyzed|delivered)\b/g
+  ) || []).length;
+  const metrics = (experienceText.match(/\b\d+%|\$\d+|\d+\+?\s*(users|customers|ms|x)\b/g) || []).length;
+
+  return Math.min(
+    7,
+    newlineBullets + inlineBullets + Math.floor(actionVerbs / 2) + Math.min(2, metrics)
+  );
+}
+
+function scoreLength(words) {
+  if (words >= 400 && words <= 1000) return 10;
+  if (words >= 320 && words < 400) return 8;
+  if (words > 1000 && words <= 1300) return 8;
+  if (words >= 250 && words < 320) return 6;
+  if (words > 1300 && words <= 1600) return 6;
+  if (words >= 180 && words < 250) return 4;
+  if (words > 1600) return 3;
+  return 2;
+}
 
 const buildSuggestions = ({
   sections,
   skillsDepthScore,
   projectsScore,
   experienceScore,
+  keywordScore,
   lengthScore,
   hasEmail,
   hasLinked,
@@ -41,9 +91,10 @@ const buildSuggestions = ({
   Object.entries(sections).forEach(([key, present]) => {
     if (!present) suggestions.push(`Add a clear ${SECTION_LABELS[key]} section.`);
   });
-  if (skillsDepthScore < 8) suggestions.push('List more role-relevant skills with clear separators.');
-  if (projectsScore < 4) suggestions.push('Include 1-2 projects with impact, stack, and links if available.');
-  if (experienceScore < 3) suggestions.push('Use concise bullet points under experience with action verbs and results.');
+  if (skillsDepthScore < 5) suggestions.push('List more role-relevant skills with clear separators.');
+  if (keywordScore < 4) suggestions.push('Add technologies and tools from the target role to your skills and experience.');
+  if (projectsScore < 3) suggestions.push('Include 1-2 projects with impact, stack, and links if available.');
+  if (experienceScore < 3) suggestions.push('Use concise bullet points under experience with action verbs and measurable results.');
   if (lengthScore < 7) suggestions.push('Aim for roughly 400-1000 words for a readable resume.');
   if (!hasEmail) suggestions.push('Add a professional email address.');
   if (!hasLinked) suggestions.push('Add LinkedIn and/or GitHub profile links.');
@@ -56,7 +107,6 @@ const buildSuggestions = ({
 export function analyzeText(text = '') {
   const normalized = (text || '').toLowerCase();
 
-  // Structure scoring (60): Contact, Education, Skills, Experience, Projects
   const sections = {
     contact: /contact|email|phone|address|linkedin|github/.test(normalized),
     education: /education|degree|bachelor|master|phd|university/.test(normalized),
@@ -65,59 +115,51 @@ export function analyzeText(text = '') {
     projects: /project[s]?|portfolio|personal projects/.test(normalized)
   };
 
-  const structurePerSection = 60 / Object.keys(sections).length; // 12 each
+  const structurePerSection = 60 / Object.keys(sections).length;
   let structureScore = 0;
   Object.values(sections).forEach(present => { if (present) structureScore += structurePerSection; });
 
-  // Content (25) - simple heuristics
-  // skills depth: count occurrences of common skill separators in skills section
-  let skillsDepthScore = 0;
-  const skillsMatch = normalized.match(/skills[\s\S]{0,300}/) || [];
-  const skillsText = skillsMatch[0] || '';
+  const matchedKeywords = KEYWORDS.filter(keyword => normalized.includes(keyword));
+  const suggestedKeywords = KEYWORDS.filter(keyword => !matchedKeywords.includes(keyword));
 
-  if (skillsText && skillsText.length > 50) {
-    skillsDepthScore = Math.min(12, Math.floor((skillsText.split(/[,\n]/).length / 6) * 12));
-  }
+  const skillsText = extractSection(normalized, /(?:^|\s)(skills?|technical skills|proficiencies|stack)\b/i);
+  const experienceText = extractSection(normalized, /(?:^|\s)(experience|employment|work history|professional experience)\b/i);
+  const projectsText = extractSection(normalized, /(?:^|\s)(projects?|portfolio|personal projects)\b/i);
 
-  // projects: count occurrences of 'project' headings
-  const projectsCount = (normalized.match(/project[s]?/g) || []).length;
-  const projectsScore = Math.min(8, Math.floor((projectsCount / 2) * 8));
+  const skillItems = countDelimitedItems(skillsText);
+  const skillsDepthScore = Math.min(8, Math.floor(skillItems / 2) + (skillItems >= 10 ? 2 : skillItems >= 6 ? 1 : 0));
 
-  // experience bullets: approximate common bullet markers in the experience section
-  const experienceMatch = normalized.match(/experience[\s\S]{0,800}/) || [];
-  const experienceText = experienceMatch[0] || '';
-  const expBullets = (experienceText.match(/\n\s*[-*]\s+/g) || []).length;
-  const experienceScore = Math.min(5, Math.floor((expBullets / 6) * 5));
+  const keywordScore = Math.min(10, matchedKeywords.length);
 
-  const contentScore = Math.round(skillsDepthScore + projectsScore + experienceScore);
+  const projectsCount = (projectsText.match(/project[s]?/g) || []).length;
+  const projectsScore = Math.min(
+    5,
+    Math.min(3, projectsCount) + (projectsText.length > 120 ? 2 : 0)
+  );
 
-  // ATS-friendly (15)
-  // length: ideal 400-1000 words
+  const experienceScore = countExperienceSignals(experienceText);
+  const contentScore = Math.min(
+    25,
+    skillsDepthScore + keywordScore + projectsScore + experienceScore
+  );
+
   const words = (normalized.match(/\w+/g) || []).length;
-  let lengthScore = 0;
-  if (words >= 400 && words <= 1000) lengthScore = 10;
-  else if (words >= 250 && words < 400) lengthScore = 7;
-  else if (words > 1000 && words <= 1500) lengthScore = 7;
-  else if (words >= 100 && words < 250) lengthScore = 4;
+  const lengthScore = scoreLength(words);
 
-  // contact details
   const hasEmail = /[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/.test(normalized);
   const hasPhone = /(?:\+?\d[\d\s\-().]{7,}\d)/.test(normalized);
   const hasLinked = /linkedin\.com|github\.com/.test(normalized);
 
-  const contactScore = (hasEmail ? 3 : 0) + (hasPhone ? 1 : 0) + (hasLinked ? 1 : 0); // total 5
-  const atsFriendlyScore = lengthScore + contactScore; // max 15
-
-  // Keywords (not in main score) - static list
-  const matchedKeywords = KEYWORDS.filter(keyword => normalized.includes(keyword));
-  const suggestedKeywords = KEYWORDS.filter(keyword => !matchedKeywords.includes(keyword));
+  const contactScore = (hasEmail ? 3 : 0) + (hasPhone ? 1 : 0) + (hasLinked ? 1 : 0);
+  const atsFriendlyScore = Math.min(15, lengthScore + contactScore);
 
   const total = Math.max(0, Math.min(100, Math.round(structureScore + contentScore + atsFriendlyScore)));
 
   const breakdown = {
     structure: Math.round(structureScore),
     content: contentScore,
-    atsFriendly: atsFriendlyScore
+    atsFriendly: atsFriendlyScore,
+    keywordMatches: matchedKeywords.length
   };
   const missingSections = Object.entries(sections)
     .filter(([, present]) => !present)
@@ -134,6 +176,7 @@ export function analyzeText(text = '') {
       skillsDepthScore,
       projectsScore,
       experienceScore,
+      keywordScore,
       lengthScore,
       hasEmail,
       hasLinked,
@@ -156,7 +199,7 @@ export async function extractTextFromPDF(arrayBuffer) {
       const page = await pdf.getPage(i);
       const content = await page.getTextContent();
       const strings = content.items.map(item => item.str);
-      text += strings.join(' ') + '\n';
+      text += `${strings.join(' ')}\n`;
     }
     return text;
   } catch (err) {
@@ -246,7 +289,6 @@ export async function analyzeFile(file) {
     } else if (mime === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || file.name.toLowerCase().endsWith('.docx')) {
       text = await extractTextFromDocx(arrayBuffer);
     } else if (mime === 'application/msword' || file.name.toLowerCase().endsWith('.doc')) {
-      // mammoth can handle .doc via conversion in some environments; try
       try {
         text = await extractTextFromDocx(arrayBuffer);
       } catch (e) {
@@ -254,12 +296,10 @@ export async function analyzeFile(file) {
       }
     }
   } catch (err) {
-    // extraction error
     throw new Error('extraction_failed');
   }
 
   if (!text || text.trim().length < 20) {
-    // likely scanned PDF or could not extract
     throw new Error('no_text_extracted');
   }
 
