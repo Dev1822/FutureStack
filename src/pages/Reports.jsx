@@ -12,6 +12,7 @@ import SEO from '../components/seo/SEO';
 import Card from '../components/common/Card';
 import Button from '../components/common/Button';
 import InterviewRejectionInsights from '../components/analytics/InterviewRejectionInsights';
+import StatusIndicator from '../components/common/StatusIndicator';
 import { opportunityService, analyticsService } from '../services/api';
 import { generatePDF, downloadPDF } from '../utils/pdfExport';
 import { formatDate } from '../utils/dateHelpers';
@@ -450,6 +451,10 @@ const Reports = () => {
             showCharts={showPipelineSection}
           />
         </section>
+
+        <div className="flex justify-end pt-2">
+          <StatusIndicator className="text-gray-600 hover:text-gray-400" />
+        </div>
       </div>
     </div>
   );

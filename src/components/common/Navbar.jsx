@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { FaBars, FaTimes } from 'react-icons/fa';
 import { UserButton } from '@clerk/clerk-react';
-import StatusIndicator from './StatusIndicator';
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -53,7 +52,6 @@ const Navbar = () => {
                 {link.label}
               </Link>
             ))}
-            <StatusIndicator className="hidden lg:inline-flex" />
             {/* User Button for profile and logout */}
             <UserButton
               afterSignOutUrl="/"
