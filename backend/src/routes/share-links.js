@@ -21,7 +21,7 @@ const OPPORTUNITY_SHARE_FIELDS =
     'id, title, status, category, created_at, rejected_round_number, current_round_number';
 
 function logShareAudit(action, userId, shareId = null, outcome = 'success', details = {}) {
-    console.log(JSON.stringify({
+    console.info(JSON.stringify({
         timestamp: new Date().toISOString(),
         type: 'AUDIT',
         action,

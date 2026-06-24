@@ -76,6 +76,7 @@ sequenceDiagram
 | Path | Page | Auth | Notes |
 |------|------|------|-------|
 | `/` | `Home.jsx` | Public | Landing + footer status link |
+| `/share/:token` | `PublicSharePage.jsx` | Public | Read-only redacted dashboard snapshot, optional passcode |
 | `/dashboard` | `Dashboard.jsx` | ✅ | Stats, deadlines |
 | `/internships` | `InternshipList.jsx` | ✅ | Detail drawer → rounds + prep |
 | `/internships/:id/prep` | `InterviewPrepDetail.jsx` | ✅ | Interview prep workspace |
@@ -99,6 +100,8 @@ sequenceDiagram
 | `/api/documents` | `routes/documents.js` | Vault + assign + ATS fields |
 | `/api/hackathons` | `routes/hackathons.js` | Team collaboration |
 | `/api/interview-prep` | `routes/interview-prep.js` | Prep workspace |
+| `/api/share-links` | `routes/share-links.js` | Authenticated share create/list/revoke |
+| `/api/public/share-links` | `routes/public-share-links.js` | Public token/passcode read-only shares |
 | `/api/health` | `app.js` | Liveness |
 | `/api/health/deps` | `app.js` | Supabase reachability |
 
@@ -116,6 +119,7 @@ Round-specific logic also lives in `routes/opportunity-rounds.js` (mounted from 
 | `hackathonService` | `/hackathons/:id/...` |
 | `interviewPrepService` | `/interview-prep/:opportunityId` |
 | `analyticsService` | `/analytics` |
+| `shareLinkService` | `/share-links`, `/public/share-links` |
 
 Always add new endpoints here — pages should not construct URLs manually.
 
@@ -128,6 +132,7 @@ Always add new endpoints here — pages should not construct URLs manually.
 | Interview rounds | [`interview-rounds.md`](interview-rounds.md) | `opportunity-rounds-migration.sql` |
 | Interview prep | [`interview-prep.md`](interview-prep.md) | `interview-prep-migration.sql` |
 | Documents + ATS | [`documents-and-ats.md`](documents-and-ats.md) | `documents-migration.sql` |
+| Dashboard share links | [`share-links.md`](share-links.md) | `share-links-migration.sql`, `supabase/migrations/20260624163000_create_share_links.sql` |
 | Hackathon collaboration | [`DOCUMENTATION.md`](DOCUMENTATION.md#hackathon-team-collaboration-new) | `hackathon-collaboration-migration.sql` |
 | Architecture & challenges | [`DOCUMENTATION.md`](DOCUMENTATION.md) | `supabase-schema.sql` |
 | Testing & CI | [`TESTING.md`](TESTING.md) | — |

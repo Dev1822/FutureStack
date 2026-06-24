@@ -34,6 +34,7 @@ export REACT_APP_API_URL=http://localhost:3001/api
 | `backend/src/routes/*` or `backend/src/middleware/*` | `cd backend && npm test` — **add or update tests** in `backend/tests/` |
 | `backend/src/lib/validation.js` | `cd backend && npm test -- validation` |
 | `docs/*-migration.sql` | Manual: run migration on a dev Supabase project; document steps in the PR |
+| Dashboard share links (`share_links`, `/share/:token`, `shareLinkService`) | `cd backend && npm test -- share-links`, `npm run test:ci`, `npm run build`, manual flow in [`docs/share-links.md`](share-links.md#manual-verification) |
 | Interview rounds (`backend/src/routes/opportunity-rounds.js`, `src/components/rounds/*`) | `cd backend && npm test -- rounds`, manual flow in [`docs/interview-rounds.md`](interview-rounds.md#testing) |
 | Interview prep (`backend/src/routes/interview-prep.js`, `src/components/interview-prep/*`) | `cd backend && npm test -- interview-prep`, manual flow in [`docs/interview-prep.md`](interview-prep.md#testing) |
 | ATS scorer (`src/utils/atsScorer.js`, `DocumentUpload.jsx`) | `npm test -- atsScorer`, upload PDF/DOCX on `/documents` |
@@ -57,6 +58,20 @@ Use this after automated tests pass:
 5. Exercise the happy path once
 6. Try one edge case (empty state, invalid input, expired deadline, etc.)
 7. If you touched auth or API wiring: hard-refresh and confirm data still loads on first paint
+
+### Dashboard share links (if you changed sharing)
+
+See [`docs/share-links.md`](share-links.md).
+
+1. Open `/dashboard` while signed in and click **Share Dashboard**.
+2. Generate a link with all internships and no passcode, then open it in a signed-out/private browser session.
+3. Generate a passcode-protected link and verify wrong and correct passcodes.
+4. Revoke a link from the dashboard and confirm the public page shows the expired/revoked state.
+5. Confirm the public response and UI do not expose owner identity, notes, documents, or prep data.
+
+```bash
+cd backend && npm test -- share-links
+```
 
 ### Interview rounds (if you changed round API or UI)
 
