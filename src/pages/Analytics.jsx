@@ -10,6 +10,7 @@ import Card from '../components/common/Card';
 import EmptyState from '../components/common/EmptyState';
 import { SkeletonChart } from '../components/common/LoadingSpinner';
 import InterviewRejectionInsights from '../components/analytics/InterviewRejectionInsights';
+import InterviewFunnelChart from '../components/analytics/InterviewFunnelChart';
 import { analyticsService } from '../services/api';
 
 const Analytics = () => {
@@ -433,6 +434,9 @@ const Analytics = () => {
                         </p>
                     </div>
                     <InterviewRejectionInsights pipeline={analytics.pipelineAnalytics} />
+                    <div className="mt-6">
+                        <InterviewFunnelChart pipeline={analytics.pipelineAnalytics} />
+                    </div>
                 </div>
             </div>
         </div>

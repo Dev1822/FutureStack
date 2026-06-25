@@ -132,6 +132,13 @@ export const roundService = {
     );
     return response.data;
   },
+
+  listUpcoming: async ({ from, to }) => {
+    const response = await api.get('/opportunities/rounds/upcoming', {
+      params: { from, to },
+    });
+    return response.data;
+  },
 };
 
 export const opportunityService = {

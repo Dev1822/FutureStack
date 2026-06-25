@@ -14,6 +14,7 @@ import SEO from '../components/seo/SEO';
 import Button from '../components/common/Button';
 import Card from '../components/common/Card';
 import LoadingSpinner from '../components/common/LoadingSpinner';
+import RoundTimelineReadOnly from '../components/rounds/RoundTimelineReadOnly';
 import { shareLinkService } from '../services/api';
 import { formatDate, getDaysRemaining } from '../utils/dateHelpers';
 
@@ -342,6 +343,10 @@ const PublicSharePage = () => {
                         </div>
                       )}
                     </div>
+
+                    {fields.rounds && opportunity.interviewRounds?.length > 0 && (
+                      <RoundTimelineReadOnly rounds={opportunity.interviewRounds} />
+                    )}
 
                     {fields.applicationLink && opportunity.applicationLink && (
                       <div className="mt-5">

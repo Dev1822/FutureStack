@@ -14,6 +14,7 @@ import Home from './pages/Home'; // Landing page - load immediately for best UX
 
 // Hooks
 import { useAuthToken } from './hooks/useAuthToken';
+import { useInterviewReminders } from './hooks/useInterviewReminders';
 
 // Analytics
 import { trackPageView, identifyUser, resetAnalytics } from './lib/analytics';
@@ -49,6 +50,7 @@ function AppContent() {
 
   // Initialize auth token getter for API calls
   useAuthToken();
+  useInterviewReminders();
 
   // Track page views on route changes (redact public share tokens)
   useEffect(() => {

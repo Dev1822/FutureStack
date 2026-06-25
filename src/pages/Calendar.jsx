@@ -4,32 +4,45 @@ import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
 import './Calendar.css';
 import SEO from '../components/seo/SEO';
-import { opportunityService } from '../services/api';
+import { opportunityService, roundService } from '../services/api';
 import { getDaysRemaining } from '../utils/dateHelpers';
+import { getRoundTypeLabel } from '../utils/roundHelpers';
 import Modal from '../components/common/Modal';
 import Card from '../components/common/Card';
 import Button from '../components/common/Button';
-import { FaBriefcase, FaCode, FaCalendarAlt, FaClock } from 'react-icons/fa';
+import { FaBriefcase, FaCode, FaCalendarAlt, FaClock, FaLayerGroup } from 'react-icons/fa';
 
 const CalendarPage = () => {
   const [opportunities, setOpportunities] = useState([]);
+  const [upcomingRounds, setUpcomingRounds] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [showModal, setShowModal] = useState(false);
   const [selectedDateOpportunities, setSelectedDateOpportunities] = useState([]);
+  const [selectedDateRounds, setSelectedDateRounds] = useState([]);
 
   useEffect(() => {
-    fetchOpportunities();
+    fetchData();
   }, []);
 
-  const fetchOpportunities = async () => {
+  const fetchData = async () => {
     try {
       setLoading(true);
-      const data = await opportunityService.getAll();
-      setOpportunities(data);
+      const today = new Date();
+      const from = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+      const to = new Date(today.getFullYear(), today.getMonth() + 3, 0);
+      const fromStr = from.toISOString().slice(0, 10);
+      const toStr = to.toISOString().slice(0, 10);
+
+      const [opps, rounds] = await Promise.all([
+        opportunityService.getAll(),
+        roundService.listUpcoming({ from: fromStr, to: toStr }),
+      ]);
+      setOpportunities(opps);
+      setUpcomingRounds(rounds);
     } catch (error) {
-      console.error('Error fetching opportunities:', error);
-      toast.error('Failed to load opportunities');
+      console.error('Error fetching calendar data:', error);
+      toast.error('Failed to load calendar');
     } finally {
       setLoading(false);
     }
@@ -47,24 +60,43 @@ const CalendarPage = () => {
     }
   });
 
-  // Function to mark dates with deadlines
+  const interviewMap = {};
+  upcomingRounds.forEach((round) => {
+    if (round.scheduledDate) {
+      const dateKey = new Date(`${round.scheduledDate}T12:00:00`).toDateString();
+      if (!interviewMap[dateKey]) {
+        interviewMap[dateKey] = [];
+      }
+      interviewMap[dateKey].push(round);
+    }
+  });
+
+  // Function to mark dates with deadlines and interviews
   const tileContent = ({ date, view }) => {
     if (view === 'month') {
       const dateKey = date.toDateString();
       const oppsOnDate = deadlineMap[dateKey];
+      const roundsOnDate = interviewMap[dateKey];
 
-      if (oppsOnDate && oppsOnDate.length > 0) {
-        // Count internships and hackathons
-        const internships = oppsOnDate.filter(opp => opp.category === 'internship').length;
-        const hackathons = oppsOnDate.filter(opp => opp.category === 'hackathon').length;
+      if ((oppsOnDate && oppsOnDate.length > 0) || (roundsOnDate && roundsOnDate.length > 0)) {
+        const internships = oppsOnDate
+          ? oppsOnDate.filter((opp) => opp.category === 'internship').length
+          : 0;
+        const hackathons = oppsOnDate
+          ? oppsOnDate.filter((opp) => opp.category === 'hackathon').length
+          : 0;
+        const interviews = roundsOnDate ? roundsOnDate.length : 0;
 
         return (
           <div className="flex justify-center items-center gap-1 mt-1">
             {internships > 0 && (
-              <div className="w-2 h-2 bg-blue-500 rounded-full" title={`${internships} internship(s)`} />
+              <div className="w-2 h-2 bg-blue-500 rounded-full" title={`${internships} internship deadline(s)`} />
             )}
             {hackathons > 0 && (
-              <div className="w-2 h-2 bg-green-500 rounded-full" title={`${hackathons} hackathon(s)`} />
+              <div className="w-2 h-2 bg-green-500 rounded-full" title={`${hackathons} hackathon deadline(s)`} />
+            )}
+            {interviews > 0 && (
+              <div className="w-2 h-2 bg-purple-500 rounded-full" title={`${interviews} interview round(s)`} />
             )}
           </div>
         );
@@ -78,9 +110,11 @@ const CalendarPage = () => {
     setSelectedDate(date);
     const dateKey = date.toDateString();
     const oppsOnDate = deadlineMap[dateKey] || [];
+    const roundsOnDate = interviewMap[dateKey] || [];
 
-    if (oppsOnDate.length > 0) {
+    if (oppsOnDate.length > 0 || roundsOnDate.length > 0) {
       setSelectedDateOpportunities(oppsOnDate);
+      setSelectedDateRounds(roundsOnDate);
       setShowModal(true);
     }
   };
@@ -135,6 +169,10 @@ const CalendarPage = () => {
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 bg-green-500 rounded-full" />
               <span className="text-gray-300 text-sm">Hackathon Deadline</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 bg-purple-500 rounded-full" />
+              <span className="text-gray-300 text-sm">Interview Round</span>
             </div>
             <div className="flex items-center gap-2">
               <FaCalendarAlt className="text-gray-400" />
@@ -194,10 +232,30 @@ const CalendarPage = () => {
         <Modal
           isOpen={showModal}
           onClose={() => setShowModal(false)}
-          title={`Opportunities on ${selectedDate.toLocaleDateString()}`}
+          title={`Events on ${selectedDate.toLocaleDateString()}`}
           className="max-w-2xl"
         >
           <div className="space-y-4">
+            {selectedDateRounds.length > 0 && (
+              <div className="space-y-2">
+                <h4 className="text-sm font-semibold text-purple-300 flex items-center gap-2">
+                  <FaLayerGroup />
+                  Interview rounds
+                </h4>
+                {selectedDateRounds.map((round) => (
+                  <div
+                    key={round.id}
+                    className="bg-purple-900/20 rounded-lg p-3 border border-purple-500/30"
+                  >
+                    <p className="text-white font-medium">{round.opportunityTitle}</p>
+                    <p className="text-sm text-gray-300 mt-1">
+                      Round {round.roundNumber} · {getRoundTypeLabel(round.roundType)}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+
             {selectedDateOpportunities.map(opp => (
               <div
                 key={opp.id}

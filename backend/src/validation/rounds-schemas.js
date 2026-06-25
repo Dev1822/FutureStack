@@ -120,11 +120,36 @@ const opportunityIdOnlyParamsSchema = Joi.object({
         })
 });
 
+const upcomingRoundsQuerySchema = Joi.object({
+    from: Joi.string()
+        .pattern(/^\d{4}-\d{2}-\d{2}$/)
+        .required()
+        .messages({
+            'string.pattern.base': 'from must be a valid ISO date (YYYY-MM-DD)',
+            'any.required': 'from query parameter is required'
+        }),
+    to: Joi.string()
+        .pattern(/^\d{4}-\d{2}-\d{2}$/)
+        .required()
+        .messages({
+            'string.pattern.base': 'to must be a valid ISO date (YYYY-MM-DD)',
+            'any.required': 'to query parameter is required'
+        })
+}).custom((value, helpers) => {
+    if (value.to < value.from) {
+        return helpers.error('object.dateRange');
+    }
+    return value;
+}).messages({
+    'object.dateRange': 'to must be on or after from'
+});
+
 module.exports = {
     ROUND_TYPES,
     ROUND_RESULTS,
     createRoundSchema,
     updateRoundSchema,
     opportunityRoundParamsSchema,
-    opportunityIdOnlyParamsSchema
+    opportunityIdOnlyParamsSchema,
+    upcomingRoundsQuerySchema
 };

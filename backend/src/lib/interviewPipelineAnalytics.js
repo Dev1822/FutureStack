@@ -35,6 +35,70 @@ function formatRejectionStage(roundNumber, roundType) {
     return 'Stage not recorded';
 }
 
+function buildFunnelByRoundType(internships, roundsByOpportunity) {
+    const statsByType = {};
+
+    for (const opp of internships) {
+        const oppRounds = (roundsByOpportunity[opp.id] || []).slice().sort(
+            (a, b) => a.round_number - b.round_number
+        );
+
+        for (const round of oppRounds) {
+            const roundType = round.round_type;
+            if (!statsByType[roundType]) {
+                statsByType[roundType] = { reached: 0, cleared: 0, rejected: 0 };
+            }
+            statsByType[roundType].reached += 1;
+
+            if (round.result === 'cleared') {
+                statsByType[roundType].cleared += 1;
+            } else if (round.result === 'rejected') {
+                statsByType[roundType].rejected += 1;
+            }
+        }
+    }
+
+    return Object.entries(statsByType)
+        .map(([roundType, counts]) => ({
+            roundType,
+            label: getRoundTypeLabel(roundType),
+            reached: counts.reached,
+            cleared: counts.cleared,
+            rejected: counts.rejected,
+            clearanceRate:
+                counts.reached > 0
+                    ? roundToOneDecimal((counts.cleared / counts.reached) * 100)
+                    : null,
+        }))
+        .sort((a, b) => b.reached - a.reached);
+}
+
+function buildStageReachByRoundNumber(internships, roundsByOpportunity) {
+    const statsByNumber = {};
+
+    for (const opp of internships) {
+        const oppRounds = roundsByOpportunity[opp.id] || [];
+        for (const round of oppRounds) {
+            const roundNumber = round.round_number;
+            if (!statsByNumber[roundNumber]) {
+                statsByNumber[roundNumber] = { reached: 0, stillActive: 0 };
+            }
+            statsByNumber[roundNumber].reached += 1;
+            if (round.result === 'pending') {
+                statsByNumber[roundNumber].stillActive += 1;
+            }
+        }
+    }
+
+    return Object.entries(statsByNumber)
+        .map(([roundNumber, counts]) => ({
+            roundNumber: Number(roundNumber),
+            reached: counts.reached,
+            stillActive: counts.stillActive,
+        }))
+        .sort((a, b) => a.roundNumber - b.roundNumber);
+}
+
 /**
  * Build internship interview-pipeline analytics for dashboards and reports.
  */
@@ -111,12 +175,16 @@ function buildInterviewPipelineAnalytics(opportunities, rounds = []) {
                 count
             }))
             .sort((a, b) => b.count - a.count),
+        funnelByRoundType: buildFunnelByRoundType(internships, roundsByOpportunity),
+        stageReachByRoundNumber: buildStageReachByRoundNumber(internships, roundsByOpportunity),
         rejections
     };
 }
 
 module.exports = {
     buildInterviewPipelineAnalytics,
+    buildFunnelByRoundType,
+    buildStageReachByRoundNumber,
     groupRoundsByOpportunity,
     findRejectedRoundRecord,
     formatRejectionStage

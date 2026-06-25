@@ -162,6 +162,7 @@ describe('Share Links API', () => {
 
         mockFrom
             .mockReturnValueOnce(createChain({ data: opportunities, error: null }))
+            .mockReturnValueOnce(createChain({ data: [], error: null }))
             .mockReturnValueOnce(insertChain);
 
         const res = await request(app)
@@ -196,7 +197,68 @@ describe('Share Links API', () => {
         });
         expect(JSON.stringify(insertedShare.snapshot)).not.toContain('must never leak');
         expect(mockFrom).toHaveBeenCalledWith('opportunities');
+        expect(mockFrom).toHaveBeenCalledWith('opportunity_rounds');
         expect(mockFrom).toHaveBeenCalledWith('share_links');
+    });
+
+    it('POST /api/share-links embeds interview round timelines as snapshot v3', async () => {
+        const opportunities = [
+            {
+                id: OPPORTUNITY_ID,
+                title: 'Backend Intern',
+                category: 'internship',
+                status: 'interviewed',
+                created_at: '2026-06-01T00:00:00.000Z',
+                current_round_number: 2,
+            },
+        ];
+        const rounds = [
+            {
+                opportunity_id: OPPORTUNITY_ID,
+                round_number: 1,
+                round_type: 'oa',
+                scheduled_date: '2026-06-10',
+                result: 'cleared',
+                notes: 'private notes',
+            },
+            {
+                opportunity_id: OPPORTUNITY_ID,
+                round_number: 2,
+                round_type: 'technical',
+                scheduled_date: null,
+                result: 'pending',
+            },
+        ];
+        const insertChain = createChain({ data: shareRow({ view_count: 0 }), error: null });
+
+        mockFrom
+            .mockReturnValueOnce(createChain({ data: opportunities, error: null }))
+            .mockReturnValueOnce(createChain({ data: rounds, error: null }))
+            .mockReturnValueOnce(insertChain);
+
+        const res = await request(app)
+            .post('/api/share-links')
+            .set(authHeader)
+            .send({ expiry: '7d', fields: { rounds: true, status: true } });
+
+        expect(res.status).toBe(201);
+        const snapshot = insertChain.insert.mock.calls[0][0].snapshot;
+        expect(snapshot.version).toBe(3);
+        expect(snapshot.opportunities[0].interviewRounds).toEqual([
+            {
+                roundNumber: 1,
+                roundType: 'oa',
+                scheduledDate: '2026-06-10',
+                result: 'cleared',
+            },
+            {
+                roundNumber: 2,
+                roundType: 'technical',
+                scheduledDate: null,
+                result: 'pending',
+            },
+        ]);
+        expect(JSON.stringify(snapshot)).not.toContain('private notes');
     });
 
     it('POST /api/share-links creates a specific-opportunity share snapshot', async () => {
@@ -219,6 +281,7 @@ describe('Share Links API', () => {
 
         mockFrom
             .mockReturnValueOnce(opportunitiesChain)
+            .mockReturnValueOnce(createChain({ data: [], error: null }))
             .mockReturnValueOnce(insertChain);
 
         const res = await request(app)

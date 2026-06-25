@@ -23,6 +23,9 @@ function listChain(data, error = null) {
     const chain = {
         select: jest.fn(() => chain),
         eq: jest.fn(() => chain),
+        not: jest.fn(() => chain),
+        gte: jest.fn(() => chain),
+        lte: jest.fn(() => chain),
         order: jest.fn(() => chain),
         limit: jest.fn(() => Promise.resolve({ data, error })),
         then: (resolve, reject) => Promise.resolve({ data, error }).then(resolve, reject),
@@ -211,5 +214,53 @@ describe('Interview rounds API', () => {
 
         expect(res.status).toBe(404);
         expect(res.body.error).toBe('Opportunity not found');
+    });
+
+    it('GET /api/opportunities/rounds/upcoming returns 401 without auth', async () => {
+        const res = await request(app).get(
+            '/api/opportunities/rounds/upcoming?from=2026-01-01&to=2026-01-31'
+        );
+        expect(res.status).toBe(401);
+    });
+
+    it('GET /api/opportunities/rounds/upcoming returns pending rounds in date range', async () => {
+        const upcomingData = [
+            {
+                id: ROUND_ID,
+                opportunity_id: OPPORTUNITY_ID,
+                round_number: 2,
+                round_type: 'technical',
+                scheduled_date: '2026-06-15',
+                result: 'pending',
+                opportunities: { id: OPPORTUNITY_ID, title: 'Acme Intern', category: 'internship' },
+            },
+        ];
+
+        mockFrom.mockReturnValue(listChain(upcomingData));
+
+        const res = await request(app)
+            .get('/api/opportunities/rounds/upcoming?from=2026-06-01&to=2026-06-30')
+            .set(authHeader);
+
+        expect(res.status).toBe(200);
+        expect(res.body).toHaveLength(1);
+        expect(res.body[0]).toMatchObject({
+            id: ROUND_ID,
+            opportunityId: OPPORTUNITY_ID,
+            opportunityTitle: 'Acme Intern',
+            roundNumber: 2,
+            roundType: 'technical',
+            scheduledDate: '2026-06-15',
+            result: 'pending',
+        });
+    });
+
+    it('GET /api/opportunities/rounds/upcoming returns 400 when from is after to', async () => {
+        const res = await request(app)
+            .get('/api/opportunities/rounds/upcoming?from=2026-06-30&to=2026-06-01')
+            .set(authHeader);
+
+        expect(res.status).toBe(400);
+        expect(res.body.error).toBe('Validation Error');
     });
 });
