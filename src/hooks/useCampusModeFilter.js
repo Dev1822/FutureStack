@@ -10,8 +10,8 @@ export function useCampusModeFilter(initialFilter = DEFAULT_FILTER) {
   const [campusModeFilter, setCampusModeFilter] = useState(initialFilter);
 
   const resetCampusModeFilter = useCallback(() => {
-    setCampusModeFilter(DEFAULT_FILTER);
-  }, []);
+    setCampusModeFilter(initialFilter);
+  }, [initialFilter]);
 
   const applyCampusModeFilter = useCallback(
     (opportunities) => filterByCampusMode(opportunities, campusModeFilter),
