@@ -12,6 +12,7 @@ import SEO from '../components/seo/SEO';
 import Card from '../components/common/Card';
 import Button from '../components/common/Button';
 import InterviewRejectionInsights from '../components/analytics/InterviewRejectionInsights';
+import InterviewFunnelChart from '../components/analytics/InterviewFunnelChart';
 import StatusIndicator from '../components/common/StatusIndicator';
 import { opportunityService, analyticsService } from '../services/api';
 import { generatePDF, downloadPDF } from '../utils/pdfExport';
@@ -490,6 +491,9 @@ const Reports = () => {
             showMetrics={false}
             showCharts={showPipelineSection}
           />
+          {showPipelineSection && (
+            <InterviewFunnelChart pipeline={displayPipeline} compact />
+          )}
         </section>
 
         <div className="flex justify-end pt-2">

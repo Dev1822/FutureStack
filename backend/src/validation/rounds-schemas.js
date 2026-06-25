@@ -120,11 +120,65 @@ const opportunityIdOnlyParamsSchema = Joi.object({
         })
 });
 
+const UPCOMING_ROUNDS_MAX_RANGE_DAYS = 366;
+
+const dateOnlyString = Joi.string().custom((value, helpers) => {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+        return helpers.error('string.pattern.base');
+    }
+
+    const [year, month, day] = value.split('-').map(Number);
+    const parsed = new Date(Date.UTC(year, month - 1, day));
+    if (
+        parsed.getUTCFullYear() !== year ||
+        parsed.getUTCMonth() !== month - 1 ||
+        parsed.getUTCDate() !== day
+    ) {
+        return helpers.error('date.invalid');
+    }
+
+    return value;
+});
+
+const upcomingRoundsQuerySchema = Joi.object({
+    from: dateOnlyString.required().messages({
+        'string.pattern.base': 'from must be a valid ISO date (YYYY-MM-DD)',
+        'date.invalid': 'from must be a valid calendar date',
+        'any.required': 'from query parameter is required'
+    }),
+    to: dateOnlyString.required().messages({
+        'string.pattern.base': 'to must be a valid ISO date (YYYY-MM-DD)',
+        'date.invalid': 'to must be a valid calendar date',
+        'any.required': 'to query parameter is required'
+    })
+}).custom((value, helpers) => {
+    if (value.to < value.from) {
+        return helpers.error('object.dateRange');
+    }
+
+    const [fromYear, fromMonth, fromDay] = value.from.split('-').map(Number);
+    const [toYear, toMonth, toDay] = value.to.split('-').map(Number);
+    const fromMs = Date.UTC(fromYear, fromMonth - 1, fromDay);
+    const toMs = Date.UTC(toYear, toMonth - 1, toDay);
+    const rangeDays = Math.round((toMs - fromMs) / (24 * 60 * 60 * 1000));
+
+    if (rangeDays > UPCOMING_ROUNDS_MAX_RANGE_DAYS) {
+        return helpers.error('object.dateRangeTooWide');
+    }
+
+    return value;
+}).messages({
+    'object.dateRange': 'to must be on or after from',
+    'object.dateRangeTooWide': `date range cannot exceed ${UPCOMING_ROUNDS_MAX_RANGE_DAYS} days`
+});
+
 module.exports = {
     ROUND_TYPES,
     ROUND_RESULTS,
     createRoundSchema,
     updateRoundSchema,
     opportunityRoundParamsSchema,
-    opportunityIdOnlyParamsSchema
+    opportunityIdOnlyParamsSchema,
+    upcomingRoundsQuerySchema,
+    UPCOMING_ROUNDS_MAX_RANGE_DAYS
 };

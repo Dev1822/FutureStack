@@ -142,7 +142,7 @@ function normalizeFieldOptions(fields = {}) {
     };
 }
 
-function toPublicOpportunity(opportunity, fields) {
+function toPublicOpportunity(opportunity, fields, interviewRounds = null) {
     const item = {
         id: opportunity.id,
         title: opportunity.title,
@@ -177,13 +177,26 @@ function toPublicOpportunity(opportunity, fields) {
         item.dateApplied = opportunity.created_at || null;
     }
 
+    if (fields.rounds && interviewRounds?.length) {
+        item.interviewRounds = interviewRounds.map((round) => ({
+            roundNumber: round.round_number,
+            roundType: round.round_type,
+            scheduledDate: round.scheduled_date || null,
+            result: round.result,
+        }));
+    }
+
     return item;
 }
 
-function buildShareSnapshot({ opportunities, fields, expiry, selectedOpportunityIds }) {
+function buildShareSnapshot({ opportunities, fields, expiry, selectedOpportunityIds, roundsByOpportunity = {} }) {
     const normalizedFields = normalizeFieldOptions(fields);
     const publicOpportunities = opportunities.map((opportunity) =>
-        toPublicOpportunity(opportunity, normalizedFields)
+        toPublicOpportunity(
+            opportunity,
+            normalizedFields,
+            roundsByOpportunity[opportunity.id] || null
+        )
     );
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -214,8 +227,12 @@ function buildShareSnapshot({ opportunities, fields, expiry, selectedOpportunity
         return deadline < today;
     }).length;
 
+    const hasInterviewTimelines = publicOpportunities.some(
+        (opportunity) => opportunity.interviewRounds?.length > 0
+    );
+
     return {
-        version: 2,
+        version: hasInterviewTimelines ? 3 : 2,
         generatedAt: new Date().toISOString(),
         shareType: 'placement_dashboard',
         options: {

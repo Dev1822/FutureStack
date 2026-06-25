@@ -92,6 +92,30 @@ router.post('/', validate(createShareLinkSchema), async (req, res) => {
         const { data: opportunities, error: opportunitiesError } = await query;
         if (opportunitiesError) throw opportunitiesError;
 
+        const opportunityList = opportunities || [];
+        const internshipIds = opportunityList
+            .filter((opp) => opp.category === 'internship')
+            .map((opp) => opp.id);
+
+        let roundsByOpportunity = {};
+        if (internshipIds.length > 0 && fields?.rounds !== false) {
+            const { data: rounds, error: roundsError } = await supabase
+                .from('opportunity_rounds')
+                .select('opportunity_id, round_number, round_type, scheduled_date, result')
+                .eq('user_id', userId)
+                .in('opportunity_id', internshipIds)
+                .order('round_number', { ascending: true });
+
+            if (roundsError) throw roundsError;
+
+            for (const round of rounds || []) {
+                if (!roundsByOpportunity[round.opportunity_id]) {
+                    roundsByOpportunity[round.opportunity_id] = [];
+                }
+                roundsByOpportunity[round.opportunity_id].push(round);
+            }
+        }
+
         if (opportunityIds?.length) {
             const foundIds = new Set((opportunities || []).map((opportunity) => opportunity.id));
             const missingIds = opportunityIds.filter((id) => !foundIds.has(id));
@@ -104,10 +128,11 @@ router.post('/', validate(createShareLinkSchema), async (req, res) => {
         }
 
         const snapshot = buildShareSnapshot({
-            opportunities: opportunities || [],
+            opportunities: opportunityList,
             fields,
             expiry,
             selectedOpportunityIds: opportunityIds || [],
+            roundsByOpportunity,
         });
 
         const token = generateShareToken();
