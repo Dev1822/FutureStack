@@ -13,6 +13,8 @@ const analyticsRoutes = require('./routes/analytics');
 const documentsRoutes = require('./routes/documents');
 const hackathonsRoutes = require('./routes/hackathons');
 const interviewPrepRoutes = require('./routes/interview-prep');
+const shareLinksRoutes = require('./routes/share-links');
+const publicShareLinksRoutes = require('./routes/public-share-links');
 
 const app = express();
 
@@ -202,6 +204,8 @@ app.use('/api/analytics', requireAuth, analyticsRoutes);
 app.use('/api/documents', requireAuth, writeOperationsLimiter, documentsRoutes);
 app.use('/api/hackathons', requireAuth, writeOperationsLimiter, hackathonsRoutes);
 app.use('/api/interview-prep', requireAuth, writeOperationsLimiter, interviewPrepRoutes);
+app.use('/api/share-links', requireAuth, writeOperationsLimiter, shareLinksRoutes);
+app.use('/api/public/share-links', publicShareLinksRoutes);
 
 app.get('/api/me', requireAuth, (req, res) => {
     res.json({

@@ -13,8 +13,9 @@ import OpportunityCard from './OpportunityCard';
  * @param {Function} props.onView - Callback when a card is clicked (receives full opportunity)
  * @param {Function} props.onEdit - Callback when Edit is clicked (receives opportunity.id)
  * @param {Function} props.onDelete - Callback when Delete is clicked (receives opportunity.id)
+ * @param {Function} [props.onShare] - Callback when Share is clicked (receives full opportunity)
  */
-const OpportunityList = ({ opportunities, onView, onEdit, onDelete }) => {
+const OpportunityList = ({ opportunities, onView, onEdit, onDelete, onShare }) => {
   if (!opportunities || opportunities.length === 0) {
     return (
       <div className="text-center py-16 sm:py-20">
@@ -38,6 +39,7 @@ const OpportunityList = ({ opportunities, onView, onEdit, onDelete }) => {
           onView={onView}
           onEdit={onEdit}
           onDelete={onDelete}
+          onShare={onShare}
         />
       ))}
     </div>

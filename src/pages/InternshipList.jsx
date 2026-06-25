@@ -16,6 +16,7 @@ import OpportunityList from '../components/opportunities/OpportunityList';
 import OpportunityDetailModal from '../components/opportunities/OpportunityDetailModal';
 import Modal from '../components/common/Modal';
 import Button from '../components/common/Button';
+import ShareProgressModal from '../components/sharing/ShareProgressModal';
 import { opportunityService } from '../services/api';
 import { isActiveInternshipStatus } from '../utils/opportunityHelpers';
 
@@ -31,6 +32,8 @@ const InternshipList = () => {
   const [selectedOpportunity, setSelectedOpportunity] = useState(null);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [opportunityToDelete, setOpportunityToDelete] = useState(null);
+  const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [opportunityToShare, setOpportunityToShare] = useState(null);
 
   // Fetch opportunities on mount
   useEffect(() => {
@@ -148,6 +151,17 @@ const InternshipList = () => {
     setOpportunityToDelete(null);
   };
 
+  const handleShareClick = (opportunity) => {
+    setSelectedOpportunity(null);
+    setOpportunityToShare(opportunity);
+    setShareModalOpen(true);
+  };
+
+  const handleShareClose = () => {
+    setShareModalOpen(false);
+    setOpportunityToShare(null);
+  };
+
   const clearFilters = () => {
     setSearchQuery('');
     setStatusFilter('active');
@@ -239,6 +253,7 @@ const InternshipList = () => {
             onView={handleView}
             onEdit={handleEdit}
             onDelete={handleDeleteClick}
+            onShare={handleShareClick}
           />
         )}
 
@@ -273,6 +288,13 @@ const InternshipList = () => {
             </div>
           </div>
         </Modal>
+
+        <ShareProgressModal
+          isOpen={shareModalOpen}
+          onClose={handleShareClose}
+          opportunities={opportunities}
+          preselectedOpportunity={opportunityToShare}
+        />
       </div>
     </div>
   );

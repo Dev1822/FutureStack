@@ -40,6 +40,7 @@ FutureTracker is a modern, full-featured SaaS application designed to help stude
 - **📈 Analytics Dashboard**: Track success rates, trends, and conversion funnels
 - **📅 Deadline Management**: Never miss an important deadline with calendar integration
 - **📄 PDF Reports**: Export detailed reports for your records
+- **🔗 Share links**: Generate revocable read-only opportunity links with descriptions, deadlines, application CTAs, expiry, and optional passcode
 - **🧠 Interview prep**: Per-internship workspace for company research, Q&A, technical topics, STAR behavioral answers, and reflections — see [`docs/interview-prep.md`](docs/interview-prep.md)
 - **📊 ATS resume hints**: Client-side PDF/DOCX analysis with rule-based scoring on upload — see [`docs/documents-and-ats.md`](docs/documents-and-ats.md)
 - **🟢 Service status**: Live uptime page linked from the app footer and navbar
@@ -68,6 +69,7 @@ FutureTracker is a modern, full-featured SaaS application designed to help stude
 - **📋 Status Board**: Kanban-style board with drag-and-drop status updates
 - **📈 Analytics**: Charts for status distribution, weekly trends, conversion funnels, and deadline heatmaps
 - **📄 PDF Export**: Generate professional reports with multiple export options
+- **🔗 Opportunity sharing**: Share redacted, read-only opportunity details at `/share/:token` without requiring viewer sign-in
 - **📎 Documents**: Upload resumes, cover letters, and portfolio links; track which documents were used for each internship; optional **ATS-style score** on PDF/DOCX upload
 - **🎯 Interview pipeline**: Multi-round tracking for internships (OA → technical → HR → final) with timeline UI and auto-synced Kanban status — see [`docs/interview-rounds.md`](docs/interview-rounds.md)
 - **🧠 Interview preparation**: Tabbed prep workspace per internship (research, questions, topics, STAR behavioral, reflection) — see [`docs/interview-prep.md`](docs/interview-prep.md)
@@ -160,6 +162,7 @@ erDiagram
     USERS ||--o{ OPPORTUNITIES : tracks
     USERS ||--o{ DOCUMENTS : owns
     USERS ||--o{ OPPORTUNITY_ROUNDS : owns
+    USERS ||--o{ SHARE_LINKS : creates
     OPPORTUNITIES ||--o{ OPPORTUNITY_DOCUMENTS : uses
     OPPORTUNITIES ||--o{ OPPORTUNITY_ROUNDS : has
     DOCUMENTS ||--o{ OPPORTUNITY_DOCUMENTS : linked_to
@@ -219,6 +222,22 @@ erDiagram
         uuid document_id FK
         timestamptz submitted_at
     }
+
+    SHARE_LINKS {
+        uuid id PK
+        uuid user_id FK
+        text token_hash UK
+        text token_ciphertext
+        text token_iv
+        text token_auth_tag
+        jsonb snapshot
+        text snapshot_type
+        timestamptz expires_at
+        boolean is_active
+        int view_count
+        text passcode_hash
+        text passcode_salt
+    }
 ```
 
 All tables use **Row-Level Security (RLS)** so each user only accesses their own data. Full SQL migrations live in [`docs/supabase-schema.sql`](docs/supabase-schema.sql) and the feature-specific files below.
@@ -230,6 +249,7 @@ All tables use **Row-Level Security (RLS)** so each user only accesses their own
 | [`docs/opportunity-rounds-migration.sql`](docs/opportunity-rounds-migration.sql) | Interview round pipeline |
 | [`docs/interview-prep-migration.sql`](docs/interview-prep-migration.sql) | Interview prep workspace |
 | [`docs/hackathon-collaboration-migration.sql`](docs/hackathon-collaboration-migration.sql) | Hackathon teams, tasks, ideas |
+| [`docs/share-links-migration.sql`](docs/share-links-migration.sql) | Dashboard share links |
 
 ## 🚀 Getting Started
 

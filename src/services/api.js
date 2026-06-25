@@ -10,6 +10,12 @@ const api = axios.create({
     timeout: 15000,
 });
 
+const publicApi = axios.create({
+    baseURL: API_BASE_URL,
+    headers: { 'Content-Type': 'application/json' },
+    timeout: 15000,
+});
+
 let getAuthToken = null;
 
 export const setAuthTokenGetter = (getter) => {
@@ -168,6 +174,33 @@ export const analyticsService = {
         const response = await api.get('/analytics');
         return response.data;
     }
+};
+
+export const shareLinkService = {
+    list: async () => {
+        const response = await api.get('/share-links');
+        return response.data;
+    },
+
+    create: async (data) => {
+        const response = await api.post('/share-links', data);
+        return response.data;
+    },
+
+    revoke: async (id) => {
+        const response = await api.delete(`/share-links/${id}`);
+        return response.data;
+    },
+
+    getPublic: async (token) => {
+        const response = await publicApi.get(`/public/share-links/${token}`);
+        return response.data;
+    },
+
+    verifyPasscode: async (token, passcode) => {
+        const response = await publicApi.post(`/public/share-links/${token}/verify`, { passcode });
+        return response.data;
+    },
 };
 
 export const documentService = {

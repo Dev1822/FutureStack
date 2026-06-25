@@ -8,6 +8,8 @@ import DeadlineWidget from '../components/dashboard/DeadlineWidget';
 import Card from '../components/common/Card';
 import Button from '../components/common/Button';
 import Modal from '../components/common/Modal';
+import ShareProgressModal from '../components/sharing/ShareProgressModal';
+import ManageSharesPanel from '../components/sharing/ManageSharesPanel';
 import { opportunityService } from '../services/api';
 import { isOverdue, getDaysRemaining } from '../utils/dateHelpers';
 
@@ -16,6 +18,8 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [opportunityToDelete, setOpportunityToDelete] = useState(null);
+  const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [sharesRefreshKey, setSharesRefreshKey] = useState(0);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -63,6 +67,10 @@ const Dashboard = () => {
   const handleDeleteCancel = () => {
     setDeleteModalOpen(false);
     setOpportunityToDelete(null);
+  };
+
+  const handleShareCreated = () => {
+    setSharesRefreshKey((current) => current + 1);
   };
 
 
@@ -228,6 +236,13 @@ const Dashboard = () => {
           </div>
         </Card>
 
+        <div className="mt-6 sm:mt-8">
+          <ManageSharesPanel
+            refreshKey={sharesRefreshKey}
+            onCreateShare={() => setShareModalOpen(true)}
+          />
+        </div>
+
         {/* Delete Confirmation Modal */}
         <Modal
           isOpen={deleteModalOpen}
@@ -249,6 +264,13 @@ const Dashboard = () => {
             </div>
           </div>
         </Modal>
+
+        <ShareProgressModal
+          isOpen={shareModalOpen}
+          onClose={() => setShareModalOpen(false)}
+          opportunities={opportunities}
+          onShareCreated={handleShareCreated}
+        />
       </div>
     </div>
   );
