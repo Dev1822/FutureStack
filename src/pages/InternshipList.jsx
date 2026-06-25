@@ -17,8 +17,10 @@ import OpportunityDetailModal from '../components/opportunities/OpportunityDetai
 import Modal from '../components/common/Modal';
 import Button from '../components/common/Button';
 import ShareProgressModal from '../components/sharing/ShareProgressModal';
+import CampusModeSelect from '../components/opportunities/CampusModeSelect';
 import { opportunityService } from '../services/api';
 import { isActiveInternshipStatus } from '../utils/opportunityHelpers';
+import { useCampusModeFilter } from '../hooks/useCampusModeFilter';
 
 const InternshipList = () => {
   const navigate = useNavigate();
@@ -26,6 +28,13 @@ const InternshipList = () => {
   const [filteredOpportunities, setFilteredOpportunities] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('active');
+  const {
+    campusModeFilter,
+    setCampusModeFilter,
+    resetCampusModeFilter,
+    isCampusFilterActive,
+    applyCampusModeFilter,
+  } = useCampusModeFilter();
   const [loading, setLoading] = useState(true);
 
   // Modal states
@@ -44,7 +53,7 @@ const InternshipList = () => {
   useEffect(() => {
     applyFilters();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchQuery, statusFilter, opportunities]);
+  }, [searchQuery, statusFilter, campusModeFilter, opportunities, applyCampusModeFilter]);
 
   /**
    * Fetch all opportunities and filter for internships only
@@ -83,6 +92,8 @@ const InternshipList = () => {
     } else if (statusFilter !== 'all') {
       filtered = filtered.filter(opp => opp.status === statusFilter);
     }
+
+    filtered = applyCampusModeFilter(filtered);
 
     setFilteredOpportunities(filtered);
   };
@@ -165,6 +176,7 @@ const InternshipList = () => {
   const clearFilters = () => {
     setSearchQuery('');
     setStatusFilter('active');
+    resetCampusModeFilter();
   };
 
   return (
@@ -226,7 +238,12 @@ const InternshipList = () => {
                 <option value="ghosted" style={{ backgroundColor: '#111827', color: 'white' }}>Ghosted</option>
               </select>
 
-              {(searchQuery || statusFilter !== 'active') && (
+              <CampusModeSelect
+                value={campusModeFilter}
+                onChange={(e) => setCampusModeFilter(e.target.value)}
+              />
+
+              {(searchQuery || statusFilter !== 'active' || isCampusFilterActive) && (
                 <Button variant="secondary" onClick={clearFilters} className="w-full sm:w-auto">
                   Clear
                 </Button>

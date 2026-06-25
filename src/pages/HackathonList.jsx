@@ -16,7 +16,9 @@ import OpportunityList from '../components/opportunities/OpportunityList';
 import OpportunityDetailModal from '../components/opportunities/OpportunityDetailModal';
 import Modal from '../components/common/Modal';
 import Button from '../components/common/Button';
+import CampusModeSelect from '../components/opportunities/CampusModeSelect';
 import { opportunityService } from '../services/api';
+import { useCampusModeFilter } from '../hooks/useCampusModeFilter';
 
 const HackathonList = () => {
   const navigate = useNavigate();
@@ -24,6 +26,13 @@ const HackathonList = () => {
   const [filteredOpportunities, setFilteredOpportunities] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const {
+    campusModeFilter,
+    setCampusModeFilter,
+    resetCampusModeFilter,
+    isCampusFilterActive,
+    applyCampusModeFilter,
+  } = useCampusModeFilter();
   const [loading, setLoading] = useState(true);
 
   // Modal states
@@ -40,7 +49,7 @@ const HackathonList = () => {
   useEffect(() => {
     applyFilters();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchQuery, statusFilter, opportunities]);
+  }, [searchQuery, statusFilter, campusModeFilter, opportunities, applyCampusModeFilter]);
 
   /**
    * Fetch all opportunities and filter for hackathons only
@@ -76,6 +85,10 @@ const HackathonList = () => {
 
     if (statusFilter !== 'all') {
       filtered = filtered.filter(opp => opp.status === statusFilter);
+    }
+
+    if (campusModeFilter !== 'all') {
+      filtered = applyCampusModeFilter(filtered);
     }
 
     setFilteredOpportunities(filtered);
@@ -132,6 +145,7 @@ const HackathonList = () => {
   const clearFilters = () => {
     setSearchQuery('');
     setStatusFilter('all');
+    resetCampusModeFilter();
   };
 
   return (
@@ -192,7 +206,12 @@ const HackathonList = () => {
                 <option value="ghosted" style={{ backgroundColor: '#111827', color: 'white' }}>Ghosted</option>
               </select>
 
-              {(searchQuery || statusFilter !== 'all') && (
+              <CampusModeSelect
+                value={campusModeFilter}
+                onChange={(e) => setCampusModeFilter(e.target.value)}
+              />
+
+              {(searchQuery || statusFilter !== 'all' || isCampusFilterActive) && (
                 <Button variant="secondary" onClick={clearFilters} className="w-full sm:w-auto">
                   Clear
                 </Button>

@@ -109,7 +109,7 @@ router.get('/:id', async (req, res) => {
  */
 router.post('/', validate(createOpportunitySchema), async (req, res) => {
     try {
-        const { title, description, link, deadline, category, status, notes } = req.body;
+        const { title, description, link, deadline, category, status, notes, campus_mode } = req.body;
 
         const { data, error } = await supabase
             .from('opportunities')
@@ -121,7 +121,8 @@ router.post('/', validate(createOpportunitySchema), async (req, res) => {
                 deadline: deadline || null,
                 category: category || null,
                 status: status || 'applied',
-                notes: notes || null
+                notes: notes || null,
+                campus_mode: campus_mode || null
             })
             .select()
             .single();
@@ -145,7 +146,7 @@ router.post('/', validate(createOpportunitySchema), async (req, res) => {
 const updateHandler = async (req, res) => {
     try {
         const { id } = req.params;
-        const { title, description, link, deadline, category, status, notes } = req.body;
+        const { title, description, link, deadline, category, status, notes, campus_mode } = req.body;
 
         // Build update object with only provided fields
         const updateData = {};
@@ -156,6 +157,7 @@ const updateHandler = async (req, res) => {
         if (category !== undefined) updateData.category = category;
         if (status !== undefined) updateData.status = status;
         if (notes !== undefined) updateData.notes = notes;
+        if (campus_mode !== undefined) updateData.campus_mode = campus_mode || null;
 
         const { data, error } = await supabase
             .from('opportunities')

@@ -17,6 +17,11 @@ import { opportunityService, analyticsService } from '../services/api';
 import { generatePDF, downloadPDF } from '../utils/pdfExport';
 import { formatDate } from '../utils/dateHelpers';
 import { getRejectionStageForOpportunity, filterPipelineAnalyticsForOpportunities } from '../utils/roundHelpers';
+import {
+  calculateCampusModeStats,
+  getCampusModeLabel,
+  CAMPUS_MODE_BADGE_STYLES,
+} from '../utils/opportunityHelpers';
 
 const STATUS_STYLES = {
   applied: 'bg-blue-500/15 text-blue-300 border-blue-500/25',
@@ -100,6 +105,13 @@ const Reports = () => {
     [exportType, previewOpportunities, opportunities]
   );
 
+  const campusModeStats = useMemo(
+    () => calculateCampusModeStats(
+      exportType === 'selected' ? previewOpportunities : opportunities
+    ),
+    [exportType, previewOpportunities, opportunities]
+  );
+
   const displayPipeline = useMemo(() => {
     if (!pipelineAnalytics) return null;
     if (exportType === 'selected' && previewOpportunities.length > 0) {
@@ -143,7 +155,8 @@ const Reports = () => {
           ? filterPipelineAnalyticsForOpportunities(pipelineAnalytics, oppsToExport)
           : pipelineAnalytics;
 
-      const doc = generatePDF(oppsToExport, stats, exportType, pipelineForExport);
+      const statsScope = exportType === 'selected' ? oppsToExport : opportunities;
+      const doc = generatePDF(oppsToExport, stats, exportType, pipelineForExport, statsScope);
       downloadPDF(doc, `futurestack-report-${new Date().toISOString().split('T')[0]}.pdf`);
       toast.success('PDF report generated successfully!');
     } catch (error) {
@@ -347,6 +360,23 @@ const Reports = () => {
                       </div>
                     ))}
                 </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {[
+                    { key: 'on_campus', label: 'On-campus' },
+                    { key: 'off_campus', label: 'Off-campus' },
+                    { key: 'unspecified', label: 'Not specified' },
+                  ].map(({ key, label }) => (
+                    <div
+                      key={key}
+                      className="rounded-lg border border-white/10 bg-white/5 px-3 py-2"
+                    >
+                      <p className="text-xs text-gray-500">{label}</p>
+                      <p className="text-lg font-semibold text-white tabular-nums">
+                        {campusModeStats[key]}
+                      </p>
+                    </div>
+                  ))}
+                </div>
               </div>
             ) : previewOpportunities.length === 0 ? (
               <p className="text-gray-400 text-center py-16">No opportunities to preview</p>
@@ -360,6 +390,7 @@ const Reports = () => {
                   );
                   const statusClass =
                     STATUS_STYLES[opp.status] || 'bg-gray-500/15 text-gray-300 border-gray-500/25';
+                  const campusLabel = getCampusModeLabel(opp.campus_mode);
 
                   return (
                     <div
@@ -384,11 +415,20 @@ const Reports = () => {
                         <div className="flex-1 min-w-0">
                           <div className="flex flex-wrap items-start justify-between gap-2 mb-2">
                             <h3 className="font-semibold text-white leading-snug">{opp.title}</h3>
-                            <span
-                              className={`text-xs font-medium px-2 py-0.5 rounded-full border shrink-0 capitalize ${statusClass}`}
-                            >
-                              {opp.status}
-                            </span>
+                            <div className="flex flex-wrap items-center gap-2 shrink-0">
+                              {campusLabel && (
+                                <span
+                                  className={`text-xs font-medium px-2 py-0.5 rounded-full border ${CAMPUS_MODE_BADGE_STYLES[opp.campus_mode]}`}
+                                >
+                                  {campusLabel}
+                                </span>
+                              )}
+                              <span
+                                className={`text-xs font-medium px-2 py-0.5 rounded-full border capitalize ${statusClass}`}
+                              >
+                                {opp.status}
+                              </span>
+                            </div>
                           </div>
 
                           <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-400 mb-2">

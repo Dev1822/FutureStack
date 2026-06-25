@@ -11,6 +11,7 @@ import Card from '../common/Card';
 import Button from '../common/Button';
 import { getDaysRemaining, isOverdue, formatDate } from '../../utils/dateHelpers';
 import { getRoundSummaryLabel, getRoundSummaryStyle } from '../../utils/roundHelpers';
+import { getCampusModeLabel, CAMPUS_MODE_BADGE_STYLES } from '../../utils/opportunityHelpers';
 
 // Status badge color mappings
 const statusColors = {
@@ -39,6 +40,7 @@ const OpportunityCard = ({ opportunity, onView, onEdit, onDelete, onShare }) => 
   const daysRemaining = getDaysRemaining(opportunity.deadline);
   const overdue = isOverdue(opportunity.deadline);
   const roundSummary = getRoundSummaryLabel(opportunity);
+  const campusModeLabel = getCampusModeLabel(opportunity.campus_mode);
 
   const handleCardClick = () => {
     if (onView) {
@@ -126,6 +128,13 @@ const OpportunityCard = ({ opportunity, onView, onEdit, onDelete, onShare }) => 
               >
                 <FaLayerGroup size={10} aria-hidden="true" />
                 {roundSummary}
+              </span>
+            )}
+            {campusModeLabel && (
+              <span
+                className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${CAMPUS_MODE_BADGE_STYLES[opportunity.campus_mode]}`}
+              >
+                {campusModeLabel}
               </span>
             )}
           </div>
