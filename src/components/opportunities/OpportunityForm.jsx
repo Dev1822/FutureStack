@@ -4,7 +4,7 @@
 import React, { useState, useEffect } from 'react';
 import Button from '../common/Button';
 import DocumentSelector from '../documents/DocumentSelector';
-import { supportsDocuments } from '../../utils/opportunityHelpers';
+import { supportsDocuments, CAMPUS_MODE_FORM_OPTIONS } from '../../utils/opportunityHelpers';
 
 // initialData: values to pre-fill the form in edit mode
 // onSubmit: function passed from parent (Add / Edit page) to handle API call
@@ -20,6 +20,7 @@ const OpportunityForm = ({ initialData = {}, onSubmit, isEdit = false, opportuni
     category: 'internship',
     status: 'applied',
     notes: '',
+    campus_mode: '',
   });
 
   // Tracks validation error messages per field (e.g. errors.title)
@@ -36,6 +37,7 @@ const OpportunityForm = ({ initialData = {}, onSubmit, isEdit = false, opportuni
         category: initialData.category || 'internship',
         status: initialData.status || 'applied',
         notes: initialData.notes || '',
+        campus_mode: initialData.campus_mode || '',
       });
     }
   }, [initialData]);
@@ -84,7 +86,10 @@ const OpportunityForm = ({ initialData = {}, onSubmit, isEdit = false, opportuni
 
     // Only call parent onSubmit when validation passes
     if (validateForm()) {
-      onSubmit(formData);
+      onSubmit({
+        ...formData,
+        campus_mode: formData.campus_mode || null,
+      });
     }
   };
 
@@ -187,6 +192,30 @@ const OpportunityForm = ({ initialData = {}, onSubmit, isEdit = false, opportuni
           </label>
         </div>
         {errors.category && <p className="text-red-400 text-sm mt-1">{errors.category}</p>}
+      </div>
+
+      {/* Campus type (optional) */}
+      <div>
+        <label htmlFor="campus_mode" className="block text-sm font-medium text-gray-200 mb-1">
+          Campus type (optional)
+        </label>
+        <select
+          id="campus_mode"
+          name="campus_mode"
+          value={formData.campus_mode}
+          onChange={handleChange}
+          className="w-full px-3 py-2.5 bg-gray-900 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+        >
+          {CAMPUS_MODE_FORM_OPTIONS.map((option) => (
+            <option
+              key={option.value || 'unset'}
+              value={option.value}
+              style={{ backgroundColor: '#111827', color: 'white' }}
+            >
+              {option.label}
+            </option>
+          ))}
+        </select>
       </div>
 
       {/* Status */}

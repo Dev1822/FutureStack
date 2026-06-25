@@ -17,6 +17,7 @@ import OpportunityDetailModal from '../components/opportunities/OpportunityDetai
 import Modal from '../components/common/Modal';
 import Button from '../components/common/Button';
 import { opportunityService } from '../services/api';
+import { CAMPUS_MODE_FILTER_OPTIONS } from '../utils/opportunityHelpers';
 
 const HackathonList = () => {
   const navigate = useNavigate();
@@ -24,6 +25,7 @@ const HackathonList = () => {
   const [filteredOpportunities, setFilteredOpportunities] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [campusModeFilter, setCampusModeFilter] = useState('all');
   const [loading, setLoading] = useState(true);
 
   // Modal states
@@ -40,7 +42,7 @@ const HackathonList = () => {
   useEffect(() => {
     applyFilters();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchQuery, statusFilter, opportunities]);
+  }, [searchQuery, statusFilter, campusModeFilter, opportunities]);
 
   /**
    * Fetch all opportunities and filter for hackathons only
@@ -76,6 +78,10 @@ const HackathonList = () => {
 
     if (statusFilter !== 'all') {
       filtered = filtered.filter(opp => opp.status === statusFilter);
+    }
+
+    if (campusModeFilter !== 'all') {
+      filtered = filtered.filter((opp) => opp.campus_mode === campusModeFilter);
     }
 
     setFilteredOpportunities(filtered);
@@ -132,6 +138,7 @@ const HackathonList = () => {
   const clearFilters = () => {
     setSearchQuery('');
     setStatusFilter('all');
+    setCampusModeFilter('all');
   };
 
   return (
@@ -192,7 +199,23 @@ const HackathonList = () => {
                 <option value="ghosted" style={{ backgroundColor: '#111827', color: 'white' }}>Ghosted</option>
               </select>
 
-              {(searchQuery || statusFilter !== 'all') && (
+              <select
+                value={campusModeFilter}
+                onChange={(e) => setCampusModeFilter(e.target.value)}
+                className="px-4 py-2.5 bg-gray-900 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all w-full sm:w-auto"
+              >
+                {CAMPUS_MODE_FILTER_OPTIONS.map((option) => (
+                  <option
+                    key={option.value}
+                    value={option.value}
+                    style={{ backgroundColor: '#111827', color: 'white' }}
+                  >
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+
+              {(searchQuery || statusFilter !== 'all' || campusModeFilter !== 'all') && (
                 <Button variant="secondary" onClick={clearFilters} className="w-full sm:w-auto">
                   Clear
                 </Button>

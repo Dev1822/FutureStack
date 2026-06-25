@@ -31,7 +31,7 @@ import Button from '../common/Button';
 import RoundTimeline, { RoundTimelineSkeleton } from '../rounds/RoundTimeline';
 import AddRoundModal from '../rounds/AddRoundModal';
 import { getDaysRemaining, isOverdue, formatDate } from '../../utils/dateHelpers';
-import { supportsDocuments } from '../../utils/opportunityHelpers';
+import { supportsDocuments, getCampusModeLabel, CAMPUS_MODE_BADGE_STYLES } from '../../utils/opportunityHelpers';
 import {
     getNextRoundNumber,
     getRoundProgressStats,
@@ -274,6 +274,11 @@ const OpportunityDetailModal = ({
                                     <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-purple-500/10 text-purple-300 border border-purple-500/20">
                                         <FaLayerGroup size={10} aria-hidden="true" />
                                         {roundStats.total} round{roundStats.total !== 1 ? 's' : ''}
+                                    </span>
+                                )}
+                                {getCampusModeLabel(displayOpportunity.campus_mode) && (
+                                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${CAMPUS_MODE_BADGE_STYLES[displayOpportunity.campus_mode]}`}>
+                                        {getCampusModeLabel(displayOpportunity.campus_mode)}
                                     </span>
                                 )}
                             </div>

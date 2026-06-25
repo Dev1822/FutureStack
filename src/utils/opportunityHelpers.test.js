@@ -4,6 +4,8 @@ import {
     getDocumentUnavailableMessage,
     isActiveInternshipStatus,
     INACTIVE_INTERNSHIP_STATUSES,
+    getCampusModeLabel,
+    calculateCampusModeStats,
 } from './opportunityHelpers';
 
 describe('opportunityHelpers', () => {
@@ -43,6 +45,34 @@ describe('opportunityHelpers', () => {
         it('treats rejected, selected, and ghosted as inactive', () => {
             INACTIVE_INTERNSHIP_STATUSES.forEach((status) => {
                 expect(isActiveInternshipStatus(status)).toBe(false);
+            });
+        });
+    });
+
+    describe('getCampusModeLabel', () => {
+        it('returns labels for known campus modes', () => {
+            expect(getCampusModeLabel('on_campus')).toBe('On-campus');
+            expect(getCampusModeLabel('off_campus')).toBe('Off-campus');
+        });
+
+        it('returns null for unset campus mode', () => {
+            expect(getCampusModeLabel(null)).toBeNull();
+            expect(getCampusModeLabel(undefined)).toBeNull();
+        });
+    });
+
+    describe('calculateCampusModeStats', () => {
+        it('counts campus modes in a list', () => {
+            expect(
+                calculateCampusModeStats([
+                    { campus_mode: 'on_campus' },
+                    { campus_mode: 'off_campus' },
+                    { campus_mode: null },
+                ])
+            ).toEqual({
+                on_campus: 1,
+                off_campus: 1,
+                unspecified: 1,
             });
         });
     });

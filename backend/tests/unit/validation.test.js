@@ -48,6 +48,42 @@ describe('createOpportunitySchema', () => {
         });
         expect(error).toBeDefined();
     });
+
+    it('accepts valid campus_mode values', () => {
+        const onCampus = createOpportunitySchema.validate({
+            title: 'Campus Drive',
+            campus_mode: 'on_campus',
+        });
+        expect(onCampus.error).toBeUndefined();
+        expect(onCampus.value.campus_mode).toBe('on_campus');
+
+        const offCampus = createOpportunitySchema.validate({
+            title: 'Off-campus Role',
+            campus_mode: 'off_campus',
+        });
+        expect(offCampus.error).toBeUndefined();
+
+        const unset = createOpportunitySchema.validate({
+            title: 'Unspecified',
+            campus_mode: null,
+        });
+        expect(unset.error).toBeUndefined();
+
+        const empty = createOpportunitySchema.validate({
+            title: 'Empty campus mode',
+            campus_mode: '',
+        });
+        expect(empty.error).toBeUndefined();
+    });
+
+    it('rejects invalid campus_mode', () => {
+        const { error } = createOpportunitySchema.validate({
+            title: 'Test Role',
+            campus_mode: 'hybrid',
+        });
+        expect(error).toBeDefined();
+        expect(error.details[0].path).toContain('campus_mode');
+    });
 });
 
 describe('updateOpportunitySchema', () => {
@@ -55,6 +91,12 @@ describe('updateOpportunitySchema', () => {
         const { error, value } = updateOpportunitySchema.validate({ status: 'shortlisted' });
         expect(error).toBeUndefined();
         expect(value.status).toBe('shortlisted');
+    });
+
+    it('allows clearing campus_mode', () => {
+        const { error, value } = updateOpportunitySchema.validate({ campus_mode: null });
+        expect(error).toBeUndefined();
+        expect(value.campus_mode).toBeNull();
     });
 });
 

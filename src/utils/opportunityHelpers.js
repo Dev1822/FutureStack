@@ -37,3 +37,46 @@ export const getDocumentUnavailableMessage = (category) => {
     }
     return 'Document attachments are only available for internship opportunities.';
 };
+
+/** Human-readable labels for campus_mode values. */
+export const getCampusModeLabel = (mode) => {
+    if (mode === 'on_campus') return 'On-campus';
+    if (mode === 'off_campus') return 'Off-campus';
+    return null;
+};
+
+export const CAMPUS_MODE_BADGE_STYLES = {
+    on_campus: 'bg-teal-500/10 text-teal-400 border border-teal-500/20',
+    off_campus: 'bg-orange-500/10 text-orange-400 border border-orange-500/20',
+};
+
+export const CAMPUS_MODE_FILTER_OPTIONS = [
+    { value: 'all', label: 'All campus types' },
+    { value: 'on_campus', label: 'On-campus' },
+    { value: 'off_campus', label: 'Off-campus' },
+];
+
+export const CAMPUS_MODE_FORM_OPTIONS = [
+    { value: '', label: 'Not specified' },
+    { value: 'on_campus', label: 'On-campus' },
+    { value: 'off_campus', label: 'Off-campus' },
+];
+
+/**
+ * Count campus_mode values for a list of opportunities.
+ * @param {Array} opportunities
+ * @returns {{ on_campus: number, off_campus: number, unspecified: number }}
+ */
+export const calculateCampusModeStats = (opportunities = []) => {
+    const stats = { on_campus: 0, off_campus: 0, unspecified: 0 };
+    opportunities.forEach((opp) => {
+        if (opp.campus_mode === 'on_campus') {
+            stats.on_campus++;
+        } else if (opp.campus_mode === 'off_campus') {
+            stats.off_campus++;
+        } else {
+            stats.unspecified++;
+        }
+    });
+    return stats;
+};

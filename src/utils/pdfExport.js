@@ -1,5 +1,6 @@
 import jsPDF from 'jspdf';
 import { formatDate } from './dateHelpers';
+import { getCampusModeLabel, calculateCampusModeStats } from './opportunityHelpers';
 
 /**
  * Generate PDF report from opportunities data
@@ -7,8 +8,15 @@ import { formatDate } from './dateHelpers';
  * @param {Object} statistics - Statistics object with counts
  * @param {string} exportType - Type of export: 'all', 'selected', or 'summary'
  * @param {Object|null} pipelineAnalytics - Interview pipeline rejection analytics
+ * @param {Array} [statsOpportunities] - Opportunities used for campus mode summary counts
  */
-export const generatePDF = (opportunities, statistics, exportType = 'all', pipelineAnalytics = null) => {
+export const generatePDF = (
+  opportunities,
+  statistics,
+  exportType = 'all',
+  pipelineAnalytics = null,
+  statsOpportunities = opportunities
+) => {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
@@ -74,6 +82,27 @@ export const generatePDF = (opportunities, statistics, exportType = 'all', pipel
     doc.text(stat, margin + 5, yPosition);
     yPosition += 6;
   });
+
+  const campusStats = calculateCampusModeStats(statsOpportunities);
+  if (campusStats.on_campus > 0 || campusStats.off_campus > 0 || campusStats.unspecified > 0) {
+    yPosition += 4;
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Campus Mode', margin, yPosition);
+    yPosition += 7;
+
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'normal');
+    const campusLines = [
+      `On-campus: ${campusStats.on_campus}`,
+      `Off-campus: ${campusStats.off_campus}`,
+      `Not specified: ${campusStats.unspecified}`,
+    ];
+    campusLines.forEach((line) => {
+      doc.text(line, margin + 5, yPosition);
+      yPosition += 6;
+    });
+  }
 
   yPosition += 10;
 
@@ -161,6 +190,11 @@ export const generatePDF = (opportunities, statistics, exportType = 'all', pipel
       `Status: ${opp.status.charAt(0).toUpperCase() + opp.status.slice(1)}`,
       `Deadline: ${formatDate(opp.deadline)}`,
     ];
+
+    const campusLabel = getCampusModeLabel(opp.campus_mode);
+    if (campusLabel) {
+      details.push(`Campus type: ${campusLabel}`);
+    }
 
     if (opp.status === 'rejected') {
       const rejection = rejectionByOpportunityId.get(opp.id);
