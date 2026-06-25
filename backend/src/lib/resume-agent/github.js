@@ -11,6 +11,7 @@
 const GITHUB_API = 'https://api.github.com';
 const MAX_REPOS = 30;
 const MAX_CONTRIBUTOR_LOOKUPS = 6;
+const MAX_ALL_REPOS_META = 20;
 const TOP_PROJECTS_COUNT = 7;
 
 function githubHeaders() {
@@ -91,13 +92,36 @@ function countAuthorCommits(username, contributors) {
     return { authorCommits, totalCommits };
 }
 
-async function buildRepoMetadata(username, repos) {
-    const candidates = repos
+function filterRepos(repos) {
+    return repos
         .filter((repo) => !(repo.fork && (repo.forks_count || 0) < 5))
-        .sort((a, b) => (b.stargazers_count || 0) - (a.stargazers_count || 0))
-        .slice(0, MAX_CONTRIBUTOR_LOOKUPS);
+        .sort((a, b) => (b.stargazers_count || 0) - (a.stargazers_count || 0));
+}
 
-    const projects = await Promise.all(candidates.map(async (repo) => {
+function buildRepoSummary(repo) {
+    return {
+        name: repo.name,
+        description: repo.description || '',
+        github_url: repo.html_url,
+        url: repo.html_url,
+        language: repo.language || null,
+        stars: repo.stargazers_count || 0,
+        forks: repo.forks_count || 0,
+        isOwner: !repo.fork,
+        github_details: {
+            stars: repo.stargazers_count || 0,
+            forks: repo.forks_count || 0,
+            language: repo.language || null,
+            fork: repo.fork || false,
+        },
+    };
+}
+
+async function buildRepoMetadata(username, repos) {
+    const filteredRepos = filterRepos(repos);
+    const lookupRepos = filteredRepos.slice(0, MAX_CONTRIBUTOR_LOOKUPS);
+
+    const projects = await Promise.all(lookupRepos.map(async (repo) => {
         let contributors = [];
         try {
             contributors = await fetchRepoContributors(username, repo.name);
@@ -112,28 +136,18 @@ async function buildRepoMetadata(username, repos) {
         const projectType = contributorCount > 1 ? 'open_source' : 'self_project';
 
         return {
-            name: repo.name,
-            description: repo.description || '',
-            github_url: repo.html_url,
-            url: repo.html_url,
-            language: repo.language || null,
-            stars: repo.stargazers_count || 0,
-            forks: repo.forks_count || 0,
-            isOwner: !repo.fork,
+            ...buildRepoSummary(repo),
             project_type: projectType,
             contributor_count: contributorCount,
             author_commit_count: authorCommits,
             total_commit_count: totalCommits,
-            github_details: {
-                stars: repo.stargazers_count || 0,
-                forks: repo.forks_count || 0,
-                language: repo.language || null,
-                fork: repo.fork || false,
-            },
         };
     }));
 
-    return projects.filter(Boolean);
+    return {
+        projects: projects.filter(Boolean),
+        allReposMeta: filteredRepos.slice(0, MAX_ALL_REPOS_META).map(buildRepoSummary),
+    };
 }
 
 function pickTopProjects(repoMetadata) {
@@ -161,7 +175,7 @@ async function enrichWithGithub(structuredResume, _llmOptions) {
 
     if (!profile || !Array.isArray(repos)) return null;
 
-    const projects = await buildRepoMetadata(username, repos);
+    const { projects, allReposMeta } = await buildRepoMetadata(username, repos);
     const topProjectNames = projects.length > 0 ? pickTopProjects(projects) : [];
 
     return {
@@ -170,7 +184,7 @@ async function enrichWithGithub(structuredResume, _llmOptions) {
         followers: profile.followers || 0,
         topProjects: topProjectNames,
         projects,
-        allReposMeta: projects.slice(0, 20),
+        allReposMeta,
         totalStars: projects.reduce((sum, repo) => sum + (repo.stars || 0), 0),
     };
 }
