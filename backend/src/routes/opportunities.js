@@ -3,7 +3,6 @@ const { supabase } = require('../lib/supabase');
 const { validate } = require('../middleware/validate');
 const { createOpportunitySchema, updateOpportunitySchema, idParamSchema } = require('../validation/schemas');
 const opportunityRoundsRouter = require('./opportunity-rounds');
-const upcomingRoundsRouter = require('./upcoming-rounds');
 
 const router = express.Router();
 
@@ -73,10 +72,7 @@ router.get('/', async (req, res) => {
     }
 });
 
-// Upcoming rounds across all internships (before /:opportunityId/rounds)
-router.use('/rounds', upcomingRoundsRouter);
-
-// Interview rounds per opportunity (must be registered before /:id to avoid route shadowing)
+// Interview rounds (must be registered before /:id to avoid route shadowing)
 router.use('/:opportunityId/rounds', opportunityRoundsRouter);
 
 /**
