@@ -8,6 +8,7 @@
         "dev": "nodemon src/server.js",
         "test": "jest",
         "test:ci": "jest --ci --coverage",
+        "db:migrate:ai": "node scripts/apply-ai-migrations.js",
         "smoke:deps": "curl -fsS http://localhost:3001/api/health/deps | node -e \"const fs=require('fs');const d=JSON.parse(fs.readFileSync(0,'utf8'));if(d.status!=='ok'){console.error(JSON.stringify(d,null,2));process.exit(1)};console.log('Dependency health OK')\""
     },
     "keywords": [
@@ -18,21 +19,28 @@
     ],
     "license": "MIT",
     "dependencies": {
+        "@ai-sdk/google": "^3.0.83",
         "@clerk/express": "1.7.60",
         "@supabase/supabase-js": "^2.89.0",
-        "jsonwebtoken": "^9.0.2",
+        "ai": "^6.0.209",
         "cors": "^2.8.5",
         "dotenv": "^16.3.1",
         "express": "^4.18.2",
         "express-mongo-sanitize": "^2.2.0",
-        "express-rate-limit": "^7.1.5",
+        "express-rate-limit": "^8.5.2",
         "helmet": "^7.1.0",
         "joi": "^17.11.0",
-        "multer": "^2.0.2"
+        "jsonwebtoken": "^9.0.2",
+        "mammoth": "^1.12.0",
+        "multer": "^2.0.2",
+        "ollama-ai-provider": "^1.2.0",
+        "pdf-parse": "^2.4.5",
+        "zod": "^4.4.3"
     },
     "devDependencies": {
         "jest": "^29.7.0",
         "nodemon": "^3.0.2",
+        "pg": "^8.16.3",
         "supertest": "^7.0.0"
     }
 }

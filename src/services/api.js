@@ -57,12 +57,15 @@ api.interceptors.response.use(
     (response) => response,
     (error) => {
         if (!error.response) {
-            toast.error('Network error. Please check your connection.');
+            if (!error.config?.skipErrorToast) {
+                toast.error('Network error. Please check your connection.');
+            }
             return Promise.reject(error);
         }
 
         const status = error.response?.status;
         const message = error.response?.data?.message || error.response?.data?.error;
+        const skipToast = Boolean(error.config?.skipErrorToast);
 
         if (process.env.NODE_ENV !== 'production') {
             console.error('[API] Response error:', {
@@ -73,32 +76,31 @@ api.interceptors.response.use(
             });
         }
 
-        switch (status) {
-            case 401:
-                // Don't auto-redirect — ProtectedRoute + Clerk handle actual session expiry.
-                // Auto-redirecting caused false positives when the token getter wasn't
-                // attached yet on first render (race condition on page load).
-                toast.error('Session expired. Please sign in again.');
-                break;
-            case 403:
-                toast.error('You don\'t have permission to do that.');
-                break;
-            case 404:
-                toast.error(message || 'Resource not found.');
-                break;
-            case 422:
-                toast.error(message || 'Invalid data provided.');
-                break;
-            case 500:
-                toast.error('Server error. Please try again later.');
-                break;
-            case 503:
-                toast.error(message || 'Service temporarily unavailable. Please try again shortly.');
-                break;
-            default:
-                if (status >= 400) {
-                    toast.error(message || 'Something went wrong.');
-                }
+        if (!skipToast) {
+            switch (status) {
+                case 401:
+                    toast.error('Session expired. Please sign in again.');
+                    break;
+                case 403:
+                    toast.error('You don\'t have permission to do that.');
+                    break;
+                case 404:
+                    toast.error(message || 'Resource not found.');
+                    break;
+                case 422:
+                    toast.error(message || 'Invalid data provided.');
+                    break;
+                case 500:
+                    toast.error('Server error. Please try again later.');
+                    break;
+                case 503:
+                    toast.error(message || 'Service temporarily unavailable. Please try again shortly.');
+                    break;
+                default:
+                    if (status >= 400) {
+                        toast.error(message || 'Something went wrong.');
+                    }
+            }
         }
 
         return Promise.reject(error);
@@ -260,6 +262,62 @@ export const documentService = {
         const response = await api.get(`/documents/by-opportunity/${opportunityId}`);
         return response.data;
     }
+};
+
+// =============================================================================
+// AI RESUME CHECKER SERVICE
+// =============================================================================
+
+export const resumeCheckerService = {
+    /**
+     * Trigger a new AI resume check for a document.
+     * LLM calls can take 20-60 s — the caller should show a long loading state.
+     *
+     * @param {string} documentId
+     * @returns {Promise<object>} Completed resume_ai_checks row
+     */
+    runCheck: async (documentId) => {
+        const response = await api.post(`/documents/${documentId}/ai-check`, {}, {
+            timeout: 120000 // 2 minutes – allow for full pipeline
+        });
+        return response.data;
+    },
+
+    /**
+     * Fetch the latest AI check result for a document (no new analysis).
+     *
+     * @param {string} documentId
+     * @returns {Promise<object>} Latest resume_ai_checks row
+     */
+    getCheck: async (documentId) => {
+        const response = await api.get(`/documents/${documentId}/ai-check`);
+        return response.data;
+    },
+};
+
+// =============================================================================
+// AI SETTINGS (BYOK)
+// =============================================================================
+
+export const aiSettingsService = {
+    get: async () => {
+        const response = await api.get('/ai-settings');
+        return response.data;
+    },
+
+    save: async ({ apiKey, provider = 'gemini', model = 'gemini-3.1-flash-lite' }) => {
+        const payload = { provider, model };
+        if (typeof apiKey === 'string' && apiKey.trim()) {
+            payload.apiKey = apiKey.trim();
+        }
+        const response = await api.put('/ai-settings', payload, { skipErrorToast: true });
+        return response.data;
+    },
+
+    remove: async () => {
+        const response = await api.delete('/ai-settings');
+        return response.data;
+    },
 };
 
 export const healthCheck = async () => {

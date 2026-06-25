@@ -43,6 +43,7 @@ FutureTracker is a modern, full-featured SaaS application designed to help stude
 - **🔗 Share links**: Generate revocable read-only opportunity links with descriptions, deadlines, application CTAs, expiry, and optional passcode
 - **🧠 Interview prep**: Per-internship workspace for company research, Q&A, technical topics, STAR behavioral answers, and reflections — see [`docs/interview-prep.md`](docs/interview-prep.md)
 - **📊 ATS resume hints**: Client-side PDF/DOCX analysis with rule-based scoring on upload — see [`docs/documents-and-ats.md`](docs/documents-and-ats.md)
+- **🤖 AI Resume Checker**: Agentic server-side pipeline (LLM-powered) that extracts a structured JSON Resume, enriches with GitHub signals, and scores across four categories with evidence — see [`docs/ai-resume-checker.md`](docs/ai-resume-checker.md)
 - **🟢 Service status**: Live uptime page linked from the app footer and navbar
 - **📱 Responsive Design**: Works seamlessly on desktop, tablet, and mobile
 
@@ -70,7 +71,7 @@ FutureTracker is a modern, full-featured SaaS application designed to help stude
 - **📈 Analytics**: Charts for status distribution, weekly trends, conversion funnels, and deadline heatmaps
 - **📄 PDF Export**: Generate professional reports with multiple export options
 - **🔗 Opportunity sharing**: Share redacted, read-only opportunity details at `/share/:token` without requiring viewer sign-in
-- **📎 Documents**: Upload resumes, cover letters, and portfolio links; track which documents were used for each internship; optional **ATS-style score** on PDF/DOCX upload
+- **📎 Documents**: Upload resumes, cover letters, and portfolio links; track which documents were used for each internship; optional **ATS-style score** on PDF/DOCX upload; optional **AI Resume Check** via agentic LLM pipeline
 - **🎯 Interview pipeline**: Multi-round tracking for internships (OA → technical → HR → final) with timeline UI and auto-synced Kanban status — see [`docs/interview-rounds.md`](docs/interview-rounds.md)
 - **🧠 Interview preparation**: Tabbed prep workspace per internship (research, questions, topics, STAR behavioral, reflection) — see [`docs/interview-prep.md`](docs/interview-prep.md)
 - **🎨 Modern UI**: Clean, dark-themed interface with smooth animations
@@ -110,6 +111,11 @@ FutureTracker is a modern, full-featured SaaS application designed to help stude
 | Node.js + Express | RESTful API server |
 | Clerk SDK | JWT verification |
 | Supabase Client | PostgreSQL database access |
+| Vercel AI SDK (`ai`) | Provider-agnostic LLM layer (AI Resume Checker) |
+| `@ai-sdk/google` | Google Gemini provider |
+| `ollama-ai-provider` | Local Ollama / llama / qwen provider |
+| `pdf-parse` + `mammoth` | Server-side PDF/DOCX text extraction |
+| Zod | Structured LLM output validation |
 
 ### External Services
 | Service | Purpose |
@@ -118,6 +124,8 @@ FutureTracker is a modern, full-featured SaaS application designed to help stude
 | **Supabase** | PostgreSQL database + Realtime WebSockets |
 | **Vercel** | Frontend hosting |
 | **Render** | Backend hosting |
+| **Google Gemini API** | LLM for AI Resume Checker (Ollama works offline) |
+| **GitHub REST API** | Resume enrichment with public repo signals (optional) |
 
 ## 🏗 System Architecture
 

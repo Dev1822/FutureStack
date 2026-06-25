@@ -5,8 +5,9 @@
  * @module components/documents/DocumentCard
  */
 import React, { useState, useRef, useEffect } from 'react';
-import { FaFile, FaFilePdf, FaLink, FaDownload, FaEdit, FaTrash, FaBriefcase, FaChartBar, FaSpinner } from 'react-icons/fa';
+import { FaFile, FaFilePdf, FaLink, FaDownload, FaEdit, FaTrash, FaBriefcase, FaChartBar, FaSpinner, FaBrain } from 'react-icons/fa';
 import AtsAnalysisPanel, { ScoreRing, getScoreClasses } from './AtsAnalysisPanel';
+import AiResumeCheckPanel from './AiResumeCheckPanel';
 import { isAtsEligible } from '../../utils/atsScorer';
 
 const typeIcons = {
@@ -41,16 +42,30 @@ const typeLabels = {
  * @param {boolean} [props.isCheckingAts=false] - Whether ATS analysis is in progress for this card
  * @returns {JSX.Element} Rendered document card
  */
-const DocumentCard = ({ document, onEdit, onDelete, onCheckAts, isCheckingAts = false }) => {
+const DocumentCard = ({
+    document,
+    onEdit,
+    onDelete,
+    onCheckAts,
+    isCheckingAts = false,
+    onAiCheck,
+    isAiChecking = false,
+    aiCheckResult = null,
+}) => {
     const Icon = typeIcons[document.type] || FaFile;
     const colorClass = typeColors[document.type] || 'text-gray-400';
     const canCheckAts = isAtsEligible(document);
+    const canAiCheck = document.type === 'resume' && !document.is_external;
     const atsScore = canCheckAts ? document.ats_score : null;
     const [isAtsOpen, setIsAtsOpen] = useState(false);
+    const [isAiOpen, setIsAiOpen] = useState(false);
     const wasCheckingRef = useRef(false);
+    const wasAiCheckingRef = useRef(false);
     const scoreClasses = atsScore != null ? getScoreClasses(atsScore) : null;
-    const atsButtonLabel = atsScore != null ? 'Refresh score' : 'Check ATS Score';
-    const actionButtonClass = 'flex-1 min-w-0 h-10 flex items-center justify-center gap-1.5 px-2.5 rounded-lg text-xs sm:text-sm whitespace-nowrap transition-colors';
+    const atsButtonLabel = atsScore != null ? 'Refresh ATS' : 'Check ATS';
+    const aiButtonLabel = aiCheckResult?.status === 'completed' ? 'Re-run AI' : 'AI Check';
+    const primaryButtonClass = 'flex-1 min-w-0 h-10 flex items-center justify-center gap-1.5 px-3 rounded-lg text-xs sm:text-sm whitespace-nowrap transition-colors';
+    const analysisButtonClass = 'w-full h-10 flex items-center justify-center gap-1.5 px-2 rounded-lg text-xs whitespace-nowrap transition-colors';
 
     useEffect(() => {
         if (isCheckingAts) {
@@ -62,6 +77,17 @@ const DocumentCard = ({ document, onEdit, onDelete, onCheckAts, isCheckingAts = 
             wasCheckingRef.current = false;
         }
     }, [isCheckingAts, atsScore]);
+
+    useEffect(() => {
+        if (isAiChecking) {
+            wasAiCheckingRef.current = true;
+            return;
+        }
+        if (wasAiCheckingRef.current && aiCheckResult?.status === 'completed') {
+            setIsAiOpen(true);
+            wasAiCheckingRef.current = false;
+        }
+    }, [isAiChecking, aiCheckResult]);
 
     // Count how many opportunities use this document
     const usageCount = document.opportunity_documents?.length || 0;
@@ -86,6 +112,11 @@ const DocumentCard = ({ document, onEdit, onDelete, onCheckAts, isCheckingAts = 
     const handleCheckAts = () => {
         if (!canCheckAts || isCheckingAts) return;
         onCheckAts?.(document);
+    };
+
+    const handleAiCheck = () => {
+        if (!canAiCheck || isAiChecking) return;
+        onAiCheck?.(document);
     };
 
     return (
@@ -152,54 +183,95 @@ const DocumentCard = ({ document, onEdit, onDelete, onCheckAts, isCheckingAts = 
                 />
             )}
 
+            {canAiCheck && (
+                <AiResumeCheckPanel
+                    checkResult={aiCheckResult}
+                    isAnalyzing={isAiChecking}
+                    isOpen={isAiOpen}
+                    onToggle={() => setIsAiOpen(open => !open)}
+                />
+            )}
+
             {/* Actions */}
-            <div className="mt-auto pt-4 flex flex-wrap items-stretch gap-2">
-                {document.file_url && (
-                    <a
-                        href={document.file_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className={`${actionButtonClass} bg-blue-600/20 text-blue-400 hover:bg-blue-600/30`}
-                    >
-                        {document.is_external ? <FaLink size={14} className="shrink-0" /> : <FaDownload size={14} className="shrink-0" />}
-                        <span>{document.is_external ? 'Open' : 'Download'}</span>
-                    </a>
-                )}
-                {canCheckAts && (
+            <div className="mt-auto pt-4 space-y-2">
+                {/* Row 1: download/open + edit/delete */}
+                <div className="flex items-stretch gap-2">
+                    {document.file_url && (
+                        <a
+                            href={document.file_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={`${primaryButtonClass} bg-blue-600/20 text-blue-400 hover:bg-blue-600/30`}
+                        >
+                            {document.is_external ? <FaLink size={14} className="shrink-0" /> : <FaDownload size={14} className="shrink-0" />}
+                            <span>{document.is_external ? 'Open' : 'Download'}</span>
+                        </a>
+                    )}
                     <button
                         type="button"
-                        onClick={handleCheckAts}
-                        disabled={isCheckingAts}
-                        title={atsScore != null ? 'Re-check ATS Score' : 'Check ATS Score'}
-                        className={`${actionButtonClass} bg-purple-600/15 text-purple-300 hover:bg-purple-600/25 disabled:opacity-60 disabled:cursor-not-allowed`}
+                        onClick={() => onEdit(document)}
+                        className="h-10 w-10 shrink-0 flex items-center justify-center bg-white/5 text-gray-400 rounded-lg hover:bg-white/10 hover:text-white transition-colors"
+                        title="Edit"
                     >
-                        {isCheckingAts ? (
-                            <>
-                                <FaSpinner className="animate-spin shrink-0" size={14} />
-                                <span>Analyzing...</span>
-                            </>
-                        ) : (
-                            <>
-                                <FaChartBar size={14} className="shrink-0" />
-                                <span>{atsButtonLabel}</span>
-                            </>
-                        )}
+                        <FaEdit size={14} />
                     </button>
+                    <button
+                        type="button"
+                        onClick={() => onDelete(document)}
+                        className="h-10 w-10 shrink-0 flex items-center justify-center bg-white/5 text-gray-400 rounded-lg hover:bg-red-600/20 hover:text-red-400 transition-colors"
+                        title="Delete"
+                    >
+                        <FaTrash size={14} />
+                    </button>
+                </div>
+
+                {/* Row 2: analysis actions (resumes only) */}
+                {(canCheckAts || canAiCheck) && (
+                    <div className={`grid gap-2 ${canCheckAts && canAiCheck ? 'grid-cols-2' : 'grid-cols-1'}`}>
+                        {canCheckAts && (
+                            <button
+                                type="button"
+                                onClick={handleCheckAts}
+                                disabled={isCheckingAts}
+                                title={atsScore != null ? 'Re-check ATS Score' : 'Check ATS Score'}
+                                className={`${analysisButtonClass} bg-purple-600/15 text-purple-300 hover:bg-purple-600/25 disabled:opacity-60 disabled:cursor-not-allowed`}
+                            >
+                                {isCheckingAts ? (
+                                    <>
+                                        <FaSpinner className="animate-spin shrink-0" size={14} />
+                                        <span>Analyzing…</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <FaChartBar size={14} className="shrink-0" />
+                                        <span>{atsButtonLabel}</span>
+                                    </>
+                                )}
+                            </button>
+                        )}
+                        {canAiCheck && (
+                            <button
+                                type="button"
+                                onClick={handleAiCheck}
+                                disabled={isAiChecking}
+                                title={aiCheckResult?.status === 'completed' ? 'Re-run AI Resume Check' : 'Run AI Resume Check'}
+                                className={`${analysisButtonClass} bg-violet-600/15 text-violet-300 hover:bg-violet-600/25 disabled:opacity-60 disabled:cursor-not-allowed`}
+                            >
+                                {isAiChecking ? (
+                                    <>
+                                        <FaSpinner className="animate-spin shrink-0" size={14} />
+                                        <span>Running…</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <FaBrain size={14} className="shrink-0" />
+                                        <span>{aiButtonLabel}</span>
+                                    </>
+                                )}
+                            </button>
+                        )}
+                    </div>
                 )}
-                <button
-                    onClick={() => onEdit(document)}
-                    className="h-10 w-10 shrink-0 flex items-center justify-center bg-white/5 text-gray-400 rounded-lg hover:bg-white/10 hover:text-white transition-colors"
-                    title="Edit"
-                >
-                    <FaEdit size={14} />
-                </button>
-                <button
-                    onClick={() => onDelete(document)}
-                    className="h-10 w-10 shrink-0 flex items-center justify-center bg-white/5 text-gray-400 rounded-lg hover:bg-red-600/20 hover:text-red-400 transition-colors"
-                    title="Delete"
-                >
-                    <FaTrash size={14} />
-                </button>
             </div>
         </div>
     );

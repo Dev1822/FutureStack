@@ -180,14 +180,37 @@ let getAuthToken = null; // Global state
 
 ### Phase 3: AI-Powered Features
 
-#### 6. AI Cover Letter Generator
-- [ ] Input: Job description + user's resume
+#### 6. AI Resume Checker ✅ COMPLETED (Phase 3.0)
+- [x] Agentic server-side pipeline: PDF/DOCX extraction → LLM section parsing → GitHub enrichment → scored evaluation
+- [x] Provider-agnostic LLM layer (Gemini default; Ollama/llama/qwen pluggable via Vercel AI SDK)
+- [x] Four evidence-backed category scores (open_source, self_projects, production, technical_skills)
+- [x] GitHub profile enrichment: top projects selected by LLM
+- [x] Strengths, suggestions, per-category evidence
+- [x] Persisted in `resume_ai_checks` table; displayed in AiResumeCheckPanel alongside existing ATS score
+- Inspired by [interviewstreet/hiring-agent](https://github.com/interviewstreet/hiring-agent) (MIT © HackerRank)
+- See [`docs/ai-resume-checker.md`](ai-resume-checker.md) for full details
+
+**Follow-up AI features (using the same LLM layer):**
+- [ ] **Async job queue**: run analysis in background, push result via Supabase Realtime
+- [ ] **JD-aware scoring**: evaluate resume against a specific opportunity's job description
+- [ ] **AI bullet-point rewrite**: per-opportunity tailoring suggestions
+- [ ] **Auto skill extraction**: populate opportunity/skills from parsed resume
+- [ ] **Resume version comparison**: track AI score changes across `version` labels
+
+#### 7. AI Cover Letter Generator
+- [ ] Input: Job description + user's resume (reuse the AI LLM layer from Phase 3.0)
 - [ ] Output: Tailored cover letter draft
-- [ ] Use OpenAI API with prompt engineering
+- [ ] Provider-agnostic (Gemini / Ollama)
 - [ ] Template customization options
 - **Value**: "Generate personalized cover letters in 30 seconds"
 
-#### 7. Company Research Dashboard
+#### 8. Mock Interview Question Generator
+- [ ] Input: Parsed resume + target role from interview-prep module
+- [ ] Output: Tailored technical + behavioural questions
+- [ ] Reuse `lib/llm` and the structured resume from Phase 3.0
+- **Value**: Directly ties AI resume parsing to interview prep
+
+#### 9. Company Research Dashboard
 - [ ] Auto-fetch: Glassdoor ratings, salary ranges, recent news
 - [ ] Company size, funding stage, tech stack
 - [ ] Integration with Clearbit or similar company data API

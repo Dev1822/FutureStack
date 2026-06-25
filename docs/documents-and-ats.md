@@ -1,6 +1,10 @@
-# Documents Vault & ATS Scorer
+# Documents Vault, ATS Scorer & AI Resume Checker
 
-> **Interview talking point:** Client-side resume analysis — extract text from PDF/DOCX in the browser, score structure and content with rule-based heuristics, persist results on the document record via the API.
+> **Interview talking point:** Two-tier resume analysis — (1) a fast client-side rule-based ATS
+> scorer that extracts text in the browser and scores structure and content heuristically, and
+> (2) a server-side agentic AI pipeline that calls an LLM to extract a structured JSON Resume,
+> enrich with GitHub signals, and produce evidence-backed category scores with actionable
+> suggestions.
 
 ## Documents vault
 
@@ -45,9 +49,11 @@ Frontend service: `documentService` in `src/services/api.js`.
 src/
 ├── pages/Documents.jsx
 └── components/documents/
-    ├── DocumentUpload.jsx      # Upload + ATS analysis on save
-    ├── DocumentCard.jsx        # Shows ATS score badge and breakdown
-    └── DocumentSelector.jsx    # Pick documents when applying
+    ├── DocumentUpload.jsx        # Upload + ATS analysis on save
+    ├── DocumentCard.jsx          # Shows ATS score badge, AI check button, both panels
+    ├── AtsAnalysisPanel.jsx      # Rule-based score breakdown (client-side)
+    ├── AiResumeCheckPanel.jsx    # AI score ring, category bars, GitHub, evidence
+    └── DocumentSelector.jsx      # Pick documents when applying
 ```
 
 ---
@@ -113,14 +119,51 @@ UI shows: *"Rule-based hints — not an official ATS score."* Keep this when ext
 
 ---
 
+## AI Resume Checker (server-side, LLM-powered)
+
+For full details see [`ai-resume-checker.md`](ai-resume-checker.md).
+
+### How it differs from the rule-based ATS scorer
+
+| Aspect | Rule-based ATS | AI Resume Checker |
+|---|---|---|
+| Where it runs | Browser (client-side) | Express backend (server-side) |
+| LLM required | No | Yes (Gemini / Ollama) |
+| Scoring | Structure + content heuristics | 4 evidence-backed categories (0–100) |
+| GitHub signals | No | Yes (optional enrichment) |
+| Speed | < 1 second | 20–60 seconds |
+| Cost | Free | LLM API call per analysis |
+| Available for | Uploaded PDF/DOCX resumes | Uploaded PDF/DOCX resumes only |
+
+Both scores appear on the same DocumentCard and are preserved independently.
+
+### New API endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/documents/:id/ai-check` | Trigger a new AI evaluation |
+| GET  | `/api/documents/:id/ai-check` | Fetch the latest AI result |
+
+Rate-limited at 10 requests / 15 min per IP (independent of the general limiter).
+
+---
+
 ## Setup checklist
 
 1. Run `docs/documents-migration.sql` in Supabase (includes ATS columns if upgrading)
-2. Ensure backend `documents` route is mounted (`backend/src/app.js`)
-3. For PDF upload in dev, confirm `pdf.worker.min.js` is served from `public/`
+2. Run `docs/ai-resume-check-migration.sql` in Supabase (for the AI checker)
+3. Set `GEMINI_API_KEY` (or configure `LLM_PROVIDER=ollama`) in `backend/.env`
+4. Ensure backend `documents` and resume-checker routes are mounted (`backend/src/app.js`)
+5. For PDF upload in dev, confirm `pdf.worker.min.js` is served from `public/`
 
 ---
 
 ## Interview one-liner
 
-> "ATS scoring is intentionally client-side: we extract resume text with pdf.js and mammoth, apply transparent heuristics for section structure and content depth, then persist the breakdown on the document via our existing documents API — no external ML service, fast feedback for users."
+> "We have two complementary resume analysis layers. The first is fast and client-side: pdf.js
+> and mammoth extract text in the browser, rule-based heuristics score structure and content, and
+> the result is stored via the documents API. The second is agentic and server-side: we download
+> the file from Supabase Storage, extract text with pdf-parse/mammoth, send it section-by-section
+> to a Gemini LLM for structured extraction into a JSON Resume object, optionally enrich with
+> GitHub repo signals, then run a scored evaluation that returns category scores with evidence.
+> The design is inspired by and adapted from the open-source HackerRank hiring-agent pipeline."

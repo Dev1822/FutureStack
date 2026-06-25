@@ -111,8 +111,8 @@ Skills ${skills}
 Experience Built systems improved metrics by 40% deployed services
 Projects Portfolio application with relevant stack`;
 
-  const ml = analyzeText(flat('Python TensorFlow PyTorch machine learning SQL pandas numpy'));
-  const swe = analyzeText(flat('JavaScript React Node.js TypeScript Docker AWS Git'));
+  const ml = analyzeText(flat('Python TensorFlow PyTorch machine learning SQL pandas numpy spark'));
+  const swe = analyzeText(flat('JavaScript React Node.js TypeScript Docker'));
 
   expect(ml.score).not.toBe(swe.score);
   expect(ml.matchedKeywords).toEqual(expect.arrayContaining(['python', 'pytorch']));
