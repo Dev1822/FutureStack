@@ -80,3 +80,11 @@ export const calculateCampusModeStats = (opportunities = []) => {
     });
     return stats;
 };
+
+/** Filter opportunities by campus_mode when filter is not 'all'. */
+export const filterByCampusMode = (opportunities, campusModeFilter) => {
+    if (campusModeFilter === 'all') {
+        return opportunities;
+    }
+    return opportunities.filter((opp) => opp.campus_mode === campusModeFilter);
+};

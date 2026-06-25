@@ -191,6 +191,7 @@ const OpportunityDetailModal = ({
     const daysRemaining = getDaysRemaining(displayOpportunity.deadline);
     const overdue = isOverdue(displayOpportunity.deadline);
     const showInterviewRounds = supportsInterviewRounds(displayOpportunity.category);
+    const campusModeLabel = getCampusModeLabel(displayOpportunity.campus_mode);
 
     const handleOpenAddRound = () => {
         setEditingRound(null);
@@ -276,9 +277,9 @@ const OpportunityDetailModal = ({
                                         {roundStats.total} round{roundStats.total !== 1 ? 's' : ''}
                                     </span>
                                 )}
-                                {getCampusModeLabel(displayOpportunity.campus_mode) && (
+                                {campusModeLabel && (
                                     <span className={`px-3 py-1 rounded-full text-xs font-medium ${CAMPUS_MODE_BADGE_STYLES[displayOpportunity.campus_mode]}`}>
-                                        {getCampusModeLabel(displayOpportunity.campus_mode)}
+                                        {campusModeLabel}
                                     </span>
                                 )}
                             </div>

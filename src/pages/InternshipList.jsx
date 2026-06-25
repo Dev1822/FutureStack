@@ -17,8 +17,10 @@ import OpportunityDetailModal from '../components/opportunities/OpportunityDetai
 import Modal from '../components/common/Modal';
 import Button from '../components/common/Button';
 import ShareProgressModal from '../components/sharing/ShareProgressModal';
+import CampusModeSelect from '../components/opportunities/CampusModeSelect';
 import { opportunityService } from '../services/api';
-import { isActiveInternshipStatus, CAMPUS_MODE_FILTER_OPTIONS } from '../utils/opportunityHelpers';
+import { isActiveInternshipStatus } from '../utils/opportunityHelpers';
+import { useCampusModeFilter } from '../hooks/useCampusModeFilter';
 
 const InternshipList = () => {
   const navigate = useNavigate();
@@ -26,7 +28,13 @@ const InternshipList = () => {
   const [filteredOpportunities, setFilteredOpportunities] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('active');
-  const [campusModeFilter, setCampusModeFilter] = useState('all');
+  const {
+    campusModeFilter,
+    setCampusModeFilter,
+    resetCampusModeFilter,
+    isCampusFilterActive,
+    applyCampusModeFilter,
+  } = useCampusModeFilter();
   const [loading, setLoading] = useState(true);
 
   // Modal states
@@ -45,7 +53,7 @@ const InternshipList = () => {
   useEffect(() => {
     applyFilters();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchQuery, statusFilter, campusModeFilter, opportunities]);
+  }, [searchQuery, statusFilter, campusModeFilter, opportunities, applyCampusModeFilter]);
 
   /**
    * Fetch all opportunities and filter for internships only
@@ -85,9 +93,7 @@ const InternshipList = () => {
       filtered = filtered.filter(opp => opp.status === statusFilter);
     }
 
-    if (campusModeFilter !== 'all') {
-      filtered = filtered.filter((opp) => opp.campus_mode === campusModeFilter);
-    }
+    filtered = applyCampusModeFilter(filtered);
 
     setFilteredOpportunities(filtered);
   };
@@ -170,7 +176,7 @@ const InternshipList = () => {
   const clearFilters = () => {
     setSearchQuery('');
     setStatusFilter('active');
-    setCampusModeFilter('all');
+    resetCampusModeFilter();
   };
 
   return (
@@ -232,23 +238,12 @@ const InternshipList = () => {
                 <option value="ghosted" style={{ backgroundColor: '#111827', color: 'white' }}>Ghosted</option>
               </select>
 
-              <select
+              <CampusModeSelect
                 value={campusModeFilter}
                 onChange={(e) => setCampusModeFilter(e.target.value)}
-                className="px-4 py-2.5 bg-gray-900 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all w-full sm:w-auto"
-              >
-                {CAMPUS_MODE_FILTER_OPTIONS.map((option) => (
-                  <option
-                    key={option.value}
-                    value={option.value}
-                    style={{ backgroundColor: '#111827', color: 'white' }}
-                  >
-                    {option.label}
-                  </option>
-                ))}
-              </select>
+              />
 
-              {(searchQuery || statusFilter !== 'active' || campusModeFilter !== 'all') && (
+              {(searchQuery || statusFilter !== 'active' || isCampusFilterActive) && (
                 <Button variant="secondary" onClick={clearFilters} className="w-full sm:w-auto">
                   Clear
                 </Button>

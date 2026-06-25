@@ -6,6 +6,7 @@ import {
     INACTIVE_INTERNSHIP_STATUSES,
     getCampusModeLabel,
     calculateCampusModeStats,
+    filterByCampusMode,
 } from './opportunityHelpers';
 
 describe('opportunityHelpers', () => {
@@ -74,6 +75,27 @@ describe('opportunityHelpers', () => {
                 off_campus: 1,
                 unspecified: 1,
             });
+        });
+    });
+
+    describe('filterByCampusMode', () => {
+        const opportunities = [
+            { campus_mode: 'on_campus' },
+            { campus_mode: 'off_campus' },
+            { campus_mode: null },
+        ];
+
+        it('returns all opportunities when filter is all', () => {
+            expect(filterByCampusMode(opportunities, 'all')).toHaveLength(3);
+        });
+
+        it('filters by on_campus or off_campus', () => {
+            expect(filterByCampusMode(opportunities, 'on_campus')).toEqual([
+                { campus_mode: 'on_campus' },
+            ]);
+            expect(filterByCampusMode(opportunities, 'off_campus')).toEqual([
+                { campus_mode: 'off_campus' },
+            ]);
         });
     });
 });
