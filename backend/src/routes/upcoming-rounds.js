@@ -5,6 +5,8 @@ const { upcomingRoundsQuerySchema } = require('../validation/rounds-schemas');
 
 const router = express.Router();
 
+const UPCOMING_ROUNDS_MAX_RESULTS = 200;
+
 const isDatabaseUnavailableError = (error) => {
     const msg = String(error?.message || '').toLowerCase();
     return msg.includes('fetch failed') || msg.includes('network');
@@ -52,7 +54,8 @@ router.get('/upcoming', validate(upcomingRoundsQuerySchema, 'query'), async (req
             .gte('scheduled_date', from)
             .lte('scheduled_date', to)
             .order('scheduled_date', { ascending: true })
-            .order('round_number', { ascending: true });
+            .order('round_number', { ascending: true })
+            .limit(UPCOMING_ROUNDS_MAX_RESULTS);
 
         if (error) throw error;
 

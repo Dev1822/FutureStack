@@ -66,9 +66,25 @@ const InterviewFunnelChart = ({ pipeline, compact = false }) => {
             <XAxis dataKey="name" tick={{ fill: '#9CA3AF', fontSize: 11 }} />
             <YAxis allowDecimals={false} tick={{ fill: '#9CA3AF', fontSize: 11 }} />
             <Tooltip
-              contentStyle={{ backgroundColor: '#111827', border: '1px solid #374151' }}
-              labelFormatter={(_, payload) => payload?.[0]?.payload?.fullName || ''}
-              formatter={(value, name) => [value, name === 'reached' ? 'Reached' : name === 'cleared' ? 'Cleared' : 'Rejected']}
+              content={({ active, payload }) => {
+                if (!active || !payload?.length) {
+                  return null;
+                }
+
+                const data = payload[0].payload;
+
+                return (
+                  <div className="rounded-lg border border-gray-700 bg-gray-900 p-3 text-sm text-gray-200">
+                    <p className="mb-2 font-medium text-white">{data.fullName}</p>
+                    <p>Reached: {data.reached}</p>
+                    <p>Cleared: {data.cleared}</p>
+                    <p>Rejected: {data.rejected}</p>
+                    {data.clearanceRate != null && (
+                      <p className="mt-1 text-gray-400">Clearance rate: {data.clearanceRate}%</p>
+                    )}
+                  </div>
+                );
+              }}
             />
             <Legend />
             <Bar dataKey="reached" name="Reached" fill={FUNNEL_COLORS.reached} radius={[4, 4, 0, 0]} />

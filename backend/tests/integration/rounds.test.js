@@ -263,4 +263,13 @@ describe('Interview rounds API', () => {
         expect(res.status).toBe(400);
         expect(res.body.error).toBe('Validation Error');
     });
+
+    it('GET /api/opportunities/rounds/upcoming returns 400 for impossible calendar dates', async () => {
+        const res = await request(app)
+            .get('/api/opportunities/rounds/upcoming?from=2026-02-30&to=2026-03-01')
+            .set(authHeader);
+
+        expect(res.status).toBe(400);
+        expect(res.body.error).toBe('Validation Error');
+    });
 });

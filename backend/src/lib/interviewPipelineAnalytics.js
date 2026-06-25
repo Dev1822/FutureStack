@@ -39,9 +39,7 @@ function buildFunnelByRoundType(internships, roundsByOpportunity) {
     const statsByType = {};
 
     for (const opp of internships) {
-        const oppRounds = (roundsByOpportunity[opp.id] || []).slice().sort(
-            (a, b) => a.round_number - b.round_number
-        );
+        const oppRounds = roundsByOpportunity[opp.id] || [];
 
         for (const round of oppRounds) {
             const roundType = round.round_type;

@@ -62,7 +62,7 @@ export function useInterviewReminders() {
         const from = new Date(today);
         from.setDate(from.getDate() - 1);
         const to = new Date(today);
-        to.setDate(to.getDate() + 14);
+        to.setDate(to.getDate() + 7);
 
         const fromStr = from.toISOString().slice(0, 10);
         const toStr = to.toISOString().slice(0, 10);
