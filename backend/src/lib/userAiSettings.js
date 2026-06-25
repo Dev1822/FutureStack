@@ -48,6 +48,28 @@ async function getUserAiSettingsSummary(userId) {
 }
 
 /**
+ * Decrypt stored BYOK key for server-side verification (never expose to client).
+ *
+ * @param {string} userId
+ * @returns {Promise<{ apiKey: string } | { failed: true } | null>}
+ */
+async function getUserDecryptedApiKey(userId) {
+    const { data, error } = await supabase
+        .from('user_ai_settings')
+        .select('api_key_ciphertext, api_key_iv, api_key_auth_tag')
+        .eq('user_id', userId)
+        .maybeSingle();
+
+    if (error) throw error;
+    if (!data?.api_key_ciphertext) return null;
+
+    const { key: apiKey, failed } = tryDecryptApiKey(data);
+    if (failed) return { failed: true };
+    if (!apiKey) return null;
+    return { apiKey };
+}
+
+/**
  * Resolve LLM options for pipeline execution.
  * User BYOK key takes priority; falls back to server GEMINI_API_KEY.
  *
@@ -86,4 +108,4 @@ async function resolveUserLlmOptions(userId) {
     throw new Error('No API key configured. Open AI Settings and save your Gemini API key.');
 }
 
-module.exports = { getUserAiSettingsSummary, resolveUserLlmOptions, KEY_REFRESH_MESSAGE };
+module.exports = { getUserAiSettingsSummary, getUserDecryptedApiKey, resolveUserLlmOptions, KEY_REFRESH_MESSAGE };

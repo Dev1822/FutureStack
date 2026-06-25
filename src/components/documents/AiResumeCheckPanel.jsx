@@ -3,8 +3,9 @@
  */
 
 import React, { useState } from 'react';
-import { FaGithub, FaChevronDown, FaChevronUp, FaBrain, FaRedo } from 'react-icons/fa';
-import { ScoreRing, getScoreClasses } from './AtsAnalysisPanel';
+import { FaGithub, FaChevronDown, FaChevronUp, FaBrain, FaRedo, FaExternalLinkAlt, FaTools } from 'react-icons/fa';
+import { getScoreClasses } from './AtsAnalysisPanel';
+import { HIRING_AGENT_REPO_URL } from '../../config/features';
 
 const CATEGORY_LABELS = {
     open_source: 'Open Source',
@@ -60,6 +61,32 @@ const CategoryBar = ({ label, score, max = CATEGORY_MAX }) => {
     );
 };
 
+const ComingSoonPanel = () => (
+    <div className="mt-3 rounded-lg border border-violet-500/25 bg-gradient-to-br from-violet-500/10 to-transparent px-4 py-3.5">
+        <div className="flex items-center gap-2 mb-2">
+            <FaTools className="text-violet-400 shrink-0" size={13} />
+            <p className="text-sm font-medium text-violet-200">AI Resume Check — under development</p>
+        </div>
+        <p className="text-xs text-gray-400 leading-relaxed">
+            This feature will score open source work, projects, production experience, and technical skills
+            using an agentic pipeline adapted from HackerRank&apos;s open-source hiring agent.
+        </p>
+        <a
+            href={HIRING_AGENT_REPO_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 mt-3 text-xs font-medium text-violet-300 hover:text-violet-200 transition-colors"
+        >
+            <FaGithub size={12} />
+            interviewstreet/hiring-agent
+            <FaExternalLinkAlt size={9} className="opacity-70" />
+        </a>
+        <p className="mt-2 text-[10px] text-gray-600">
+            MIT © HackerRank — rule-based ATS scoring above remains available today.
+        </p>
+    </div>
+);
+
 const AiResumeCheckPanel = ({
     checkResult = null,
     isAnalyzing = false,
@@ -67,8 +94,13 @@ const AiResumeCheckPanel = ({
     isOpen = false,
     onToggle,
     onRetry,
+    comingSoon = false,
 }) => {
     const [showEvidence, setShowEvidence] = useState(false);
+
+    if (comingSoon) {
+        return <ComingSoonPanel />;
+    }
 
     if (isHydrating) {
         return (
@@ -161,10 +193,10 @@ const AiResumeCheckPanel = ({
 
     return (
         <div className="mt-3 rounded-lg border border-violet-500/15 bg-black/25 overflow-hidden">
-            <div
-                className="flex items-center justify-between gap-3 p-3 cursor-pointer select-none hover:bg-white/[0.02] transition-colors"
+            <button
+                type="button"
+                className="flex w-full items-center justify-between gap-3 p-3 text-left cursor-pointer select-none hover:bg-white/[0.02] transition-colors"
                 onClick={onToggle}
-                role="button"
                 aria-expanded={isOpen}
             >
                 <div className="flex items-center gap-2 min-w-0">
@@ -186,21 +218,18 @@ const AiResumeCheckPanel = ({
                             : <FaChevronDown size={11} className="text-gray-500" />
                     )}
                 </div>
-            </div>
+            </button>
 
             {isOpen && (
                 <div className="px-3 pb-4 space-y-4 border-t border-white/5 pt-3">
-                    <div className="flex items-start gap-4">
-                        <ScoreRing score={score} />
-                        <div className="flex-1 space-y-2 min-w-0">
-                            {Object.entries(CATEGORY_LABELS).map(([key, label]) => (
-                                <CategoryBar
-                                    key={key}
-                                    label={label}
-                                    score={cats[key] ?? 0}
-                                />
-                            ))}
-                        </div>
+                    <div className="space-y-2">
+                        {Object.entries(CATEGORY_LABELS).map(([key, label]) => (
+                            <CategoryBar
+                                key={key}
+                                label={label}
+                                score={cats[key] ?? 0}
+                            />
+                        ))}
                     </div>
 
                     {(checkResult.bonus > 0 || checkResult.deductions > 0) && (

@@ -6,9 +6,10 @@
  */
 import React, { useState, useRef, useEffect } from 'react';
 import { FaFile, FaFilePdf, FaLink, FaDownload, FaEdit, FaTrash, FaBriefcase, FaChartBar, FaSpinner, FaBrain } from 'react-icons/fa';
-import AtsAnalysisPanel, { ScoreRing, getScoreClasses } from './AtsAnalysisPanel';
+import AtsAnalysisPanel, { getScoreClasses } from './AtsAnalysisPanel';
 import AiResumeCheckPanel from './AiResumeCheckPanel';
 import { isAtsEligible } from '../../utils/atsScorer';
+import { AI_RESUME_CHECK_ENABLED } from '../../config/features';
 
 const typeIcons = {
     resume: FaFilePdf,
@@ -56,7 +57,8 @@ const DocumentCard = ({
     const Icon = typeIcons[document.type] || FaFile;
     const colorClass = typeColors[document.type] || 'text-gray-400';
     const canCheckAts = isAtsEligible(document);
-    const canAiCheck = document.type === 'resume' && !document.is_external;
+    const canAiCheck = AI_RESUME_CHECK_ENABLED && document.type === 'resume' && !document.is_external;
+    const showAiComingSoon = !AI_RESUME_CHECK_ENABLED && document.type === 'resume' && !document.is_external;
     const atsScore = canCheckAts ? document.ats_score : null;
     const aiScore = aiCheckResult?.status === 'completed' ? aiCheckResult.overall_score : null;
     const [isAtsOpen, setIsAtsOpen] = useState(false);
@@ -67,6 +69,7 @@ const DocumentCard = ({
     const aiScoreClasses = aiScore != null ? getScoreClasses(aiScore) : null;
     const atsButtonLabel = atsScore != null ? 'Refresh ATS' : 'Check ATS';
     const aiButtonLabel = aiCheckResult?.status === 'completed' ? 'Re-run AI' : 'AI Check';
+    const comingSoonButtonLabel = 'Coming soon';
     const primaryButtonClass = 'flex-1 min-w-0 h-10 flex items-center justify-center gap-1.5 px-3 rounded-lg text-xs sm:text-sm whitespace-nowrap transition-colors';
     const analysisButtonClass = 'w-full h-10 flex items-center justify-center gap-1.5 px-2 rounded-lg text-xs whitespace-nowrap transition-colors';
 
@@ -153,7 +156,6 @@ const DocumentCard = ({
                         )}
                     </div>
                 </div>
-                {atsScore != null && <ScoreRing score={atsScore} />}
             </div>
 
             {/* Metadata */}
@@ -202,6 +204,10 @@ const DocumentCard = ({
                 />
             )}
 
+            {showAiComingSoon && (
+                <AiResumeCheckPanel comingSoon />
+            )}
+
             {/* Actions */}
             <div className="mt-auto pt-4 space-y-2">
                 {/* Row 1: download/open + edit/delete */}
@@ -236,8 +242,8 @@ const DocumentCard = ({
                 </div>
 
                 {/* Row 2: analysis actions (resumes only) */}
-                {(canCheckAts || canAiCheck) && (
-                    <div className={`grid gap-2 ${canCheckAts && canAiCheck ? 'grid-cols-2' : 'grid-cols-1'}`}>
+                {(canCheckAts || canAiCheck || showAiComingSoon) && (
+                    <div className={`grid gap-2 ${(canCheckAts && (canAiCheck || showAiComingSoon)) ? 'grid-cols-2' : 'grid-cols-1'}`}>
                         {canCheckAts && (
                             <button
                                 type="button"
@@ -257,6 +263,17 @@ const DocumentCard = ({
                                         <span>{atsButtonLabel}</span>
                                     </>
                                 )}
+                            </button>
+                        )}
+                        {showAiComingSoon && (
+                            <button
+                                type="button"
+                                disabled
+                                title="AI Resume Check is under development"
+                                className={`${analysisButtonClass} bg-violet-600/10 text-violet-400/60 cursor-not-allowed`}
+                            >
+                                <FaBrain size={14} className="shrink-0" />
+                                <span>{comingSoonButtonLabel}</span>
                             </button>
                         )}
                         {canAiCheck && (

@@ -19,6 +19,7 @@ const { generateText } = require('ai');
 describe('geminiKeyValidation', () => {
     beforeEach(() => {
         jest.clearAllMocks();
+        generateText.mockReset();
     });
 
     it('sanitizes whitespace and zero-width characters from pasted keys', () => {
@@ -46,10 +47,41 @@ describe('geminiKeyValidation', () => {
         expect(result.message).toContain('restrictions');
     });
 
+    it('verifyGeminiApiKey passes a bounded abortSignal to generateText', async () => {
+        generateText.mockResolvedValueOnce({ text: 'ok' });
+        await verifyGeminiApiKey('AIzaSyTestKey1234567890', 'gemini-2.5-flash');
+        expect(generateText).toHaveBeenCalledWith(
+            expect.objectContaining({
+                abortSignal: expect.any(AbortSignal),
+            })
+        );
+    });
+
+    it('verifyGeminiApiKey strict mode only probes the requested model', async () => {
+        generateText
+            .mockRejectedValueOnce(new Error('model not found'))
+            .mockResolvedValueOnce({ text: 'ok' });
+        const result = await verifyGeminiApiKey('AIzaSyTestKey1234567890', 'gemini-2.5-flash', {
+            strictPreferredModel: true,
+        });
+        expect(result.ok).toBe(false);
+        expect(generateText).toHaveBeenCalledTimes(1);
+    });
+
     it('verifyGeminiApiKey succeeds when Gemini accepts the key', async () => {
         generateText.mockResolvedValueOnce({ text: 'ok' });
         const result = await verifyGeminiApiKey('AIzaSyTestKey1234567890', 'gemini-2.5-flash');
         expect(result.ok).toBe(true);
         expect(result.model).toBe('gemini-2.5-flash');
+    });
+
+    it('verifyGeminiApiKey falls back to a probe model when preferred model fails', async () => {
+        generateText
+            .mockRejectedValueOnce(new Error('model not found'))
+            .mockResolvedValueOnce({ text: 'ok' });
+        const result = await verifyGeminiApiKey('AIzaSyTestKey1234567890', 'gemini-3.1-flash-lite');
+        expect(result.ok).toBe(true);
+        expect(result.model).toBe('gemini-2.5-flash');
+        expect(generateText).toHaveBeenCalledTimes(2);
     });
 });

@@ -11,6 +11,7 @@ import AiSettingsModal from '../components/documents/AiSettingsModal';
 import Button from '../components/common/Button';
 import Modal from '../components/common/Modal';
 import DocumentCard from '../components/documents/DocumentCard';
+import { AI_RESUME_CHECK_ENABLED } from '../config/features';
 import {
     analyzeFileFromUrl,
     getAtsAnalysisErrorMessage,
@@ -37,11 +38,14 @@ const Documents = () => {
     const [aiCheckResults, setAiCheckResults] = useState({});
     const [aiChecksHydrating, setAiChecksHydrating] = useState(false);
     const [aiSettings, setAiSettings] = useState(null);
+    const [isAiSettingsLoading, setIsAiSettingsLoading] = useState(AI_RESUME_CHECK_ENABLED);
     const [isAiSettingsOpen, setIsAiSettingsOpen] = useState(false);
     const [isSavingAiSettings, setIsSavingAiSettings] = useState(false);
     const hydrateInFlightRef = useRef(false);
 
     const fetchAiSettings = useCallback(async () => {
+        if (!AI_RESUME_CHECK_ENABLED) return;
+        setIsAiSettingsLoading(true);
         try {
             const data = await aiSettingsService.get();
             setAiSettings(data);
@@ -50,6 +54,8 @@ const Documents = () => {
             }
         } catch (error) {
             console.error('Error fetching AI settings:', error);
+        } finally {
+            setIsAiSettingsLoading(false);
         }
     }, []);
 
@@ -94,7 +100,9 @@ const Documents = () => {
             setLoading(true);
             const data = await documentService.getAll();
             setDocuments(data);
-            void hydrateAiCheckResults(data);
+            if (AI_RESUME_CHECK_ENABLED) {
+                void hydrateAiCheckResults(data);
+            }
         } catch (error) {
             console.error('Error fetching documents:', error);
             toast.error('Failed to load documents');
@@ -105,7 +113,9 @@ const Documents = () => {
 
     useEffect(() => {
         fetchDocuments();
-        fetchAiSettings();
+        if (AI_RESUME_CHECK_ENABLED) {
+            fetchAiSettings();
+        }
     }, [fetchDocuments, fetchAiSettings]);
 
     // Apply filters
@@ -228,7 +238,13 @@ const Documents = () => {
 
     // Handle AI resume check
     const handleAiCheck = async (document) => {
+        if (!AI_RESUME_CHECK_ENABLED) return;
         if (document.type !== 'resume' || document.is_external) return;
+
+        if (isAiSettingsLoading) {
+            toast.info('Loading AI settings…');
+            return;
+        }
 
         if (!aiSettings?.configured) {
             toast.info(
@@ -269,6 +285,11 @@ const Documents = () => {
                 }
             } else if (error.response?.status === 503) {
                 toast.error('AI resume checker is not enabled on this server.');
+            } else if (error.response?.status === 504 || data.error === 'LLM_TIMEOUT') {
+                toast.error(
+                    msg || 'AI analysis timed out. Try gemini-2.5-flash in AI Settings, or wait a moment and retry.',
+                    { duration: 10000 }
+                );
             } else if (error.response?.status === 400 && (data.needsApiKey || data.needsKeyRefresh || data.error === 'LLM_AUTH_ERROR' || data.error === 'KEY_DECRYPT_FAILED')) {
                 toast.error(msg || 'Invalid or unreadable API key. Re-enter your Gemini key in AI Settings.', { duration: 8000 });
                 setIsAiSettingsOpen(true);
@@ -360,6 +381,7 @@ const Documents = () => {
                         </p>
                     </div>
                     <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                        {AI_RESUME_CHECK_ENABLED && (
                         <Button
                             variant="secondary"
                             onClick={() => setIsAiSettingsOpen(true)}
@@ -375,6 +397,7 @@ const Documents = () => {
                                 )}
                             </span>
                         </Button>
+                        )}
                         <Button
                             variant="primary"
                             onClick={() => setIsUploadOpen(true)}
@@ -499,6 +522,7 @@ const Documents = () => {
                 isLoading={actionLoading}
             />
 
+            {AI_RESUME_CHECK_ENABLED && (
             <AiSettingsModal
                 isOpen={isAiSettingsOpen}
                 onClose={() => setIsAiSettingsOpen(false)}
@@ -506,6 +530,7 @@ const Documents = () => {
                 onSave={handleSaveAiSettings}
                 isSaving={isSavingAiSettings}
             />
+            )}
 
             {/* Edit Modal */}
             <Modal

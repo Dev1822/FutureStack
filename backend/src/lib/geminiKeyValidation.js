@@ -5,6 +5,7 @@ const { createGoogleGenerativeAI } = require('@ai-sdk/google');
 const { classifyLlmError } = require('./llm/errors');
 
 const PROBE_MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-3.1-flash-lite'];
+const VERIFY_TIMEOUT_MS = 10_000;
 
 /**
  * Normalize pasted API keys (strip whitespace, zero-width chars, etc.).
@@ -37,18 +38,18 @@ function validateGeminiKeyFormat(apiKey) {
  * Probe Gemini with the same SDK path used by the resume pipeline.
  * @param {string} apiKey
  * @param {string} [preferredModel]
+ * @param {{ strictPreferredModel?: boolean }} [options]
  * @returns {Promise<{ ok: true, model: string } | { ok: false, code?: string, message: string }>}
  */
-async function verifyGeminiApiKey(apiKey, preferredModel) {
+async function verifyGeminiApiKey(apiKey, preferredModel, options = {}) {
     const format = validateGeminiKeyFormat(apiKey);
     if (!format.ok) {
         return { ok: false, message: format.message };
     }
 
-    const models = [
-        preferredModel,
-        ...PROBE_MODELS,
-    ].filter(Boolean);
+    const models = options.strictPreferredModel
+        ? [preferredModel].filter(Boolean)
+        : [preferredModel, ...PROBE_MODELS].filter(Boolean);
     const uniqueModels = [...new Set(models)];
 
     let lastMessage = 'Could not verify API key with Gemini.';
@@ -60,6 +61,7 @@ async function verifyGeminiApiKey(apiKey, preferredModel) {
                 model: google(model),
                 prompt: 'Reply with exactly: ok',
                 maxTokens: 8,
+                abortSignal: AbortSignal.timeout(VERIFY_TIMEOUT_MS),
             });
             return { ok: true, model };
         } catch (err) {

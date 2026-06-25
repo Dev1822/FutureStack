@@ -14,7 +14,7 @@ const { createOllama } = require('ollama-ai-provider');
 const DEFAULT_PROVIDER = (process.env.LLM_PROVIDER || 'gemini').toLowerCase();
 const DEFAULT_MODEL = process.env.LLM_MODEL || (DEFAULT_PROVIDER === 'ollama' ? 'llama3.2' : 'gemini-3.1-flash-lite');
 const OLLAMA_BASE_URL = process.env.OLLAMA_BASE_URL || 'http://localhost:11434';
-const DEFAULT_TIMEOUT_MS = parseInt(process.env.LLM_TIMEOUT_MS || '60000', 10);
+const DEFAULT_TIMEOUT_MS = parseInt(process.env.LLM_TIMEOUT_MS || '180000', 10);
 
 /**
  * @typedef {object} LlmOptions

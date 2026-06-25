@@ -13,7 +13,7 @@ const { supabase } = require('../lib/supabase');
 const { validate } = require('../middleware/validate');
 const { saveAiSettingsSchema } = require('../validation/ai-settings-schemas');
 const { encryptApiKey, keyHint } = require('../lib/apiKeyVault');
-const { getUserAiSettingsSummary } = require('../lib/userAiSettings');
+const { getUserAiSettingsSummary, getUserDecryptedApiKey } = require('../lib/userAiSettings');
 const { mapDbError } = require('../lib/dbSetup');
 const { sanitizeApiKey, verifyGeminiApiKey } = require('../lib/geminiKeyValidation');
 
@@ -59,6 +59,32 @@ router.put('/', validate(saveAiSettingsSchema), async (req, res) => {
                 });
             }
 
+            if (provider === 'gemini') {
+                const stored = await getUserDecryptedApiKey(userId);
+                if (!stored || stored.failed) {
+                    return res.status(400).json({
+                        error: 'API Key Required',
+                        code: stored?.failed ? 'KEY_DECRYPT_FAILED' : 'API Key Required',
+                        needsKeyRefresh: Boolean(stored?.failed),
+                        message: stored?.failed
+                            ? summary.message
+                            : 'Enter your Gemini API key to get started.',
+                    });
+                }
+                const verification = await verifyGeminiApiKey(stored.apiKey, model, {
+                    strictPreferredModel: true,
+                });
+                if (!verification.ok) {
+                    return res.status(400).json({
+                        error: verification.code || 'Invalid Model',
+                        code: verification.code || 'LLM_MODEL_ERROR',
+                        message: verification.message
+                            || `Your saved API key cannot use model "${model}". Choose another model or update your key.`,
+                        needsApiKey: verification.code === 'LLM_AUTH_ERROR',
+                    });
+                }
+            }
+
             const { data, error } = await supabase
                 .from('user_ai_settings')
                 .update({
@@ -81,6 +107,7 @@ router.put('/', validate(saveAiSettingsSchema), async (req, res) => {
             });
         }
 
+        let savedModel = model;
         if (provider === 'gemini') {
             const verification = await verifyGeminiApiKey(trimmedKey, model);
             if (!verification.ok) {
@@ -91,6 +118,7 @@ router.put('/', validate(saveAiSettingsSchema), async (req, res) => {
                     needsApiKey: true,
                 });
             }
+            savedModel = verification.model;
         }
 
         const encrypted = encryptApiKey(trimmedKey);
@@ -100,7 +128,7 @@ router.put('/', validate(saveAiSettingsSchema), async (req, res) => {
             .upsert({
                 user_id: userId,
                 provider,
-                model,
+                model: savedModel,
                 ...encrypted,
                 updated_at: new Date().toISOString(),
             }, { onConflict: 'user_id' })

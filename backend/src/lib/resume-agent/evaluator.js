@@ -108,7 +108,7 @@ async function evaluateResume(structuredResume, githubSummary, llmOptions) {
             prompt: buildEvaluationPrompt(evaluationText),
             schema: HiringAgentEvaluationSchema,
             schemaName: 'ResumeEvaluation',
-            maxTokens: 3072,
+            maxTokens: 2048,
             llmOptions,
         });
     } catch (err) {

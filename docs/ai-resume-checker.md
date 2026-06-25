@@ -168,7 +168,7 @@ All AI-related vars are backend-only. See `backend/.env.example` for the full li
 | `GEMINI_API_KEY` | — | Required when `LLM_PROVIDER=gemini` |
 | `OLLAMA_BASE_URL` | `http://localhost:11434` | Ollama server URL |
 | `GITHUB_TOKEN` | — | Optional; raises rate limit from 60→5000 req/hr |
-| `LLM_TIMEOUT_MS` | `60000` | Per-call LLM timeout in ms |
+| `LLM_TIMEOUT_MS` | `180000` | Per-call LLM timeout in ms (parse + evaluate each get this budget) |
 
 ### Switching to Ollama (local, no API key needed)
 

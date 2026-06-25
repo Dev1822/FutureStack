@@ -74,6 +74,13 @@ const FullResumeSchema = z.object({
     awards: z.array(AwardEntrySchema).optional().default([]),
 });
 
+const MAX_RESUME_TEXT_CHARS = 28000;
+
+function truncateResumeText(text) {
+    if (!text || text.length <= MAX_RESUME_TEXT_CHARS) return text;
+    return `${text.slice(0, MAX_RESUME_TEXT_CHARS)}\n\n[Resume text truncated for analysis.]`;
+}
+
 /**
  * Extract all resume sections from raw text via one LLM call.
  *
@@ -81,10 +88,11 @@ const FullResumeSchema = z.object({
  * @returns {Promise<object>}
  */
 async function parseResume(resumeText, llmOptions) {
+    const boundedText = truncateResumeText(resumeText);
     try {
         const extracted = await generateObject({
             system: SYSTEM_EXTRACTION,
-            prompt: buildFullExtractionPrompt(resumeText),
+            prompt: buildFullExtractionPrompt(boundedText),
             schema: FullResumeSchema,
             schemaName: 'Resume',
             maxTokens: 4096,

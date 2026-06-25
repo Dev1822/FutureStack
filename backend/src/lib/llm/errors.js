@@ -49,7 +49,7 @@ function classifyLlmError(err) {
 
     if (err?.name === 'AbortError' || lower.includes('aborted') || lower.includes('timeout')) {
         return new LlmError(
-            'AI analysis timed out. Try again with a shorter resume or a faster model.',
+            'AI analysis timed out. Try gemini-2.5-flash in AI Settings, use a shorter resume, or increase LLM_TIMEOUT_MS on the server.',
             'LLM_TIMEOUT',
             504
         );

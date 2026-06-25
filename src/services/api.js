@@ -278,7 +278,7 @@ export const resumeCheckerService = {
      */
     runCheck: async (documentId) => {
         const response = await api.post(`/documents/${documentId}/ai-check`, {}, {
-            timeout: 120000,
+            timeout: 300000,
             skipErrorToast: true,
         });
         return response.data;

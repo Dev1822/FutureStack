@@ -8,13 +8,9 @@
 
 'use strict';
 
-const { z } = require('zod');
-const { generateObject } = require('../llm');
-const { SYSTEM_GITHUB, buildGithubSelectionPrompt } = require('./prompts');
-
 const GITHUB_API = 'https://api.github.com';
-const MAX_REPOS = 50;
-const MAX_CONTRIBUTOR_LOOKUPS = 15;
+const MAX_REPOS = 30;
+const MAX_CONTRIBUTOR_LOOKUPS = 6;
 const TOP_PROJECTS_COUNT = 7;
 
 function githubHeaders() {
@@ -101,9 +97,7 @@ async function buildRepoMetadata(username, repos) {
         .sort((a, b) => (b.stargazers_count || 0) - (a.stargazers_count || 0))
         .slice(0, MAX_CONTRIBUTOR_LOOKUPS);
 
-    const projects = [];
-
-    for (const repo of candidates) {
+    const projects = await Promise.all(candidates.map(async (repo) => {
         let contributors = [];
         try {
             contributors = await fetchRepoContributors(username, repo.name);
@@ -112,12 +106,12 @@ async function buildRepoMetadata(username, repos) {
         }
 
         const { authorCommits, totalCommits } = countAuthorCommits(username, contributors);
-        if (authorCommits === 0) continue;
+        if (authorCommits === 0) return null;
 
         const contributorCount = contributors.length;
         const projectType = contributorCount > 1 ? 'open_source' : 'self_project';
 
-        projects.push({
+        return {
             name: repo.name,
             description: repo.description || '',
             github_url: repo.html_url,
@@ -136,35 +130,20 @@ async function buildRepoMetadata(username, repos) {
                 language: repo.language || null,
                 fork: repo.fork || false,
             },
-        });
-    }
+        };
+    }));
 
-    return projects;
+    return projects.filter(Boolean);
 }
 
-async function selectTopProjects(repoMetadata, llmOptions) {
-    const SelectionSchema = z.object({
-        selected: z.array(z.string()),
-    });
-
-    try {
-        const result = await generateObject({
-            system: SYSTEM_GITHUB,
-            prompt: buildGithubSelectionPrompt(repoMetadata),
-            schema: SelectionSchema,
-            schemaName: 'ProjectSelection',
-            llmOptions,
-        });
-        return (result.selected || []).slice(0, TOP_PROJECTS_COUNT);
-    } catch {
-        return repoMetadata
-            .sort((a, b) => (b.stars + b.forks + b.author_commit_count) - (a.stars + a.forks + a.author_commit_count))
-            .slice(0, TOP_PROJECTS_COUNT)
-            .map((r) => r.name);
-    }
+function pickTopProjects(repoMetadata) {
+    return repoMetadata
+        .sort((a, b) => (b.stars + b.forks + b.author_commit_count) - (a.stars + a.forks + a.author_commit_count))
+        .slice(0, TOP_PROJECTS_COUNT)
+        .map((r) => r.name);
 }
 
-async function enrichWithGithub(structuredResume, llmOptions) {
+async function enrichWithGithub(structuredResume, _llmOptions) {
     const username = extractGithubUsername(structuredResume);
     if (!username) return null;
 
@@ -183,9 +162,7 @@ async function enrichWithGithub(structuredResume, llmOptions) {
     if (!profile || !Array.isArray(repos)) return null;
 
     const projects = await buildRepoMetadata(username, repos);
-    const topProjectNames = projects.length > 0
-        ? await selectTopProjects(projects, llmOptions)
-        : [];
+    const topProjectNames = projects.length > 0 ? pickTopProjects(projects) : [];
 
     return {
         username,

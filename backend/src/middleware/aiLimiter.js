@@ -25,8 +25,10 @@ const aiCheckRunLimiter = rateLimit({
         return `ai-check:ip:${ipKeyGenerator(ip)}`;
     },
     handler: (req, res) => {
-        const resetTime = new Date(Date.now() + windowMs);
-        const retryAfterSeconds = Math.ceil((resetTime - Date.now()) / 1000);
+        const resetTime = req.rateLimit?.resetTime
+            ? new Date(req.rateLimit.resetTime)
+            : new Date(Date.now() + windowMs);
+        const retryAfterSeconds = Math.max(1, Math.ceil((resetTime.getTime() - Date.now()) / 1000));
         res.set('Retry-After', retryAfterSeconds.toString());
         res.status(429).json({
             error: 'AI Rate Limit Exceeded',
