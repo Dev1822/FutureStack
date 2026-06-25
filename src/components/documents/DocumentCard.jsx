@@ -50,6 +50,7 @@ const DocumentCard = ({
     isCheckingAts = false,
     onAiCheck,
     isAiChecking = false,
+    isHydratingAiCheck = false,
     aiCheckResult = null,
 }) => {
     const Icon = typeIcons[document.type] || FaFile;
@@ -57,11 +58,13 @@ const DocumentCard = ({
     const canCheckAts = isAtsEligible(document);
     const canAiCheck = document.type === 'resume' && !document.is_external;
     const atsScore = canCheckAts ? document.ats_score : null;
+    const aiScore = aiCheckResult?.status === 'completed' ? aiCheckResult.overall_score : null;
     const [isAtsOpen, setIsAtsOpen] = useState(false);
     const [isAiOpen, setIsAiOpen] = useState(false);
     const wasCheckingRef = useRef(false);
     const wasAiCheckingRef = useRef(false);
     const scoreClasses = atsScore != null ? getScoreClasses(atsScore) : null;
+    const aiScoreClasses = aiScore != null ? getScoreClasses(aiScore) : null;
     const atsButtonLabel = atsScore != null ? 'Refresh ATS' : 'Check ATS';
     const aiButtonLabel = aiCheckResult?.status === 'completed' ? 'Re-run AI' : 'AI Check';
     const primaryButtonClass = 'flex-1 min-w-0 h-10 flex items-center justify-center gap-1.5 px-3 rounded-lg text-xs sm:text-sm whitespace-nowrap transition-colors';
@@ -127,11 +130,16 @@ const DocumentCard = ({
                     <Icon size={20} />
                 </div>
                 <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                         <h3 className="text-white font-medium truncate">{document.name}</h3>
                         {atsScore != null && (
                             <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-semibold ${scoreClasses.bg} ${scoreClasses.text}`}>
                                 ATS {document.ats_score}
+                            </span>
+                        )}
+                        {aiScore != null && (
+                            <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-semibold ${aiScoreClasses.bg} ${aiScoreClasses.text}`}>
+                                AI {aiScore}
                             </span>
                         )}
                     </div>
@@ -183,12 +191,14 @@ const DocumentCard = ({
                 />
             )}
 
-            {canAiCheck && (
+                {canAiCheck && (
                 <AiResumeCheckPanel
                     checkResult={aiCheckResult}
                     isAnalyzing={isAiChecking}
+                    isHydrating={isHydratingAiCheck}
                     isOpen={isAiOpen}
                     onToggle={() => setIsAiOpen(open => !open)}
+                    onRetry={handleAiCheck}
                 />
             )}
 

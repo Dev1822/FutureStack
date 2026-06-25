@@ -92,7 +92,10 @@ async function parseResume(resumeText, llmOptions) {
         });
         return normalise(extracted);
     } catch (err) {
-        console.error('[resume-agent] Resume parsing failed:', err.message);
+        const keyMeta = llmOptions?.apiKey
+            ? ` (keyLen=${llmOptions.apiKey.length})`
+            : '';
+        console.error('[resume-agent] Resume parsing failed:', err.message + keyMeta);
         throwIfLlmError(err, `Resume parsing failed: ${err.message}`);
     }
 }

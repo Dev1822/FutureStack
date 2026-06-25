@@ -1,6 +1,6 @@
 // Documents page - main library view for all user documents
 // Follows the same design patterns as InternshipList and other pages
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { toast } from 'react-toastify';
 import { FaPlus, FaSearch, FaBrain } from 'react-icons/fa';
 import SEO from '../components/seo/SEO';
@@ -35,16 +35,56 @@ const Documents = () => {
     const [aiCheckingId, setAiCheckingId] = useState(null);
     // Map of documentId -> latest AI check result (populated after a run)
     const [aiCheckResults, setAiCheckResults] = useState({});
+    const [aiChecksHydrating, setAiChecksHydrating] = useState(false);
     const [aiSettings, setAiSettings] = useState(null);
     const [isAiSettingsOpen, setIsAiSettingsOpen] = useState(false);
     const [isSavingAiSettings, setIsSavingAiSettings] = useState(false);
+    const hydrateInFlightRef = useRef(false);
 
     const fetchAiSettings = useCallback(async () => {
         try {
             const data = await aiSettingsService.get();
             setAiSettings(data);
+            if (data.needsKeyRefresh) {
+                toast.warn(data.message || 'Please re-enter your Gemini API key in AI Settings.', { duration: 8000 });
+            }
         } catch (error) {
             console.error('Error fetching AI settings:', error);
+        }
+    }, []);
+
+    const hydrateAiCheckResults = useCallback(async (docs) => {
+        const resumes = docs.filter((doc) => doc.type === 'resume' && !doc.is_external);
+        if (resumes.length === 0 || hydrateInFlightRef.current) return;
+
+        hydrateInFlightRef.current = true;
+        setAiChecksHydrating(true);
+        try {
+            const pairs = await Promise.all(
+                resumes.map(async (doc) => {
+                    try {
+                        const check = await resumeCheckerService.getCheck(doc.id);
+                        return [doc.id, check];
+                    } catch (error) {
+                        const status = error.response?.status;
+                        if (status !== 404 && status !== 429) {
+                            console.error(`Error loading AI check for ${doc.id}:`, error);
+                        }
+                        return null;
+                    }
+                })
+            );
+
+            const loaded = {};
+            for (const pair of pairs) {
+                if (pair) loaded[pair[0]] = pair[1];
+            }
+            if (Object.keys(loaded).length > 0) {
+                setAiCheckResults((prev) => ({ ...prev, ...loaded }));
+            }
+        } finally {
+            hydrateInFlightRef.current = false;
+            setAiChecksHydrating(false);
         }
     }, []);
 
@@ -54,13 +94,14 @@ const Documents = () => {
             setLoading(true);
             const data = await documentService.getAll();
             setDocuments(data);
+            void hydrateAiCheckResults(data);
         } catch (error) {
             console.error('Error fetching documents:', error);
             toast.error('Failed to load documents');
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [hydrateAiCheckResults]);
 
     useEffect(() => {
         fetchDocuments();
@@ -190,7 +231,11 @@ const Documents = () => {
         if (document.type !== 'resume' || document.is_external) return;
 
         if (!aiSettings?.configured) {
-            toast.info('Add your Gemini API key to run AI resume checks.');
+            toast.info(
+                aiSettings?.needsKeyRefresh
+                    ? 'Your saved API key needs to be re-entered.'
+                    : 'Add your Gemini API key to run AI resume checks.'
+            );
             setIsAiSettingsOpen(true);
             return;
         }
@@ -206,13 +251,26 @@ const Documents = () => {
             );
         } catch (error) {
             console.error('Error running AI resume check:', error);
-            const msg = error.response?.data?.message || error.response?.data?.error;
+            const data = error.response?.data || {};
+            const msg = data.message || data.error;
             if (error.response?.status === 429) {
-                toast.error(msg || 'Gemini quota or rate limit reached. Try gemini-3.1-flash-lite in AI Settings or wait a few minutes.', { duration: 8000 });
+                if (data.code === 'AI_CHECK_RATE_LIMIT') {
+                    const mins = data.retryAfterSeconds
+                        ? Math.max(1, Math.ceil(data.retryAfterSeconds / 60))
+                        : null;
+                    toast.error(
+                        mins
+                            ? `Too many AI checks (${data.limit || 10} per ${data.window || '15 minutes'}). Try again in ~${mins} min.`
+                            : (msg || 'Too many AI checks. Please wait before trying again.'),
+                        { duration: 10000 }
+                    );
+                } else {
+                    toast.error(msg || 'Gemini quota or rate limit reached. Try gemini-3.1-flash-lite in AI Settings or wait a few minutes.', { duration: 8000 });
+                }
             } else if (error.response?.status === 503) {
                 toast.error('AI resume checker is not enabled on this server.');
-            } else if (error.response?.status === 400 && error.response?.data?.needsApiKey) {
-                toast.info('Add your Gemini API key to continue.');
+            } else if (error.response?.status === 400 && (data.needsApiKey || data.needsKeyRefresh || data.error === 'LLM_AUTH_ERROR' || data.error === 'KEY_DECRYPT_FAILED')) {
+                toast.error(msg || 'Invalid or unreadable API key. Re-enter your Gemini key in AI Settings.', { duration: 8000 });
                 setIsAiSettingsOpen(true);
             } else {
                 toast.error(msg || 'AI resume check failed. Please try again.');
@@ -249,6 +307,8 @@ const Documents = () => {
             const code = error.response?.data?.code;
             if (code === 'AI_TABLES_MISSING') {
                 toast.error(msg || 'Database setup required. Run docs/ai-tables-setup.sql in Supabase SQL Editor.', { duration: 8000 });
+            } else if (code === 'KEY_DECRYPT_FAILED' || error.response?.data?.needsKeyRefresh) {
+                toast.error(msg || 'Re-enter your full Gemini API key to continue.', { duration: 8000 });
             } else {
                 toast.error(msg || 'Failed to save AI settings.');
             }
@@ -306,7 +366,14 @@ const Documents = () => {
                             className="flex items-center justify-center gap-2 w-full sm:w-auto"
                         >
                             <FaBrain size={14} />
-                            {aiSettings?.configured ? 'AI Settings' : 'Add API Key'}
+                            <span>
+                                {aiSettings?.configured ? 'AI Settings' : 'Add API Key'}
+                                {aiSettings?.configured && aiSettings.model && (
+                                    <span className="hidden sm:inline text-gray-500 font-normal">
+                                        {' '}· {aiSettings.model}
+                                    </span>
+                                )}
+                            </span>
                         </Button>
                         <Button
                             variant="primary"
@@ -387,6 +454,12 @@ const Documents = () => {
                                 isCheckingAts={checkingAtsId === doc.id}
                                 onAiCheck={handleAiCheck}
                                 isAiChecking={aiCheckingId === doc.id}
+                                isHydratingAiCheck={
+                                    aiChecksHydrating
+                                    && doc.type === 'resume'
+                                    && !doc.is_external
+                                    && !aiCheckResults[doc.id]
+                                }
                                 aiCheckResult={aiCheckResults[doc.id] ?? null}
                             />
                         ))}

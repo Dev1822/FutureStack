@@ -42,5 +42,10 @@
         "nodemon": "^3.0.2",
         "pg": "^8.16.3",
         "supertest": "^7.0.0"
+    },
+    "overrides": {
+        "ollama-ai-provider": {
+            "zod": "$zod"
+        }
     }
 }

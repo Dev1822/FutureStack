@@ -104,7 +104,7 @@ See [`../docs/documents-and-ats.md`](../docs/documents-and-ats.md).
 ### AI Resume Checker
 
 See [`../docs/ai-resume-checker.md`](../docs/ai-resume-checker.md).
-Rate-limited at 10 requests / 15 min (dedicated `aiLimiter` in `app.js`).
+Rate-limited on **POST** only (see `middleware/aiLimiter.js`). GET is unlimited.
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|

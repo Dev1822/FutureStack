@@ -36,10 +36,12 @@ function classifyLlmError(err) {
     if (
         lower.includes('api key not valid') ||
         lower.includes('invalid api key') ||
-        lower.includes('api_key_invalid')
+        lower.includes('api_key_invalid') ||
+        lower.includes('permission_denied')
     ) {
         return new LlmError(
-            'Invalid Gemini API key. Update your key in AI Settings.',
+            'Gemini rejected your API key. In AI Settings, paste a new key from https://aistudio.google.com/api-keys '
+            + 'with no HTTP referrer or IP restrictions (those block this server).',
             'LLM_AUTH_ERROR',
             400
         );

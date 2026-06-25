@@ -22,13 +22,13 @@ and data model.
 ```
 Browser → POST /api/documents/:id/ai-check
               ↓ requireAuth (Clerk JWT)
-              ↓ aiLimiter (10 req/15 min)
+              ↓ aiCheckRunLimiter on POST only (30/15 min dev, 10/15 min prod, per user)
          routes/resume-checker.js
               ↓ verify document ownership + type = 'resume'
               ↓ insert resume_ai_checks (status='running')
          lib/resume-agent/runResumeCheck.js
           ├── extract.js     → download from Supabase Storage → PDF/DOCX → plain text
-          ├── parser.js      → 6× LLM calls (per section) → JSON Resume object
+          ├── parser.js      → 1× LLM call → JSON Resume object
           ├── github.js      → GitHub API → repo metadata → LLM top-7 project selection
           └── evaluator.js   → LLM evaluation → category scores + evidence
               ↓ update resume_ai_checks (status='completed')
@@ -49,13 +49,12 @@ Equivalent of `pymupdf_rag.py` / `pdf.py` from the reference.
 - Extracts plain text from **PDF** (`pdf-parse`) or **DOCX** (`mammoth`).
 - Normalises whitespace; throws if fewer than 50 characters are extracted.
 
-### 2. Per-section parsing (`lib/resume-agent/parser.js`)
+### 2. Resume parsing (`lib/resume-agent/parser.js`)
 Equivalent of `pdf.PDFHandler` + `transform.py` from the reference.
 
-- Calls the LLM **once per section**: basics, work, education, skills, projects, awards.
-- Each call uses a Zod schema for structured output via the Vercel AI SDK `generateObject`.
-- Failed sections degrade gracefully to empty defaults (the pipeline never aborts for a
-  missing awards section, for example).
+- Calls the LLM **once** with a full JSON Resume schema (basics, work, education, skills, projects, awards).
+- Uses Zod + Vercel AI SDK `generateObject` for structured output.
+- Quota errors surface as `429` with a clear message (no silent per-section degradation).
 - Output is a **JSON Resume**-style object.
 
 ### 3. GitHub enrichment (`lib/resume-agent/github.js`)
@@ -90,7 +89,7 @@ Uses the **[Vercel AI SDK](https://sdk.vercel.ai/)** (`ai` package) with pluggab
 
 | `LLM_PROVIDER` | Package | Default model |
 |---|---|---|
-| `gemini` (default) | `@ai-sdk/google` | `gemini-2.0-flash` |
+| `gemini` (default) | `@ai-sdk/google` | `gemini-3.1-flash-lite` |
 | `ollama` | `ollama-ai-provider` | `llama3.2` (or any pulled model) |
 
 Adding a new provider (e.g. OpenAI) requires a single `case` in `lib/llm/index.js` and
@@ -100,7 +99,7 @@ installing `@ai-sdk/openai`.
 
 ## API endpoints
 
-Both endpoints are protected by Clerk JWT auth (`requireAuth`) and the AI rate limiter.
+`POST` is protected by Clerk JWT auth and the AI rate limiter. `GET` (load saved results) is auth-only with no AI rate limit.
 
 ### `POST /api/documents/:id/ai-check`
 
@@ -116,7 +115,7 @@ Trigger a new AI resume check for the given document.
 **Errors:**
 - `400` – document is not a resume, or has no accessible file
 - `404` – document not found
-- `429` – AI rate limit exceeded (10 checks / 15 min per IP)
+- `429` – AI rate limit exceeded on **POST** (default: 30 checks / 15 min per user in dev, 10 in production)
 - `500` – pipeline failure (persisted in DB with `status='failed'`)
 - `503` – AI checker disabled (`RESUME_AI_ENABLED=false`)
 
@@ -141,7 +140,7 @@ Table: `resume_ai_checks`
 | `document_id` | UUID | FK → documents (cascade delete) |
 | `status` | TEXT | `pending \| running \| completed \| failed` |
 | `provider` | TEXT | e.g. `gemini`, `ollama` |
-| `model` | TEXT | e.g. `gemini-2.0-flash`, `llama3.2` |
+| `model` | TEXT | e.g. `gemini-3.1-flash-lite`, `gemini-2.5-flash` |
 | `overall_score` | INTEGER | 0–100 |
 | `category_scores` | JSONB | `{ open_source, self_projects, production, technical_skills }` |
 | `bonus` | INTEGER | 0–10 |
@@ -165,7 +164,7 @@ All AI-related vars are backend-only. See `backend/.env.example` for the full li
 |---|---|---|
 | `RESUME_AI_ENABLED` | `true` | Set `false` to disable the feature |
 | `LLM_PROVIDER` | `gemini` | `gemini` or `ollama` |
-| `LLM_MODEL` | `gemini-2.0-flash` | Model name for the selected provider |
+| `LLM_MODEL` | `gemini-3.1-flash-lite` | Model name for the selected provider |
 | `GEMINI_API_KEY` | — | Required when `LLM_PROVIDER=gemini` |
 | `OLLAMA_BASE_URL` | `http://localhost:11434` | Ollama server URL |
 | `GITHUB_TOKEN` | — | Optional; raises rate limit from 60→5000 req/hr |
@@ -198,7 +197,9 @@ Pull the model first: `ollama pull qwen2.5`
 
 ## Rate limiting
 
-A dedicated `aiLimiter` (10 requests / 15 min per IP) is applied in `backend/src/app.js`
+`aiCheckRunLimiter` in `backend/src/middleware/aiLimiter.js` applies only to **POST**
+(30 requests / 15 min per authenticated user in development, 10 in production).
+`GET /ai-check` is unlimited — it only reads saved results from the database.
 to control LLM costs. This is separate from the general and write-operation limiters.
 
 ---

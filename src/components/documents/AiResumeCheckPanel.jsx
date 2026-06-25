@@ -1,42 +1,44 @@
 /**
  * AiResumeCheckPanel — AI-powered resume evaluation panel.
- *
- * Displays the result of the agentic AI resume checker:
- *   - Overall score ring + category bar chart
- *   - Strengths & suggestions
- *   - GitHub signals (if available)
- *   - Per-category evidence (expandable)
- *   - AI/LLM disclaimer
- *
- * Visually matches AtsAnalysisPanel for a consistent Documents vault experience.
- * Powered by interviewstreet/hiring-agent architecture (MIT © HackerRank),
- * reimplemented in Node.js for FutureTracker.
  */
 
 import React, { useState } from 'react';
-import { FaGithub, FaChevronDown, FaChevronUp, FaBrain } from 'react-icons/fa';
-import { ScoreRing } from './AtsAnalysisPanel';
-
-// ---------------------------------------------------------------------------
-// Category bar
-// ---------------------------------------------------------------------------
+import { FaGithub, FaChevronDown, FaChevronUp, FaBrain, FaRedo } from 'react-icons/fa';
+import { ScoreRing, getScoreClasses } from './AtsAnalysisPanel';
 
 const CATEGORY_LABELS = {
-    open_source:      'Open Source',
-    self_projects:    'Self Projects',
-    production:       'Production',
+    open_source: 'Open Source',
+    self_projects: 'Self Projects',
+    production: 'Production',
     technical_skills: 'Technical Skills',
 };
 
-const CATEGORY_MAX = {
-    open_source: 35,
-    self_projects: 30,
-    production: 25,
-    technical_skills: 10,
-};
+/** Each category is scored 0–25 (matches backend evaluator schema). */
+const CATEGORY_MAX = 25;
 
-const CategoryBar = ({ label, score, max = 25 }) => {
-    const pct = Math.min(100, Math.round((score / max) * 100));
+const LOADING_STEPS = [
+    'Extracting resume text',
+    'Parsing structure with LLM',
+    'Checking GitHub signals',
+    'Generating scores & feedback',
+];
+
+function formatCheckedAt(dateStr) {
+    if (!dateStr) return null;
+    const date = new Date(dateStr);
+    if (Number.isNaN(date.getTime())) return null;
+    const now = new Date();
+    const diffMs = now - date;
+    const diffMins = Math.floor(diffMs / 60000);
+    if (diffMins < 1) return 'just now';
+    if (diffMins < 60) return `${diffMins}m ago`;
+    const diffHours = Math.floor(diffMins / 60);
+    if (diffHours < 24) return `${diffHours}h ago`;
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+const CategoryBar = ({ label, score, max = CATEGORY_MAX }) => {
+    const pct = max > 0 ? Math.min(100, Math.round((score / max) * 100)) : 0;
     const color =
         pct >= 70 ? 'bg-emerald-500' :
         pct >= 40 ? 'bg-amber-500' :
@@ -46,109 +48,136 @@ const CategoryBar = ({ label, score, max = 25 }) => {
         <div>
             <div className="flex justify-between items-center mb-1">
                 <span className="text-xs text-gray-400">{label}</span>
-                <span className="text-xs font-semibold text-white">{score}/{max}</span>
+                <span className="text-xs font-semibold text-white tabular-nums">{score}/{max}</span>
             </div>
             <div className="h-1.5 rounded-full bg-white/10 overflow-hidden">
-                <div className={`h-full rounded-full ${color} transition-all duration-700`} style={{ width: `${pct}%` }} />
+                <div
+                    className={`h-full rounded-full ${color} transition-all duration-700`}
+                    style={{ width: `${pct}%` }}
+                />
             </div>
         </div>
     );
 };
 
-// ---------------------------------------------------------------------------
-// Main panel
-// ---------------------------------------------------------------------------
-
 const AiResumeCheckPanel = ({
     checkResult = null,
     isAnalyzing = false,
+    isHydrating = false,
     isOpen = false,
     onToggle,
+    onRetry,
 }) => {
     const [showEvidence, setShowEvidence] = useState(false);
 
-    // ---------- Loading state ----------
-    if (isAnalyzing) {
+    if (isHydrating) {
         return (
-            <div className="mt-3 rounded-lg border border-violet-500/20 bg-violet-500/5 p-4">
-                <div className="flex items-center gap-2 mb-1">
-                    <FaBrain className="text-violet-400 animate-pulse" size={14} />
-                    <p className="text-sm font-medium text-violet-200">AI Resume Check running…</p>
+            <div className="mt-3 rounded-lg border border-white/10 bg-white/[0.02] px-4 py-3 animate-pulse">
+                <div className="flex items-center gap-2 mb-2">
+                    <div className="h-3 w-3 rounded-full bg-violet-500/30" />
+                    <div className="h-3 w-32 rounded bg-white/10" />
                 </div>
-                <p className="text-xs text-gray-400">
-                    Extracting content, parsing sections, checking GitHub signals, and evaluating.
-                    This typically takes 20–60 seconds.
-                </p>
-                <div className="mt-2 h-1 rounded-full bg-white/10 overflow-hidden">
-                    <div className="h-full bg-violet-500 rounded-full animate-pulse" style={{ width: '60%' }} />
-                </div>
+                <div className="h-2 w-full rounded bg-white/5" />
             </div>
         );
     }
 
-    // ---------- No result yet ----------
+    if (isAnalyzing) {
+        return (
+            <div className="mt-3 rounded-lg border border-violet-500/25 bg-gradient-to-br from-violet-500/10 to-transparent p-4">
+                <div className="flex items-center gap-2 mb-2">
+                    <FaBrain className="text-violet-400 animate-pulse shrink-0" size={14} />
+                    <p className="text-sm font-medium text-violet-200">AI Resume Check running…</p>
+                </div>
+                <ul className="space-y-1.5 mb-3">
+                    {LOADING_STEPS.map((step, i) => (
+                        <li key={step} className="flex items-center gap-2 text-xs text-gray-400">
+                            <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${i === 0 ? 'bg-violet-400 animate-pulse' : 'bg-white/20'}`} />
+                            {step}
+                        </li>
+                    ))}
+                </ul>
+                <div className="h-1 rounded-full bg-white/10 overflow-hidden">
+                    <div className="h-full bg-violet-500 rounded-full animate-pulse w-2/3" />
+                </div>
+                <p className="mt-2 text-[11px] text-gray-500">Usually 20–60 seconds. Keep this tab open.</p>
+            </div>
+        );
+    }
+
     if (!checkResult) {
         return (
-            <div className="mt-3 rounded-lg border border-dashed border-white/10 bg-white/[0.02] px-4 py-3">
+            <div className="mt-3 rounded-lg border border-dashed border-violet-500/20 bg-violet-500/[0.03] px-4 py-3">
                 <div className="flex items-center gap-1.5 mb-1">
                     <FaBrain className="text-violet-400" size={12} />
                     <p className="text-sm font-medium text-white">No AI check yet</p>
                 </div>
                 <p className="text-xs text-gray-400 leading-relaxed">
-                    Use <span className="text-violet-300">AI Check</span> below to run an agentic evaluation powered by an LLM.
-                    Scores overall quality, open-source contributions, projects, production experience,
-                    and technical skills.
+                    Tap <span className="text-violet-300 font-medium">AI Check</span> to score open source work,
+                    projects, production experience, and technical skills with an LLM.
                 </p>
             </div>
         );
     }
 
-    // ---------- Failed state ----------
     if (checkResult.status === 'failed') {
         return (
-            <div className="mt-3 rounded-lg border border-red-500/20 bg-red-500/5 px-4 py-3">
-                <div className="flex items-center gap-1.5 mb-1">
-                    <FaBrain className="text-red-400" size={12} />
-                    <p className="text-sm font-medium text-red-300">AI check failed</p>
+            <div className="mt-3 rounded-lg border border-red-500/25 bg-red-500/5 px-4 py-3">
+                <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                        <div className="flex items-center gap-1.5 mb-1">
+                            <FaBrain className="text-red-400 shrink-0" size={12} />
+                            <p className="text-sm font-medium text-red-300">AI check failed</p>
+                        </div>
+                        <p className="text-xs text-gray-400 leading-relaxed">
+                            {checkResult.error || 'Analysis could not be completed. Please try again.'}
+                        </p>
+                    </div>
+                    {onRetry && (
+                        <button
+                            type="button"
+                            onClick={onRetry}
+                            className="shrink-0 flex items-center gap-1 px-2 py-1 rounded-md text-xs text-violet-300 bg-violet-500/10 hover:bg-violet-500/20 transition-colors"
+                        >
+                            <FaRedo size={10} />
+                            Retry
+                        </button>
+                    )}
                 </div>
-                <p className="text-xs text-gray-400">
-                    {checkResult.error || 'Analysis could not be completed. Please try again.'}
-                </p>
             </div>
         );
     }
 
-    // ---------- Completed state ----------
     const score = checkResult.overall_score ?? 0;
+    const scoreClasses = getScoreClasses(score);
     const cats = checkResult.category_scores || {};
-    const catMax = checkResult.category_max || CATEGORY_MAX;
     const strengths = checkResult.strengths || [];
     const suggestions = checkResult.suggestions || [];
     const evidence = checkResult.evidence || {};
     const github = checkResult.github_summary;
     const provider = checkResult.provider;
     const model = checkResult.model;
+    const checkedAt = formatCheckedAt(checkResult.updated_at || checkResult.created_at);
 
     return (
-        <div className="mt-3 rounded-lg border border-white/10 bg-black/20">
-            {/* Header row */}
+        <div className="mt-3 rounded-lg border border-violet-500/15 bg-black/25 overflow-hidden">
             <div
-                className="flex items-center justify-between gap-3 p-3 cursor-pointer select-none"
+                className="flex items-center justify-between gap-3 p-3 cursor-pointer select-none hover:bg-white/[0.02] transition-colors"
                 onClick={onToggle}
                 role="button"
                 aria-expanded={isOpen}
             >
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 min-w-0">
                     <FaBrain className="text-violet-400 shrink-0" size={13} />
-                    <span className="text-xs text-gray-400">AI Resume Score</span>
-                    {provider && (
-                        <span className="text-[10px] text-gray-600 hidden sm:inline">
-                            {provider}/{model}
-                        </span>
-                    )}
+                    <div className="min-w-0">
+                        <span className="text-xs text-gray-400 block">AI Resume Score</span>
+                        {checkedAt && (
+                            <span className="text-[10px] text-gray-600">Checked {checkedAt}</span>
+                        )}
+                    </div>
                 </div>
-                <div className="flex items-center gap-2">
-                    <span className={`text-sm font-bold ${score >= 75 ? 'text-emerald-300' : score >= 50 ? 'text-amber-300' : 'text-red-300'}`}>
+                <div className="flex items-center gap-2 shrink-0">
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${scoreClasses.bg} ${scoreClasses.text}`}>
                         {score}/100
                     </span>
                     {onToggle && (
@@ -161,8 +190,6 @@ const AiResumeCheckPanel = ({
 
             {isOpen && (
                 <div className="px-3 pb-4 space-y-4 border-t border-white/5 pt-3">
-
-                    {/* Score ring + category bars */}
                     <div className="flex items-start gap-4">
                         <ScoreRing score={score} />
                         <div className="flex-1 space-y-2 min-w-0">
@@ -171,28 +198,29 @@ const AiResumeCheckPanel = ({
                                     key={key}
                                     label={label}
                                     score={cats[key] ?? 0}
-                                    max={catMax[key] ?? CATEGORY_MAX[key] ?? 25}
                                 />
                             ))}
                         </div>
                     </div>
 
-                    {/* Bonus / deductions row */}
                     {(checkResult.bonus > 0 || checkResult.deductions > 0) && (
-                        <div className="flex gap-3 text-xs">
+                        <div className="flex flex-wrap gap-2 text-xs">
                             {checkResult.bonus > 0 && (
-                                <span className="text-emerald-400">+{checkResult.bonus} bonus</span>
+                                <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400">
+                                    +{checkResult.bonus} bonus
+                                </span>
                             )}
                             {checkResult.deductions > 0 && (
-                                <span className="text-red-400">-{checkResult.deductions} deductions</span>
+                                <span className="px-2 py-0.5 rounded-full bg-red-500/10 text-red-400">
+                                    −{checkResult.deductions} deductions
+                                </span>
                             )}
                         </div>
                     )}
 
-                    {/* Strengths */}
                     {strengths.length > 0 && (
-                        <div>
-                            <p className="text-xs font-semibold text-gray-300 mb-1.5">Strengths</p>
+                        <div className="rounded-lg bg-emerald-500/5 border border-emerald-500/10 px-3 py-2">
+                            <p className="text-xs font-semibold text-emerald-300/90 mb-1.5">Strengths</p>
                             <ul className="space-y-1">
                                 {strengths.map((s, i) => (
                                     <li key={i} className="flex gap-1.5 text-xs text-gray-400">
@@ -204,10 +232,9 @@ const AiResumeCheckPanel = ({
                         </div>
                     )}
 
-                    {/* Suggestions */}
                     {suggestions.length > 0 && (
-                        <div>
-                            <p className="text-xs font-semibold text-gray-300 mb-1.5">Suggestions</p>
+                        <div className="rounded-lg bg-amber-500/5 border border-amber-500/10 px-3 py-2">
+                            <p className="text-xs font-semibold text-amber-300/90 mb-1.5">Suggestions</p>
                             <ul className="space-y-1">
                                 {suggestions.map((s, i) => (
                                     <li key={i} className="flex gap-1.5 text-xs text-gray-400">
@@ -219,43 +246,41 @@ const AiResumeCheckPanel = ({
                         </div>
                     )}
 
-                    {/* GitHub signals */}
                     {github && (
-                        <div className="rounded-md bg-white/[0.03] border border-white/5 px-3 py-2">
+                        <div className="rounded-lg bg-white/[0.03] border border-white/5 px-3 py-2">
                             <div className="flex items-center gap-1.5 mb-1">
                                 <FaGithub size={12} className="text-gray-400" />
                                 <span className="text-xs font-medium text-gray-300">
-                                    GitHub: @{github.username}
+                                    GitHub @{github.username}
                                 </span>
                             </div>
-                            <div className="flex gap-4 text-[11px] text-gray-500">
-                                <span>{github.publicRepos} public repos</span>
-                                <span>{github.totalStars} total stars</span>
+                            <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-gray-500">
+                                <span>{github.publicRepos} repos</span>
+                                <span>{github.totalStars} stars</span>
                                 <span>{github.followers} followers</span>
                             </div>
                             {github.topProjects?.length > 0 && (
-                                <p className="mt-1 text-[11px] text-gray-500">
-                                    Top projects: {github.topProjects.join(', ')}
+                                <p className="mt-1.5 text-[11px] text-gray-500 leading-relaxed">
+                                    Highlighted: {github.topProjects.join(', ')}
                                 </p>
                             )}
                         </div>
                     )}
 
-                    {/* Evidence (expandable) */}
                     {Object.values(evidence).some(Boolean) && (
                         <div>
                             <button
                                 type="button"
                                 onClick={() => setShowEvidence(v => !v)}
-                                className="flex items-center gap-1 text-xs font-medium text-blue-400 hover:text-blue-300"
+                                className="flex items-center gap-1 text-xs font-medium text-violet-400 hover:text-violet-300"
                             >
                                 {showEvidence ? <FaChevronUp size={10} /> : <FaChevronDown size={10} />}
                                 {showEvidence ? 'Hide' : 'Show'} evaluation evidence
                             </button>
                             {showEvidence && (
-                                <ul className="mt-2 space-y-1.5">
+                                <ul className="mt-2 space-y-1.5 rounded-lg bg-white/[0.02] border border-white/5 p-2">
                                     {Object.entries(evidence).map(([key, val]) => val ? (
-                                        <li key={key} className="text-[11px] text-gray-500">
+                                        <li key={key} className="text-[11px] text-gray-500 leading-relaxed">
                                             <span className="text-gray-400 font-medium">
                                                 {CATEGORY_LABELS[key] || key}:
                                             </span>{' '}
@@ -267,10 +292,8 @@ const AiResumeCheckPanel = ({
                         </div>
                     )}
 
-                    {/* AI disclaimer */}
                     <p className="text-[10px] text-gray-600 leading-relaxed border-t border-white/5 pt-2">
-                        AI-generated evaluation — not an official score. Results may vary across runs
-                        and providers. Powered by {provider || 'LLM'} ({model || 'unknown model'}).
+                        AI-generated — not an official score. Model: {provider || 'LLM'}/{model || 'unknown'}.
                     </p>
                 </div>
             )}

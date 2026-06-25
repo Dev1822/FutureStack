@@ -117,27 +117,6 @@ const writeOperationsLimiter = rateLimit({
     }
 });
 
-// Dedicated AI limiter: LLM calls are expensive; keep ceiling low
-const aiLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000,
-    max: 10, // 10 AI resume checks per 15 minutes per IP
-    standardHeaders: true,
-    legacyHeaders: false,
-    handler: (req, res) => {
-        const resetTime = new Date(Date.now() + 15 * 60 * 1000);
-        const retryAfterSeconds = Math.ceil((resetTime - Date.now()) / 1000);
-        res.set('Retry-After', retryAfterSeconds.toString());
-        res.status(429).json({
-            error: 'AI Rate Limit Exceeded',
-            message: 'You have reached the limit for AI resume checks. Each analysis uses an LLM call; please wait before trying again.',
-            retryAfter: resetTime.toISOString(),
-            retryAfterSeconds,
-            limit: 10,
-            window: '15 minutes',
-        });
-    },
-});
-
 app.use('/api/', generalLimiter);
 
 if (process.env.NODE_ENV === 'development') {
@@ -251,7 +230,7 @@ app.use('/api/hackathons', requireAuth, writeOperationsLimiter, hackathonsRoutes
 app.use('/api/interview-prep', requireAuth, writeOperationsLimiter, interviewPrepRoutes);
 app.use('/api/share-links', requireAuth, writeOperationsLimiter, shareLinksRoutes);
 app.use('/api/public/share-links', publicShareLinksRoutes);
-app.use('/api/documents/:id/ai-check', requireAuth, aiLimiter, resumeCheckerRoutes);
+app.use('/api/documents/:id/ai-check', requireAuth, resumeCheckerRoutes);
 app.use('/api/ai-settings', requireAuth, aiSettingsRoutes);
 
 app.get('/api/me', requireAuth, (req, res) => {

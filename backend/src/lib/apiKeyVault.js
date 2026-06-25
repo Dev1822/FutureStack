@@ -52,10 +52,36 @@ function decryptApiKey(row) {
     ]).toString('utf8');
 }
 
+function isDecryptFailure(err) {
+    const msg = err?.message || '';
+    return (
+        err?.code === 'ERR_CRYPTO_INVALID_AUTH_TAG' ||
+        msg.includes('Unsupported state or unable to authenticate data')
+    );
+}
+
+/**
+ * Decrypt without throwing on stale/corrupt ciphertext (e.g. encryption secret changed).
+ * @returns {{ key: string|null, failed: boolean }}
+ */
+function tryDecryptApiKey(row) {
+    if (!row?.api_key_ciphertext || !row?.api_key_iv || !row?.api_key_auth_tag) {
+        return { key: null, failed: false };
+    }
+    try {
+        return { key: decryptApiKey(row), failed: false };
+    } catch (err) {
+        if (isDecryptFailure(err)) {
+            return { key: null, failed: true };
+        }
+        throw err;
+    }
+}
+
 /** Return a safe hint like "…abc1" for UI display. */
 function keyHint(apiKey) {
     if (!apiKey || apiKey.length < 4) return null;
     return `…${apiKey.slice(-4)}`;
 }
 
-module.exports = { encryptApiKey, decryptApiKey, keyHint };
+module.exports = { encryptApiKey, decryptApiKey, tryDecryptApiKey, isDecryptFailure, keyHint };

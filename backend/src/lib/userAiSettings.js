@@ -5,13 +5,16 @@
 'use strict';
 
 const { supabase } = require('./supabase');
-const { decryptApiKey, keyHint } = require('./apiKeyVault');
+const { tryDecryptApiKey, keyHint } = require('./apiKeyVault');
+
+const KEY_REFRESH_MESSAGE =
+    'Your saved API key could not be read. Enter your Gemini API key again in AI Settings.';
 
 /**
  * Fetch user's saved AI settings (safe for API response — no raw key).
  *
  * @param {string} userId - Internal users.id UUID
- * @returns {Promise<{ configured: boolean, provider?: string, model?: string, keyHint?: string }>}
+ * @returns {Promise<{ configured: boolean, provider?: string, model?: string, keyHint?: string, needsKeyRefresh?: boolean, message?: string }>}
  */
 async function getUserAiSettingsSummary(userId) {
     const { data, error } = await supabase
@@ -25,7 +28,17 @@ async function getUserAiSettingsSummary(userId) {
         return { configured: false };
     }
 
-    const apiKey = decryptApiKey(data);
+    const { key: apiKey, failed } = tryDecryptApiKey(data);
+    if (failed) {
+        return {
+            configured: false,
+            needsKeyRefresh: true,
+            provider: data.provider,
+            model: data.model,
+            message: KEY_REFRESH_MESSAGE,
+        };
+    }
+
     return {
         configured: Boolean(apiKey),
         provider: data.provider,
@@ -51,13 +64,17 @@ async function resolveUserLlmOptions(userId) {
     if (error) throw error;
 
     if (data) {
-        const apiKey = decryptApiKey(data);
+        const { key: apiKey, failed } = tryDecryptApiKey(data);
+        if (failed) {
+            const err = new Error(KEY_REFRESH_MESSAGE);
+            err.code = 'KEY_DECRYPT_FAILED';
+            throw err;
+        }
         if (apiKey) {
             return { provider: data.provider, model: data.model, apiKey };
         }
     }
 
-    // Fallback to server env (dev/admin)
     if (process.env.GEMINI_API_KEY) {
         return {
             provider: process.env.LLM_PROVIDER || 'gemini',
@@ -69,4 +86,4 @@ async function resolveUserLlmOptions(userId) {
     throw new Error('No API key configured. Open AI Settings and save your Gemini API key.');
 }
 
-module.exports = { getUserAiSettingsSummary, resolveUserLlmOptions };
+module.exports = { getUserAiSettingsSummary, resolveUserLlmOptions, KEY_REFRESH_MESSAGE };

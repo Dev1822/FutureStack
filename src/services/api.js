@@ -278,7 +278,8 @@ export const resumeCheckerService = {
      */
     runCheck: async (documentId) => {
         const response = await api.post(`/documents/${documentId}/ai-check`, {}, {
-            timeout: 120000 // 2 minutes – allow for full pipeline
+            timeout: 120000,
+            skipErrorToast: true,
         });
         return response.data;
     },
@@ -290,7 +291,9 @@ export const resumeCheckerService = {
      * @returns {Promise<object>} Latest resume_ai_checks row
      */
     getCheck: async (documentId) => {
-        const response = await api.get(`/documents/${documentId}/ai-check`);
+        const response = await api.get(`/documents/${documentId}/ai-check`, {
+            skipErrorToast: true,
+        });
         return response.data;
     },
 };

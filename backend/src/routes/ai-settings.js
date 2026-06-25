@@ -15,6 +15,7 @@ const { saveAiSettingsSchema } = require('../validation/ai-settings-schemas');
 const { encryptApiKey, keyHint } = require('../lib/apiKeyVault');
 const { getUserAiSettingsSummary } = require('../lib/userAiSettings');
 const { mapDbError } = require('../lib/dbSetup');
+const { sanitizeApiKey, verifyGeminiApiKey } = require('../lib/geminiKeyValidation');
 
 const router = express.Router();
 
@@ -38,11 +39,19 @@ router.get('/', async (req, res) => {
 router.put('/', validate(saveAiSettingsSchema), async (req, res) => {
     const userId = req.auth.internalUserId;
     const { provider, model, apiKey } = req.body;
-    const trimmedKey = typeof apiKey === 'string' ? apiKey.trim() : '';
+    const trimmedKey = sanitizeApiKey(typeof apiKey === 'string' ? apiKey : '');
 
     try {
         if (!trimmedKey) {
             const summary = await getUserAiSettingsSummary(userId);
+            if (summary.needsKeyRefresh) {
+                return res.status(400).json({
+                    error: 'API Key Required',
+                    code: 'KEY_DECRYPT_FAILED',
+                    needsKeyRefresh: true,
+                    message: summary.message,
+                });
+            }
             if (!summary.configured) {
                 return res.status(400).json({
                     error: 'API Key Required',
@@ -70,6 +79,18 @@ router.put('/', validate(saveAiSettingsSchema), async (req, res) => {
                 keyHint: summary.keyHint,
                 message: 'AI settings updated.',
             });
+        }
+
+        if (provider === 'gemini') {
+            const verification = await verifyGeminiApiKey(trimmedKey, model);
+            if (!verification.ok) {
+                return res.status(400).json({
+                    error: verification.code || 'Invalid API Key',
+                    code: verification.code || 'LLM_AUTH_ERROR',
+                    message: verification.message,
+                    needsApiKey: true,
+                });
+            }
         }
 
         const encrypted = encryptApiKey(trimmedKey);

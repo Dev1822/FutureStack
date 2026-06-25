@@ -5,7 +5,7 @@
  * GET  /api/documents/:id/ai-check  – Fetch the latest AI check result
  *
  * Both routes are authenticated via requireAuth (Clerk JWT).
- * A dedicated AI rate limiter (applied in app.js) keeps LLM costs in check.
+ * A dedicated AI rate limiter on POST only keeps LLM costs in check.
  */
 
 'use strict';
@@ -17,6 +17,7 @@ const { documentIdParamSchema } = require('../validation/resume-checker-schemas'
 const { runResumeCheck } = require('../lib/resume-agent/runResumeCheck');
 const { resolveUserLlmOptions } = require('../lib/userAiSettings');
 const { LlmError } = require('../lib/llm/errors');
+const { aiCheckRunLimiter } = require('../middleware/aiLimiter');
 
 const router = express.Router({ mergeParams: true });
 
@@ -48,7 +49,7 @@ function logAudit(action, userId, resourceId = null, outcome = 'success', detail
 // POST /api/documents/:id/ai-check
 // ---------------------------------------------------------------------------
 
-router.post('/', validate(documentIdParamSchema, 'params'), async (req, res) => {
+router.post('/', aiCheckRunLimiter, validate(documentIdParamSchema, 'params'), async (req, res) => {
     if (!AI_ENABLED) {
         return res.status(503).json({
             error: 'Service Unavailable',
@@ -119,10 +120,11 @@ router.post('/', validate(documentIdParamSchema, 'params'), async (req, res) => 
                 .eq('id', checkId);
 
             return res.status(400).json({
-                error: 'API Key Required',
+                error: keyError.code === 'KEY_DECRYPT_FAILED' ? 'KEY_DECRYPT_FAILED' : 'API Key Required',
                 message: keyError.message,
                 check_id: checkId,
                 needsApiKey: true,
+                needsKeyRefresh: keyError.code === 'KEY_DECRYPT_FAILED',
             });
         }
 
@@ -154,6 +156,9 @@ router.post('/', validate(documentIdParamSchema, 'params'), async (req, res) => 
                 check_id: checkId,
                 ...(isLlmError && pipelineError.code === 'LLM_QUOTA_EXCEEDED'
                     ? { retryable: true }
+                    : {}),
+                ...(isLlmError && pipelineError.code === 'LLM_AUTH_ERROR'
+                    ? { needsApiKey: true }
                     : {}),
             });
         }
