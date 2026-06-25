@@ -15,6 +15,8 @@ const hackathonsRoutes = require('./routes/hackathons');
 const interviewPrepRoutes = require('./routes/interview-prep');
 const shareLinksRoutes = require('./routes/share-links');
 const publicShareLinksRoutes = require('./routes/public-share-links');
+const resumeCheckerRoutes = require('./routes/resume-checker');
+const aiSettingsRoutes = require('./routes/ai-settings');
 
 const app = express();
 
@@ -167,7 +169,8 @@ app.get('/api/health', (req, res) => {
 
 app.get('/api/health/deps', async (req, res) => {
     const checks = {
-        supabase: { status: 'ok' }
+        supabase: { status: 'ok' },
+        aiTables: { status: 'ok' },
     };
 
     try {
@@ -189,6 +192,27 @@ app.get('/api/health/deps', async (req, res) => {
         };
     }
 
+    try {
+        const { error } = await supabase
+            .from('user_ai_settings')
+            .select('user_id')
+            .limit(1);
+
+        if (error) {
+            checks.aiTables = {
+                status: 'missing',
+                message: error.message,
+                hint: 'Run docs/ai-tables-setup.sql in Supabase SQL Editor or npm run db:migrate:ai',
+            };
+        }
+    } catch (error) {
+        checks.aiTables = {
+            status: 'missing',
+            message: error.message,
+            hint: 'Run docs/ai-tables-setup.sql in Supabase SQL Editor or npm run db:migrate:ai',
+        };
+    }
+
     const allHealthy = Object.values(checks).every(check => check.status === 'ok');
 
     res.status(allHealthy ? 200 : 503).json({
@@ -206,6 +230,8 @@ app.use('/api/hackathons', requireAuth, writeOperationsLimiter, hackathonsRoutes
 app.use('/api/interview-prep', requireAuth, writeOperationsLimiter, interviewPrepRoutes);
 app.use('/api/share-links', requireAuth, writeOperationsLimiter, shareLinksRoutes);
 app.use('/api/public/share-links', publicShareLinksRoutes);
+app.use('/api/documents/:id/ai-check', requireAuth, resumeCheckerRoutes);
+app.use('/api/ai-settings', requireAuth, aiSettingsRoutes);
 
 app.get('/api/me', requireAuth, (req, res) => {
     res.json({

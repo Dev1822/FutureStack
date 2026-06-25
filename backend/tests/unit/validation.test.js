@@ -245,3 +245,37 @@ describe('updateBehavioralPrepSchema', () => {
         expect(error).toBeDefined();
     });
 });
+
+describe('saveAiSettingsSchema', () => {
+    const { saveAiSettingsSchema } = require('../../src/validation/ai-settings-schemas');
+
+    it('accepts model-only update without apiKey', () => {
+        const { error, value } = saveAiSettingsSchema.validate({
+            provider: 'gemini',
+            model: 'gemini-3.1-flash-lite',
+        });
+
+        expect(error).toBeUndefined();
+        expect(value.model).toBe('gemini-3.1-flash-lite');
+    });
+
+    it('accepts a valid apiKey when provided', () => {
+        const { error } = saveAiSettingsSchema.validate({
+            provider: 'gemini',
+            model: 'gemini-2.5-flash',
+            apiKey: 'AIzaSyD1234567890',
+        });
+
+        expect(error).toBeUndefined();
+    });
+
+    it('rejects apiKey that is too short when provided', () => {
+        const { error } = saveAiSettingsSchema.validate({
+            provider: 'gemini',
+            model: 'gemini-2.5-flash',
+            apiKey: 'short',
+        });
+
+        expect(error).toBeDefined();
+    });
+});

@@ -44,10 +44,19 @@ function extractSection(text, startPattern) {
 
 function countDelimitedItems(text) {
   if (!text) return 0;
-  return text
+
+  const delimited = text
     .split(/[,|•\n;/]+/)
-    .map(item => item.trim())
-    .filter(item => item.length > 1 && item.length < 80).length;
+    .map((item) => item.trim())
+    .filter((item) => item.length > 1 && item.length < 80);
+
+  if (delimited.length > 1) return delimited.length;
+
+  // Flattened PDFs often use space-separated skill lists on one line
+  return text
+    .split(/\s+/)
+    .map((item) => item.trim())
+    .filter((item) => item.length > 1 && item.length < 30).length;
 }
 
 function countExperienceSignals(experienceText) {
@@ -105,15 +114,50 @@ const buildSuggestions = ({
   return suggestions.slice(0, 5);
 };
 
+function keywordMatchesInText(text, keyword) {
+  const escaped = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const pattern = keyword.includes(' ')
+    ? new RegExp(escaped, 'i')
+    : new RegExp(`\\b${escaped}\\b`, 'i');
+  return pattern.test(text);
+}
+
+function countProjectEntries(projectsText) {
+  if (!projectsText) return 0;
+
+  const bulletLines = (projectsText.match(/(?:^|\n)\s*[-•*]\s+\S/g) || []).length;
+  const namedBlocks = projectsText
+    .split(/\n{2,}/)
+    .map((block) => block.trim())
+    .filter((block) => block.length > 20 && !/^(projects?|portfolio)\b/i.test(block)).length;
+
+  return Math.max(bulletLines, Math.min(5, namedBlocks));
+}
+
+function hasSectionHeading(text, patterns) {
+  return patterns.some((pattern) => pattern.test(text));
+}
+
 export function analyzeText(text = '') {
   const normalized = (text || '').toLowerCase();
+  const headerSlice = normalized.slice(0, 800);
 
   const sections = {
-    contact: /contact|email|phone|address|linkedin|github/.test(normalized),
-    education: /education|degree|bachelor|master|phd|university/.test(normalized),
-    skills: /skills?|technical skills|proficiencies|stack/.test(normalized),
-    experience: /experience|employment|work history|professional experience/.test(normalized),
-    projects: /project[s]?|portfolio|personal projects/.test(normalized)
+    contact: /(?:^|\n)[^\n]{0,80}(?:@|linkedin\.com|github\.com|phone|\+\d)/.test(headerSlice) ||
+      /[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/.test(headerSlice),
+    education: hasSectionHeading(normalized, [
+      /(?:^|\s)(education|academic background)\b/i,
+      /(?:^|\s)(bachelor|master|phd|b\.s\.|m\.s\.|b\.tech|university|college)\b/i,
+    ]),
+    skills: hasSectionHeading(normalized, [
+      /(?:^|\s)(skills?|technical skills|proficiencies|stack|technologies)\b/i,
+    ]),
+    experience: hasSectionHeading(normalized, [
+      /(?:^|\s)(experience|employment|work history|professional experience|internship)\b/i,
+    ]),
+    projects: hasSectionHeading(normalized, [
+      /(?:^|\s)(projects?|portfolio|personal projects|open source)\b/i,
+    ]),
   };
 
   const structurePerSection = 60 / Object.keys(sections).length;
@@ -129,11 +173,11 @@ export function analyzeText(text = '') {
   const skillsDepthScore = Math.min(8, Math.floor(skillItems / 2) + (skillItems >= 10 ? 2 : skillItems >= 6 ? 1 : 0));
 
   // Match keywords in role content only — not contact/header (github, git appear on every resume)
-  const matchedKeywords = KEYWORDS.filter(keyword => scoringText.includes(keyword));
-  const suggestedKeywords = KEYWORDS.filter(keyword => !matchedKeywords.includes(keyword));
+  const matchedKeywords = KEYWORDS.filter((keyword) => keywordMatchesInText(scoringText, keyword));
+  const suggestedKeywords = KEYWORDS.filter((keyword) => !matchedKeywords.includes(keyword));
   const keywordScore = Math.min(12, matchedKeywords.length);
 
-  const projectsCount = (projectsText.match(/project[s]?/g) || []).length;
+  const projectsCount = countProjectEntries(projectsText);
   const projectsScore = Math.min(
     5,
     Math.min(3, projectsCount) + (projectsText.length > 120 ? 2 : 0)

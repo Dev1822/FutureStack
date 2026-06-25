@@ -101,6 +101,18 @@ See [`../docs/documents-and-ats.md`](../docs/documents-and-ats.md).
 | POST | `/api/documents/:id/assign` | Link to opportunity |
 | DELETE | `/api/documents/:id/unassign/:opportunityId` | Unlink |
 
+### AI Resume Checker
+
+See [`../docs/ai-resume-checker.md`](../docs/ai-resume-checker.md).
+Rate-limited on **POST** only (see `middleware/aiLimiter.js`). GET is unlimited.
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/documents/:id/ai-check` | Run AI resume check pipeline |
+| GET  | `/api/documents/:id/ai-check` | Fetch latest AI check result |
+
+Requires `GEMINI_API_KEY` (or `LLM_PROVIDER=ollama`). Set `RESUME_AI_ENABLED=false` to disable.
+
 ### Hackathons
 
 Team collaboration workspace. See [`../docs/DOCUMENTATION.md`](../docs/DOCUMENTATION.md#hackathon-team-collaboration-new).
@@ -167,7 +179,17 @@ backend/
 │   ├── app.js                 # Express app, rate limits, mounts
 │   ├── lib/
 │   │   ├── supabase.js        # Supabase admin client
-│   │   └── syncOpportunityFromRounds.js
+│   │   ├── syncOpportunityFromRounds.js
+│   │   ├── llm/               # Provider-agnostic LLM layer (AI Resume Checker)
+│   │   │   └── index.js       #   generateText / generateObject / getProviderInfo
+│   │   └── resume-agent/      # Agentic AI resume check pipeline
+│   │       ├── extract.js     #   PDF/DOCX text extraction from Supabase Storage
+│   │       ├── parser.js      #   LLM → JSON Resume (per-section extraction)
+│   │       ├── github.js      #   GitHub API enrichment + LLM project selection
+│   │       ├── evaluator.js   #   LLM → category scores + evidence
+│   │       ├── runResumeCheck.js  #   Pipeline orchestrator
+│   │       └── prompts/       #   JS prompt templates (from hiring-agent Jinja, MIT)
+│   │           └── index.js
 │   ├── middleware/
 │   │   ├── auth.js            # Clerk JWT verification
 │   │   └── validate.js        # Request validation
@@ -176,6 +198,7 @@ backend/
 │   │   ├── opportunity-rounds.js
 │   │   ├── interview-prep.js
 │   │   ├── documents.js
+│   │   ├── resume-checker.js  # AI resume check routes
 │   │   ├── hackathons.js
 │   │   └── analytics.js
 │   └── validation/            # Schemas per route module

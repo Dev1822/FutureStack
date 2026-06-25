@@ -107,6 +107,9 @@ sequenceDiagram
 
 Round-specific logic also lives in `routes/opportunity-rounds.js` (mounted from opportunities router) and `lib/syncOpportunityFromRounds.js`.
 
+The AI resume check pipeline lives in `lib/resume-agent/` (extract → parse → github → evaluate)
+and the provider-agnostic LLM layer in `lib/llm/`. See [`ai-resume-checker.md`](ai-resume-checker.md).
+
 ---
 
 ## API service objects (`src/services/api.js`)
@@ -116,6 +119,7 @@ Round-specific logic also lives in `routes/opportunity-rounds.js` (mounted from 
 | `opportunityService` | `/opportunities` |
 | `roundService` | `/opportunities/:id/rounds` |
 | `documentService` | `/documents` |
+|| `resumeCheckerService` | `/documents/:id/ai-check` |
 | `hackathonService` | `/hackathons/:id/...` |
 | `interviewPrepService` | `/interview-prep/:opportunityId` |
 | `analyticsService` | `/analytics` |
@@ -132,6 +136,7 @@ Always add new endpoints here — pages should not construct URLs manually.
 | Interview rounds | [`interview-rounds.md`](interview-rounds.md) | `opportunity-rounds-migration.sql` |
 | Interview prep | [`interview-prep.md`](interview-prep.md) | `interview-prep-migration.sql` |
 | Documents + ATS | [`documents-and-ats.md`](documents-and-ats.md) | `documents-migration.sql` |
+|| AI Resume Checker | [`ai-resume-checker.md`](ai-resume-checker.md) | `ai-resume-check-migration.sql` |
 | Dashboard share links | [`share-links.md`](share-links.md) | `share-links-migration.sql`, `supabase/migrations/20260624163000_create_share_links.sql`, `supabase/migrations/20260624171000_add_recoverable_share_tokens.sql` |
 | Hackathon collaboration | [`DOCUMENTATION.md`](DOCUMENTATION.md#hackathon-team-collaboration-new) | `hackathon-collaboration-migration.sql` |
 | Architecture & challenges | [`DOCUMENTATION.md`](DOCUMENTATION.md) | `supabase-schema.sql` |
@@ -144,7 +149,8 @@ Always add new endpoints here — pages should not construct URLs manually.
 
 | PR | Summary |
 |----|---------|
-| **#60** | Client-side ATS resume scorer on document upload |
+| **AI Checker** | Agentic AI resume check pipeline (LLM extract → parse → GitHub → evaluate); MIT attribution to interviewstreet/hiring-agent |
+|| **#60** | Client-side ATS resume scorer on document upload |
 | **#58** | Interview preparation module (questions, topics, STAR, reflection) |
 | **#56** | Interview rounds UI (timeline, modal, Kanban sync) |
 | **#29** | CI, tests, architecture guardrails |

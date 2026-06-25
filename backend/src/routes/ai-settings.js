@@ -1,0 +1,187 @@
+/**
+ * AI Settings routes (BYOK)
+ *
+ * GET    /api/ai-settings  – whether user has a saved key (safe summary)
+ * PUT    /api/ai-settings  – save/update encrypted API key + provider/model
+ * DELETE /api/ai-settings  – remove saved key
+ */
+
+'use strict';
+
+const express = require('express');
+const { supabase } = require('../lib/supabase');
+const { validate } = require('../middleware/validate');
+const { saveAiSettingsSchema } = require('../validation/ai-settings-schemas');
+const { encryptApiKey, keyHint } = require('../lib/apiKeyVault');
+const { getUserAiSettingsSummary, getUserDecryptedApiKey } = require('../lib/userAiSettings');
+const { mapDbError } = require('../lib/dbSetup');
+const { sanitizeApiKey, verifyGeminiApiKey } = require('../lib/geminiKeyValidation');
+
+const router = express.Router();
+
+router.get('/', async (req, res) => {
+    try {
+        const summary = await getUserAiSettingsSummary(req.auth.internalUserId);
+        return res.json(summary);
+    } catch (err) {
+        console.error('[ai-settings] GET error:', err.message);
+        const mapped = mapDbError(err);
+        if (mapped) {
+            return res.status(503).json(mapped);
+        }
+        return res.status(500).json({
+            error: 'Internal Server Error',
+            message: 'Failed to load AI settings.',
+        });
+    }
+});
+
+router.put('/', validate(saveAiSettingsSchema), async (req, res) => {
+    const userId = req.auth.internalUserId;
+    const { provider, model, apiKey } = req.body;
+    const trimmedKey = sanitizeApiKey(typeof apiKey === 'string' ? apiKey : '');
+
+    try {
+        if (!trimmedKey) {
+            const summary = await getUserAiSettingsSummary(userId);
+            if (summary.needsKeyRefresh) {
+                return res.status(400).json({
+                    error: 'API Key Required',
+                    code: 'KEY_DECRYPT_FAILED',
+                    needsKeyRefresh: true,
+                    message: summary.message,
+                });
+            }
+            if (!summary.configured) {
+                return res.status(400).json({
+                    error: 'API Key Required',
+                    message: 'Enter your Gemini API key to get started.',
+                });
+            }
+
+            if (provider === 'gemini') {
+                const stored = await getUserDecryptedApiKey(userId);
+                if (!stored || stored.failed) {
+                    return res.status(400).json({
+                        error: 'API Key Required',
+                        code: stored?.failed ? 'KEY_DECRYPT_FAILED' : 'API Key Required',
+                        needsKeyRefresh: Boolean(stored?.failed),
+                        message: stored?.failed
+                            ? summary.message
+                            : 'Enter your Gemini API key to get started.',
+                    });
+                }
+                const verification = await verifyGeminiApiKey(stored.apiKey, model, {
+                    strictPreferredModel: true,
+                });
+                if (!verification.ok) {
+                    return res.status(400).json({
+                        error: verification.code || 'Invalid Model',
+                        code: verification.code || 'LLM_MODEL_ERROR',
+                        message: verification.message
+                            || `Your saved API key cannot use model "${model}". Choose another model or update your key.`,
+                        needsApiKey: verification.code === 'LLM_AUTH_ERROR',
+                    });
+                }
+            }
+
+            const { data, error } = await supabase
+                .from('user_ai_settings')
+                .update({
+                    provider,
+                    model,
+                    updated_at: new Date().toISOString(),
+                })
+                .eq('user_id', userId)
+                .select('provider, model')
+                .single();
+
+            if (error) throw error;
+
+            return res.json({
+                configured: true,
+                provider: data.provider,
+                model: data.model,
+                keyHint: summary.keyHint,
+                message: 'AI settings updated.',
+            });
+        }
+
+        let savedModel = model;
+        if (provider === 'gemini') {
+            const verification = await verifyGeminiApiKey(trimmedKey, model);
+            if (!verification.ok) {
+                return res.status(400).json({
+                    error: verification.code || 'Invalid API Key',
+                    code: verification.code || 'LLM_AUTH_ERROR',
+                    message: verification.message,
+                    needsApiKey: true,
+                });
+            }
+            savedModel = verification.model;
+        }
+
+        const encrypted = encryptApiKey(trimmedKey);
+
+        const { data, error } = await supabase
+            .from('user_ai_settings')
+            .upsert({
+                user_id: userId,
+                provider,
+                model: savedModel,
+                ...encrypted,
+                updated_at: new Date().toISOString(),
+            }, { onConflict: 'user_id' })
+            .select('provider, model')
+            .single();
+
+        if (error) throw error;
+
+        return res.json({
+            configured: true,
+            provider: data.provider,
+            model: data.model,
+            keyHint: keyHint(trimmedKey),
+            message: 'API key saved securely. You will not need to enter it again.',
+        });
+    } catch (err) {
+        console.error('[ai-settings] PUT error:', err.message);
+        const mapped = mapDbError(err);
+        if (mapped) {
+            return res.status(503).json(mapped);
+        }
+        return res.status(500).json({
+            error: 'Internal Server Error',
+            message: err.message.includes('encryption key')
+                ? 'Server is not configured for API key storage.'
+                : 'Failed to save AI settings.',
+        });
+    }
+});
+
+router.delete('/', async (req, res) => {
+    const userId = req.auth.internalUserId;
+
+    try {
+        const { error } = await supabase
+            .from('user_ai_settings')
+            .delete()
+            .eq('user_id', userId);
+
+        if (error) throw error;
+
+        return res.json({ configured: false, message: 'API key removed.' });
+    } catch (err) {
+        console.error('[ai-settings] DELETE error:', err.message);
+        const mapped = mapDbError(err);
+        if (mapped) {
+            return res.status(503).json(mapped);
+        }
+        return res.status(500).json({
+            error: 'Internal Server Error',
+            message: 'Failed to remove AI settings.',
+        });
+    }
+});
+
+module.exports = router;
