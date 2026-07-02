@@ -240,7 +240,7 @@ const PublicSharePage = () => {
         <div className="absolute bottom-20 right-0 h-96 w-96 rounded-full bg-purple-500/10 blur-3xl" />
       </div>
 
-      <main className="relative mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:py-12">
+      <main className="relative mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:py-12">
         <header className="mb-10 rounded-3xl border border-white/10 bg-white/[0.04] p-6 shadow-2xl shadow-blue-950/20 backdrop-blur sm:p-8 lg:p-10">
           <div className="flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
             <div className="max-w-3xl">
@@ -274,8 +274,8 @@ const PublicSharePage = () => {
           </div>
         </header>
 
-        <section className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
-          <div className="space-y-4">
+        <section className="space-y-8">
+          <div className="space-y-6">
             <div className="flex items-center justify-between">
               <h2 className="flex items-center gap-2 text-xl font-semibold text-white">
                 <FaBriefcase className="text-blue-300" />
@@ -291,7 +291,7 @@ const PublicSharePage = () => {
             ) : (
               <div className="grid gap-4">
                 {opportunities.map((opportunity) => (
-                  <Card key={opportunity.id} className="p-5 hover:border-blue-500/20">
+                  <Card key={opportunity.id} className="p-6 transition-all duration-300 hover:-translate-y-1 hover:border-blue-500/30 hover:bg-white/[0.02] hover:shadow-xl hover:shadow-blue-900/10">
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                       <div>
                         <p className="text-xs uppercase tracking-[0.2em] text-gray-500">
@@ -377,73 +377,30 @@ const PublicSharePage = () => {
             )}
           </div>
 
-          <aside className="space-y-4">
-            <Card className="p-6 bg-gradient-to-br from-purple-500/10 to-blue-500/5">
-              <h2 className="flex items-center gap-2 text-lg font-semibold text-white">
-                <FaChartLine className="text-purple-300" />
-                Snapshot insights
-              </h2>
-              <div className="mt-5 space-y-4">
-                <div>
-                  <div className="flex justify-between text-sm text-gray-400">
-                    <span>Has application link</span>
-                    <span>{summary.opportunitiesWithLinks || 0}</span>
+          <section className="mt-16">
+            <Card className="relative overflow-hidden border-white/10 bg-gradient-to-r from-blue-500/10 via-purple-500/10 to-blue-500/5 p-[1px]">
+              <div className="relative flex flex-col items-center justify-between gap-6 rounded-2xl bg-black/40 p-8 text-center backdrop-blur-md sm:flex-row sm:p-10 sm:text-left">
+                <div className="flex items-start gap-5">
+                  <div className="hidden rounded-2xl bg-blue-500/20 p-4 text-blue-300 ring-1 ring-white/10 sm:flex">
+                    <FaUserGraduate size={28} />
                   </div>
-                  <div className="mt-2 h-2 overflow-hidden rounded-full bg-white/10">
-                    <div
-                      className="h-full rounded-full bg-purple-400"
-                      style={{ width: `${summary.total ? ((summary.opportunitiesWithLinks || 0) / summary.total) * 100 : 0}%` }}
-                    />
+                  <div>
+                    <h2 className="text-2xl font-bold tracking-tight text-white">Build your own tracker</h2>
+                    <p className="mt-2 max-w-xl text-base leading-relaxed text-gray-400">
+                      FutureStack helps students organize applications, interview rounds, prep work,
+                      documents, hackathons, analytics, and reports in one focused, premium workspace.
+                    </p>
                   </div>
                 </div>
-                <div>
-                  <div className="flex justify-between text-sm text-gray-400">
-                    <span>Upcoming deadlines</span>
-                    <span>{summary.upcomingDeadlineCount || 0}</span>
-                  </div>
-                  <div className="mt-2 h-2 overflow-hidden rounded-full bg-white/10">
-                    <div
-                      className="h-full rounded-full bg-amber-400"
-                      style={{ width: `${summary.total ? ((summary.upcomingDeadlineCount || 0) / summary.total) * 100 : 0}%` }}
-                    />
-                  </div>
-                </div>
-                <div>
-                  <div className="flex justify-between text-sm text-gray-400">
-                    <span>In progress</span>
-                    <span>{summary.inProgress || 0}</span>
-                  </div>
-                  <div className="mt-2 h-2 overflow-hidden rounded-full bg-white/10">
-                    <div
-                      className="h-full rounded-full bg-blue-400"
-                      style={{ width: `${summary.total ? ((summary.inProgress || 0) / summary.total) * 100 : 0}%` }}
-                    />
-                  </div>
-                </div>
+                <Link to="/" className="inline-flex shrink-0">
+                  <Button className="px-6 py-3 text-base font-semibold shadow-xl shadow-blue-500/20 hover:shadow-blue-500/40">
+                    Explore FutureStack
+                    <FaExternalLinkAlt className="ml-2 text-sm" />
+                  </Button>
+                </Link>
               </div>
             </Card>
-
-            <Card className="p-6">
-              <div className="flex items-start gap-3">
-                <div className="rounded-xl bg-blue-500/10 p-3 text-blue-300">
-                  <FaUserGraduate />
-                </div>
-                <div>
-                  <h2 className="font-semibold text-white">Build your own tracker</h2>
-                  <p className="mt-2 text-sm leading-6 text-gray-400">
-                    FutureStack helps students organize applications, interview rounds, prep work,
-                    documents, hackathons, analytics, and reports in one focused workspace.
-                  </p>
-                  <Link to="/" className="mt-4 inline-flex">
-                    <Button variant="outline">
-                      Explore FutureStack
-                      <FaExternalLinkAlt className="ml-2 text-xs" />
-                    </Button>
-                  </Link>
-                </div>
-              </div>
-            </Card>
-          </aside>
+          </section>
         </section>
       </main>
 
