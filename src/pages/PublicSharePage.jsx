@@ -298,11 +298,20 @@ const PublicSharePage = () => {
                         </p>
                         <h3 className="mt-1 text-lg font-semibold text-white">{opportunity.title}</h3>
                       </div>
-                      {fields.status && (
-                        <span className={`w-fit rounded-full border px-3 py-1 text-sm ${STATUS_STYLES[opportunity.status] || 'border-white/10 bg-white/5 text-gray-200'}`}>
-                          {statusLabel(opportunity.status)}
-                        </span>
-                      )}
+                      <div className="flex flex-col sm:items-end gap-2">
+                        <div className="flex items-center gap-2">
+                          {opportunity.type && (
+                            <span className="w-fit rounded-full border border-white/10 bg-white/5 px-3 py-1 text-sm text-gray-300">
+                              {opportunity.type === 'oncampus' ? 'On Campus' : opportunity.type === 'offcampus' ? 'Off Campus' : opportunity.type}
+                            </span>
+                          )}
+                          {fields.status && (
+                            <span className={`w-fit rounded-full border px-3 py-1 text-sm ${STATUS_STYLES[opportunity.status] || 'border-white/10 bg-white/5 text-gray-200'}`}>
+                              {statusLabel(opportunity.status)}
+                            </span>
+                          )}
+                        </div>
+                      </div>
                     </div>
 
                     {fields.description && opportunity.description && (
