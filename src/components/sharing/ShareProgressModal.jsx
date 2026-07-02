@@ -89,7 +89,11 @@ const ShareProgressModal = ({
     ? 1
     : selectionMode === 'all'
       ? shareableOpportunities.length
-      : selectedIds.length;
+      : selectionMode === 'internships'
+        ? shareableOpportunities.filter((o) => o.category === 'internship').length
+        : selectionMode === 'hackathons'
+          ? shareableOpportunities.filter((o) => o.category === 'hackathon').length
+          : selectedIds.length;
 
   const canGenerate = selectedCount > 0 && (!passcodeEnabled || /^\d{4}$/.test(passcode));
 
@@ -120,7 +124,11 @@ const ShareProgressModal = ({
           ? [preselectedOpportunity.id]
           : selectionMode === 'specific'
             ? selectedIds
-            : undefined,
+            : selectionMode === 'internships'
+              ? shareableOpportunities.filter((o) => o.category === 'internship').map((o) => o.id)
+              : selectionMode === 'hackathons'
+                ? shareableOpportunities.filter((o) => o.category === 'hackathon').map((o) => o.id)
+                : undefined,
         fields,
         expiry,
         passcode: passcodeEnabled ? passcode : undefined,
@@ -203,7 +211,7 @@ const ShareProgressModal = ({
             <section>
               <SectionTitle>Scope</SectionTitle>
               <SectionHint>Choose which opportunities are included in this link.</SectionHint>
-              <div className="inline-flex w-full rounded-lg border border-white/10 bg-white/[0.03] p-1 sm:w-auto">
+              <div className="inline-flex flex-wrap w-full rounded-lg border border-white/10 bg-white/[0.03] p-1 gap-1 sm:w-auto">
                 <button
                   type="button"
                   onClick={() => setSelectionMode('all')}
@@ -214,6 +222,28 @@ const ShareProgressModal = ({
                   }`}
                 >
                   All ({shareableOpportunities.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectionMode('internships')}
+                  className={`flex-1 rounded-md px-3 py-2 text-sm transition-colors sm:flex-none ${
+                    selectionMode === 'internships'
+                      ? 'bg-blue-500/15 text-blue-200'
+                      : 'text-gray-400 hover:text-gray-200'
+                  }`}
+                >
+                  Internships ({shareableOpportunities.filter((o) => o.category === 'internship').length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectionMode('hackathons')}
+                  className={`flex-1 rounded-md px-3 py-2 text-sm transition-colors sm:flex-none ${
+                    selectionMode === 'hackathons'
+                      ? 'bg-blue-500/15 text-blue-200'
+                      : 'text-gray-400 hover:text-gray-200'
+                  }`}
+                >
+                  Hackathons ({shareableOpportunities.filter((o) => o.category === 'hackathon').length})
                 </button>
                 <button
                   type="button"
