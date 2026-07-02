@@ -17,6 +17,7 @@ import LoadingSpinner from '../components/common/LoadingSpinner';
 import RoundTimelineReadOnly from '../components/rounds/RoundTimelineReadOnly';
 import { shareLinkService } from '../services/api';
 import { formatDate, getDaysRemaining } from '../utils/dateHelpers';
+import { getCampusModeLabel, CAMPUS_MODE_BADGE_STYLES } from '../utils/opportunityHelpers';
 
 const STATUS_STYLES = {
   applied: 'bg-blue-500/10 text-blue-200 border-blue-500/20',
@@ -300,9 +301,9 @@ const PublicSharePage = () => {
                       </div>
                       <div className="flex flex-col sm:items-end gap-2">
                         <div className="flex items-center gap-2">
-                          {opportunity.type && (
-                            <span className="w-fit rounded-full border border-white/10 bg-white/5 px-3 py-1 text-sm text-gray-300">
-                              {opportunity.type === 'oncampus' ? 'On Campus' : opportunity.type === 'offcampus' ? 'Off Campus' : opportunity.type}
+                          {opportunity.campus_mode && getCampusModeLabel(opportunity.campus_mode) && (
+                            <span className={`w-fit rounded-full px-3 py-1 text-sm ${CAMPUS_MODE_BADGE_STYLES[opportunity.campus_mode] || 'border border-white/10 bg-white/5 text-gray-300'}`}>
+                              {getCampusModeLabel(opportunity.campus_mode)}
                             </span>
                           )}
                           {fields.status && (
