@@ -10,7 +10,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { FaSearch, FaPlus } from 'react-icons/fa';
+import { FaSearch, FaPlus, FaChevronDown } from 'react-icons/fa';
 import SEO from '../components/seo/SEO';
 import OpportunityList from '../components/opportunities/OpportunityList';
 import OpportunityDetailModal from '../components/opportunities/OpportunityDetailModal';
@@ -177,34 +177,39 @@ const HackathonList = () => {
 
         {/* Search and Filter Bar */}
         <div className="bg-[#0A0A0A] rounded-xl p-4 mb-6 border border-white/10">
-          <div className="flex flex-col md:flex-row gap-4">
+          <div className="flex flex-col md:flex-row gap-3">
             {/* Search Input */}
             <div className="flex-1 relative">
-              <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+              <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm" />
               <input
                 type="text"
                 placeholder="Search by title or description..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                className="w-full pl-9 pr-4 h-10 bg-white/5 border border-white/10 rounded-lg text-white text-sm placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
               />
             </div>
 
             {/* Status Filter */}
-            <div className="flex gap-2 flex-col sm:flex-row w-full sm:w-auto">
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="px-4 py-2.5 bg-gray-900 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all w-full sm:w-auto"
-              >
-                <option value="all" style={{ backgroundColor: '#111827', color: 'white' }}>All Statuses</option>
-                <option value="applied" style={{ backgroundColor: '#111827', color: 'white' }}>Applied</option>
-                <option value="shortlisted" style={{ backgroundColor: '#111827', color: 'white' }}>Shortlisted</option>
-                <option value="interviewed" style={{ backgroundColor: '#111827', color: 'white' }}>Interviewed</option>
-                <option value="selected" style={{ backgroundColor: '#111827', color: 'white' }}>Selected</option>
-                <option value="rejected" style={{ backgroundColor: '#111827', color: 'white' }}>Rejected</option>
-                <option value="ghosted" style={{ backgroundColor: '#111827', color: 'white' }}>Ghosted</option>
-              </select>
+            <div className="flex gap-3 flex-col sm:flex-row w-full sm:w-auto">
+              <div className="relative w-full sm:w-auto">
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className="w-full sm:w-40 h-10 pl-3 pr-8 appearance-none bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all cursor-pointer"
+                >
+                  <option value="all" className="bg-[#111827] text-white">All Statuses</option>
+                  <option value="applied" className="bg-[#111827] text-white">Applied</option>
+                  <option value="shortlisted" className="bg-[#111827] text-white">Shortlisted</option>
+                  <option value="interviewed" className="bg-[#111827] text-white">Interviewed</option>
+                  <option value="selected" className="bg-[#111827] text-white">Selected</option>
+                  <option value="rejected" className="bg-[#111827] text-white">Rejected</option>
+                  <option value="ghosted" className="bg-[#111827] text-white">Ghosted</option>
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-400">
+                  <FaChevronDown className="text-xs" />
+                </div>
+              </div>
 
               <CampusModeSelect
                 value={campusModeFilter}
@@ -212,15 +217,18 @@ const HackathonList = () => {
               />
 
               {(searchQuery || statusFilter !== 'all' || isCampusFilterActive) && (
-                <Button variant="secondary" onClick={clearFilters} className="w-full sm:w-auto">
+                <button
+                  onClick={clearFilters}
+                  className="h-10 px-4 flex items-center justify-center bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-white text-sm font-medium transition-all w-full sm:w-auto"
+                >
                   Clear
-                </Button>
+                </button>
               )}
             </div>
           </div>
 
           {/* Results Count */}
-          <div className="mt-3 text-sm text-gray-400">
+          <div className="mt-4 text-xs font-medium text-gray-500 uppercase tracking-wider">
             Showing {filteredOpportunities.length} of {opportunities.length} hackathons
           </div>
         </div>
