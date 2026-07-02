@@ -3,7 +3,6 @@ import { Link, useParams } from 'react-router-dom';
 import {
   FaBriefcase,
   FaCalendarAlt,
-  FaChartLine,
   FaExternalLinkAlt,
   FaLock,
   FaRocket,
