@@ -34,6 +34,10 @@ export REACT_APP_API_URL=http://localhost:3001/api
 | `backend/src/routes/*` or `backend/src/middleware/*` | `cd backend && npm test` — **add or update tests** in `backend/tests/` |
 | `backend/src/lib/validation.js` | `cd backend && npm test -- validation` |
 | `docs/*-migration.sql` | Manual: run migration on a dev Supabase project; document steps in the PR |
+| Dashboard share links (`share_links`, `/share/:token`, `shareLinkService`) | `cd backend && npm test -- share-links`, `npm run test:ci`, `npm run build`, manual flow in [`docs/share-links.md`](share-links.md#manual-verification) |
+| Interview rounds (`backend/src/routes/opportunity-rounds.js`, `src/components/rounds/*`) | `cd backend && npm test -- rounds`, manual flow in [`docs/interview-rounds.md`](interview-rounds.md#testing) |
+| Interview prep (`backend/src/routes/interview-prep.js`, `src/components/interview-prep/*`) | `cd backend && npm test -- interview-prep`, manual flow in [`docs/interview-prep.md`](interview-prep.md#testing) |
+| ATS scorer (`src/utils/atsScorer.js`, `DocumentUpload.jsx`) | `npm test -- atsScorer`, upload PDF/DOCX on `/documents` |
 
 ### Backend route changes require tests
 
@@ -54,6 +58,64 @@ Use this after automated tests pass:
 5. Exercise the happy path once
 6. Try one edge case (empty state, invalid input, expired deadline, etc.)
 7. If you touched auth or API wiring: hard-refresh and confirm data still loads on first paint
+
+### Dashboard share links (if you changed sharing)
+
+See [`docs/share-links.md`](share-links.md).
+
+1. Open `/dashboard` while signed in and click **Share Dashboard**.
+2. Generate a link with opportunities that include descriptions, deadlines, and application links.
+3. Open it in a signed-out/private browser session and confirm the opportunity details and **Apply / Open opportunity** links work.
+4. Refresh the public link more than once and confirm it remains viewable while active.
+5. Copy the same active URL again from **Active Share Links**.
+6. Generate a passcode-protected link and verify wrong and correct passcodes.
+7. Revoke a link from the dashboard and confirm the public page shows the expired/revoked state.
+8. Confirm the public response and UI do not expose owner identity, notes, documents, or prep data.
+
+```bash
+cd backend && npm test -- share-links
+```
+
+### Interview rounds (if you changed round API or UI)
+
+See [`docs/interview-rounds.md`](interview-rounds.md#testing).
+
+1. Open an internship → detail drawer → **Interview Pipeline**
+2. Add a round — save should complete quickly (toast + timeline without long **Saving…**)
+3. Edit result to `rejected` — status badge and card summary update
+4. Confirm hackathon detail drawer has **no** rounds section
+
+```bash
+export CLERK_TOKEN="<paste from browser Clerk session>"
+./scripts/test-rounds-api.sh
+```
+
+### Interview prep (if you changed prep API or UI)
+
+See [`docs/interview-prep.md`](interview-prep.md#testing).
+
+1. Open an internship → detail drawer → **Interview Prep**
+2. Confirm route `/internships/<id>/prep` loads all tabs
+3. Add a question and mark it prepared — progress bar updates
+4. Save company research and reflection — persists after refresh
+5. Confirm hackathon detail has **no** Interview Prep button
+
+```bash
+cd backend && npm test -- interview-prep
+```
+
+### Documents & ATS (if you changed upload or scorer)
+
+See [`docs/documents-and-ats.md`](documents-and-ats.md).
+
+1. Go to **Documents** → upload a PDF or DOCX resume
+2. Confirm ATS breakdown appears before save
+3. Save — `ats_score` visible on document card
+4. Assign document to an internship from opportunity flow
+
+```bash
+npm test -- atsScorer
+```
 
 ## What CI runs
 

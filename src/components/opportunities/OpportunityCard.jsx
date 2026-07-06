@@ -6,10 +6,12 @@
  * Edit/Delete buttons remain for quick actions.
  */
 import React from 'react';
-import { FaEdit, FaTrash, FaExternalLinkAlt } from 'react-icons/fa';
+import { FaEdit, FaShareAlt, FaTrash, FaExternalLinkAlt, FaLayerGroup } from 'react-icons/fa';
 import Card from '../common/Card';
 import Button from '../common/Button';
 import { getDaysRemaining, isOverdue, formatDate } from '../../utils/dateHelpers';
+import { getRoundSummaryLabel, getRoundSummaryStyle } from '../../utils/roundHelpers';
+import { getCampusModeLabel, CAMPUS_MODE_BADGE_STYLES } from '../../utils/opportunityHelpers';
 
 // Status badge color mappings
 const statusColors = {
@@ -32,10 +34,13 @@ const categoryColors = {
  * @param {Function} props.onView - Callback when card is clicked (receives full opportunity)
  * @param {Function} props.onEdit - Callback when Edit is clicked (receives opportunity.id)
  * @param {Function} props.onDelete - Callback when Delete is clicked (receives opportunity.id)
+ * @param {Function} [props.onShare] - Callback when Share is clicked (receives full opportunity)
  */
-const OpportunityCard = ({ opportunity, onView, onEdit, onDelete }) => {
+const OpportunityCard = ({ opportunity, onView, onEdit, onDelete, onShare }) => {
   const daysRemaining = getDaysRemaining(opportunity.deadline);
   const overdue = isOverdue(opportunity.deadline);
+  const roundSummary = getRoundSummaryLabel(opportunity);
+  const campusModeLabel = getCampusModeLabel(opportunity.campus_mode);
 
   const handleCardClick = () => {
     if (onView) {
@@ -46,25 +51,35 @@ const OpportunityCard = ({ opportunity, onView, onEdit, onDelete }) => {
   return (
     <Card hover className="p-5">
       <div className="flex flex-col h-full">
-        {/* Clickable area for viewing details */}
-        {/* Clickable area for viewing details */}
-        <div
-          className="cursor-pointer flex-1 outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-900 rounded-lg"
-          onClick={handleCardClick}
-          role="button"
-          tabIndex={0}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault();
-              handleCardClick();
-            }
-          }}
-        >
-          {/* Header with badges */}
-          <div className="flex items-start justify-between mb-3">
-            <h3 className="text-lg font-semibold text-white flex-1 mr-2 hover:text-blue-400 transition-colors">
+        <div className="mb-3 flex items-start justify-between gap-2">
+          <div
+            className="min-w-0 flex-1 cursor-pointer outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-900 rounded-lg"
+            onClick={handleCardClick}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                handleCardClick();
+              }
+            }}
+          >
+            <h3 className="text-lg font-semibold text-white hover:text-blue-400 transition-colors">
               {opportunity.title}
             </h3>
+          </div>
+          <div className="flex items-center gap-1.5 shrink-0">
+            {onShare && (
+              <button
+                type="button"
+                onClick={() => onShare(opportunity)}
+                className="rounded-md p-1.5 text-gray-500 transition-colors hover:bg-blue-500/10 hover:text-blue-300"
+                aria-label={`Share ${opportunity.title}`}
+                title="Share internship"
+              >
+                <FaShareAlt size={13} />
+              </button>
+            )}
             <span
               className={`px-2.5 py-1 rounded-full text-xs font-medium whitespace-nowrap ${categoryColors[opportunity.category] || 'bg-gray-500/10 text-gray-400 border border-gray-500/20'
                 }`}
@@ -72,7 +87,13 @@ const OpportunityCard = ({ opportunity, onView, onEdit, onDelete }) => {
               {opportunity.category}
             </span>
           </div>
+        </div>
 
+        <div
+          className="cursor-pointer flex-1 outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-900 rounded-lg"
+          onClick={handleCardClick}
+          role="presentation"
+        >
           {/* Description (truncated) */}
           {opportunity.description && (
             <p className="text-gray-400 text-sm mb-3 line-clamp-2">
@@ -94,13 +115,28 @@ const OpportunityCard = ({ opportunity, onView, onEdit, onDelete }) => {
           </div>
 
           {/* Status Badge */}
-          <div className="mb-4">
+          <div className="mb-4 flex flex-wrap items-center gap-2">
             <span
               className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${statusColors[opportunity.status] || 'bg-gray-500/10 text-gray-400 border border-gray-500/20'
                 }`}
             >
               {opportunity.status.charAt(0).toUpperCase() + opportunity.status.slice(1)}
             </span>
+            {roundSummary && (
+              <span
+                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border ${getRoundSummaryStyle(opportunity)}`}
+              >
+                <FaLayerGroup size={10} aria-hidden="true" />
+                {roundSummary}
+              </span>
+            )}
+            {campusModeLabel && (
+              <span
+                className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${CAMPUS_MODE_BADGE_STYLES[opportunity.campus_mode]}`}
+              >
+                {campusModeLabel}
+              </span>
+            )}
           </div>
 
           {/* External Link */}
@@ -119,7 +155,7 @@ const OpportunityCard = ({ opportunity, onView, onEdit, onDelete }) => {
         </div>
 
         {/* Action Buttons */}
-        <div className="flex gap-2 mt-auto pt-2">
+        <div className="mt-auto flex gap-2 pt-2">
           <Button
             variant="primary"
             onClick={(e) => { e.stopPropagation(); onEdit(opportunity.id); }}

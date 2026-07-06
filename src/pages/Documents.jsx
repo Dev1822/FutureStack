@@ -1,15 +1,23 @@
 // Documents page - main library view for all user documents
 // Follows the same design patterns as InternshipList and other pages
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { toast } from 'react-toastify';
-import { FaPlus, FaSearch } from 'react-icons/fa';
+import { FaPlus, FaSearch, FaBrain } from 'react-icons/fa';
 import SEO from '../components/seo/SEO';
 
-import { documentService } from '../services/api';
+import { documentService, resumeCheckerService, aiSettingsService } from '../services/api';
 import DocumentUpload from '../components/documents/DocumentUpload';
+import AiSettingsModal from '../components/documents/AiSettingsModal';
 import Button from '../components/common/Button';
 import Modal from '../components/common/Modal';
 import DocumentCard from '../components/documents/DocumentCard';
+import { AI_RESUME_CHECK_ENABLED } from '../config/features';
+import {
+    analyzeFileFromUrl,
+    getAtsAnalysisErrorMessage,
+    inferResumeFileName,
+    isAtsEligible
+} from '../utils/atsScorer';
 
 
 
@@ -24,6 +32,67 @@ const Documents = () => {
     const [isUploadOpen, setIsUploadOpen] = useState(false);
     const [editDocument, setEditDocument] = useState(null);
     const [deleteConfirm, setDeleteConfirm] = useState(null);
+    const [checkingAtsId, setCheckingAtsId] = useState(null);
+    const [aiCheckingId, setAiCheckingId] = useState(null);
+    // Map of documentId -> latest AI check result (populated after a run)
+    const [aiCheckResults, setAiCheckResults] = useState({});
+    const [aiChecksHydrating, setAiChecksHydrating] = useState(false);
+    const [aiSettings, setAiSettings] = useState(null);
+    const [isAiSettingsLoading, setIsAiSettingsLoading] = useState(AI_RESUME_CHECK_ENABLED);
+    const [isAiSettingsOpen, setIsAiSettingsOpen] = useState(false);
+    const [isSavingAiSettings, setIsSavingAiSettings] = useState(false);
+    const hydrateInFlightRef = useRef(false);
+
+    const fetchAiSettings = useCallback(async () => {
+        if (!AI_RESUME_CHECK_ENABLED) return;
+        setIsAiSettingsLoading(true);
+        try {
+            const data = await aiSettingsService.get();
+            setAiSettings(data);
+            if (data.needsKeyRefresh) {
+                toast.warn(data.message || 'Please re-enter your Gemini API key in AI Settings.', { duration: 8000 });
+            }
+        } catch (error) {
+            console.error('Error fetching AI settings:', error);
+        } finally {
+            setIsAiSettingsLoading(false);
+        }
+    }, []);
+
+    const hydrateAiCheckResults = useCallback(async (docs) => {
+        const resumes = docs.filter((doc) => doc.type === 'resume' && !doc.is_external);
+        if (resumes.length === 0 || hydrateInFlightRef.current) return;
+
+        hydrateInFlightRef.current = true;
+        setAiChecksHydrating(true);
+        try {
+            const pairs = await Promise.all(
+                resumes.map(async (doc) => {
+                    try {
+                        const check = await resumeCheckerService.getCheck(doc.id);
+                        return [doc.id, check];
+                    } catch (error) {
+                        const status = error.response?.status;
+                        if (status !== 404 && status !== 429) {
+                            console.error(`Error loading AI check for ${doc.id}:`, error);
+                        }
+                        return null;
+                    }
+                })
+            );
+
+            const loaded = {};
+            for (const pair of pairs) {
+                if (pair) loaded[pair[0]] = pair[1];
+            }
+            if (Object.keys(loaded).length > 0) {
+                setAiCheckResults((prev) => ({ ...prev, ...loaded }));
+            }
+        } finally {
+            hydrateInFlightRef.current = false;
+            setAiChecksHydrating(false);
+        }
+    }, []);
 
     // Fetch documents
     const fetchDocuments = useCallback(async () => {
@@ -31,17 +100,23 @@ const Documents = () => {
             setLoading(true);
             const data = await documentService.getAll();
             setDocuments(data);
+            if (AI_RESUME_CHECK_ENABLED) {
+                void hydrateAiCheckResults(data);
+            }
         } catch (error) {
             console.error('Error fetching documents:', error);
             toast.error('Failed to load documents');
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [hydrateAiCheckResults]);
 
     useEffect(() => {
         fetchDocuments();
-    }, [fetchDocuments]);
+        if (AI_RESUME_CHECK_ENABLED) {
+            fetchAiSettings();
+        }
+    }, [fetchDocuments, fetchAiSettings]);
 
     // Apply filters
     useEffect(() => {
@@ -66,7 +141,16 @@ const Documents = () => {
     const handleUpload = async (file, metadata) => {
         try {
             setActionLoading(true);
-            await documentService.upload(file, metadata);
+            const { ats_score, ats_analyzed_at, ats_analysis, ...uploadMetadata } = metadata;
+            const uploadedDocument = await documentService.upload(file, uploadMetadata);
+
+            if (ats_score !== undefined && uploadedDocument?.id) {
+                await documentService.update(uploadedDocument.id, {
+                    ats_score,
+                    ats_analyzed_at,
+                    ats_analysis
+                });
+            }
             toast.success('Document uploaded successfully!');
             setIsUploadOpen(false);
             fetchDocuments();
@@ -122,6 +206,139 @@ const Documents = () => {
         }
     };
 
+    // Handle ATS re-check for existing uploaded resumes
+    const handleCheckAts = async (document) => {
+        if (!isAtsEligible(document)) return;
+
+        try {
+            setCheckingAtsId(document.id);
+            const analysis = await analyzeFileFromUrl(
+                document.file_url,
+                inferResumeFileName(document)
+            );
+            const updated = await documentService.update(document.id, {
+                ats_score: analysis.score,
+                ats_analyzed_at: new Date().toISOString(),
+                ats_analysis: analysis
+            });
+
+            setDocuments(prev => prev.map(doc => (
+                doc.id === document.id
+                    ? { ...doc, ...updated, file_url: doc.file_url }
+                    : doc
+            )));
+            toast.success(document.ats_score != null ? 'ATS score refreshed!' : 'ATS analysis complete!');
+        } catch (error) {
+            console.error('Error checking ATS score:', error);
+            toast.error(getAtsAnalysisErrorMessage(error));
+        } finally {
+            setCheckingAtsId(null);
+        }
+    };
+
+    // Handle AI resume check
+    const handleAiCheck = async (document) => {
+        if (!AI_RESUME_CHECK_ENABLED) return;
+        if (document.type !== 'resume' || document.is_external) return;
+
+        if (isAiSettingsLoading) {
+            toast.info('Loading AI settings…');
+            return;
+        }
+
+        if (!aiSettings?.configured) {
+            toast.info(
+                aiSettings?.needsKeyRefresh
+                    ? 'Your saved API key needs to be re-entered.'
+                    : 'Add your Gemini API key to run AI resume checks.'
+            );
+            setIsAiSettingsOpen(true);
+            return;
+        }
+
+        try {
+            setAiCheckingId(document.id);
+            const result = await resumeCheckerService.runCheck(document.id);
+            setAiCheckResults(prev => ({ ...prev, [document.id]: result }));
+            toast.success(
+                result.status === 'completed'
+                    ? `AI check complete! Score: ${result.overall_score}/100`
+                    : 'AI check finished.'
+            );
+        } catch (error) {
+            console.error('Error running AI resume check:', error);
+            const data = error.response?.data || {};
+            const msg = data.message || data.error;
+            if (error.response?.status === 429) {
+                if (data.code === 'AI_CHECK_RATE_LIMIT') {
+                    const mins = data.retryAfterSeconds
+                        ? Math.max(1, Math.ceil(data.retryAfterSeconds / 60))
+                        : null;
+                    toast.error(
+                        mins
+                            ? `Too many AI checks (${data.limit || 10} per ${data.window || '15 minutes'}). Try again in ~${mins} min.`
+                            : (msg || 'Too many AI checks. Please wait before trying again.'),
+                        { duration: 10000 }
+                    );
+                } else {
+                    toast.error(msg || 'Gemini quota or rate limit reached. Try gemini-3.1-flash-lite in AI Settings or wait a few minutes.', { duration: 8000 });
+                }
+            } else if (error.response?.status === 503) {
+                toast.error('AI resume checker is not enabled on this server.');
+            } else if (error.response?.status === 504 || data.error === 'LLM_TIMEOUT') {
+                toast.error(
+                    msg || 'AI analysis timed out. Try gemini-2.5-flash in AI Settings, or wait a moment and retry.',
+                    { duration: 10000 }
+                );
+            } else if (error.response?.status === 400 && (data.needsApiKey || data.needsKeyRefresh || data.error === 'LLM_AUTH_ERROR' || data.error === 'KEY_DECRYPT_FAILED')) {
+                toast.error(msg || 'Invalid or unreadable API key. Re-enter your Gemini key in AI Settings.', { duration: 8000 });
+                setIsAiSettingsOpen(true);
+            } else {
+                toast.error(msg || 'AI resume check failed. Please try again.');
+            }
+            if (error.response?.data?.check_id) {
+                setAiCheckResults(prev => ({
+                    ...prev,
+                    [document.id]: {
+                        status: 'failed',
+                        error: msg || 'Analysis failed.',
+                    },
+                }));
+            }
+        } finally {
+            setAiCheckingId(null);
+        }
+    };
+
+    const handleSaveAiSettings = async ({ apiKey, provider, model }) => {
+        try {
+            setIsSavingAiSettings(true);
+            const saved = await aiSettingsService.save({ apiKey, provider, model });
+            setAiSettings(saved);
+            toast.success(saved.message || 'AI settings saved!');
+            setIsAiSettingsOpen(false);
+            return true;
+        } catch (error) {
+            console.error('Error saving AI settings:', error);
+            const details = error.response?.data?.details;
+            const detailMessage = Array.isArray(details) && details.length > 0
+                ? details.map((d) => d.message).join(' ')
+                : null;
+            const msg = detailMessage || error.response?.data?.message;
+            const code = error.response?.data?.code;
+            if (code === 'AI_TABLES_MISSING') {
+                toast.error(msg || 'Database setup required. Run docs/ai-tables-setup.sql in Supabase SQL Editor.', { duration: 8000 });
+            } else if (code === 'KEY_DECRYPT_FAILED' || error.response?.data?.needsKeyRefresh) {
+                toast.error(msg || 'Re-enter your full Gemini API key to continue.', { duration: 8000 });
+            } else {
+                toast.error(msg || 'Failed to save AI settings.');
+            }
+            return false;
+        } finally {
+            setIsSavingAiSettings(false);
+        }
+    };
+
     // Handle delete
     const confirmDelete = async () => {
         if (!deleteConfirm) return;
@@ -163,14 +380,33 @@ const Documents = () => {
                             Manage your resumes, cover letters, and portfolio links
                         </p>
                     </div>
-                    <Button
-                        variant="primary"
-                        onClick={() => setIsUploadOpen(true)}
-                        className="flex items-center w-full sm:w-auto justify-center"
-                    >
-                        <FaPlus className="mr-2" />
-                        Add Document
-                    </Button>
+                    <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                        {AI_RESUME_CHECK_ENABLED && (
+                        <Button
+                            variant="secondary"
+                            onClick={() => setIsAiSettingsOpen(true)}
+                            className="flex items-center justify-center gap-2 w-full sm:w-auto"
+                        >
+                            <FaBrain size={14} />
+                            <span>
+                                {aiSettings?.configured ? 'AI Settings' : 'Add API Key'}
+                                {aiSettings?.configured && aiSettings.model && (
+                                    <span className="hidden sm:inline text-gray-500 font-normal">
+                                        {' '}· {aiSettings.model}
+                                    </span>
+                                )}
+                            </span>
+                        </Button>
+                        )}
+                        <Button
+                            variant="primary"
+                            onClick={() => setIsUploadOpen(true)}
+                            className="flex items-center w-full sm:w-auto justify-center"
+                        >
+                            <FaPlus className="mr-2" />
+                            Add Document
+                        </Button>
+                    </div>
                 </div>
 
                 {/* Search and Filter Bar */}
@@ -237,6 +473,17 @@ const Documents = () => {
                                 document={doc}
                                 onEdit={setEditDocument}
                                 onDelete={setDeleteConfirm}
+                                onCheckAts={handleCheckAts}
+                                isCheckingAts={checkingAtsId === doc.id}
+                                onAiCheck={handleAiCheck}
+                                isAiChecking={aiCheckingId === doc.id}
+                                isHydratingAiCheck={
+                                    aiChecksHydrating
+                                    && doc.type === 'resume'
+                                    && !doc.is_external
+                                    && !aiCheckResults[doc.id]
+                                }
+                                aiCheckResult={aiCheckResults[doc.id] ?? null}
                             />
                         ))}
                     </div>
@@ -274,6 +521,16 @@ const Documents = () => {
                 onCreateExternal={handleCreateExternal}
                 isLoading={actionLoading}
             />
+
+            {AI_RESUME_CHECK_ENABLED && (
+            <AiSettingsModal
+                isOpen={isAiSettingsOpen}
+                onClose={() => setIsAiSettingsOpen(false)}
+                settings={aiSettings}
+                onSave={handleSaveAiSettings}
+                isSaving={isSavingAiSettings}
+            />
+            )}
 
             {/* Edit Modal */}
             <Modal

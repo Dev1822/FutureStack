@@ -45,6 +45,7 @@ CREATE TABLE IF NOT EXISTS opportunities (
   deadline DATE,
   category TEXT CHECK (category IN ('internship', 'hackathon')),
   status TEXT CHECK (status IN ('applied', 'interviewed', 'shortlisted', 'selected', 'rejected', 'ghosted')),
+  campus_mode TEXT CHECK (campus_mode IN ('on_campus', 'off_campus')),
   notes TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
@@ -121,3 +122,9 @@ CREATE TRIGGER update_opportunities_updated_at
 -- =============================================================================
 -- For documents table, opportunity_documents junction table, and related
 -- RLS policies, indexes, and triggers, see: docs/documents-migration.sql
+
+-- =============================================================================
+-- Interview Rounds (internship application pipeline)
+-- =============================================================================
+-- For opportunity_rounds table, opportunity round columns, RLS, and indexes,
+-- see: docs/opportunity-rounds-migration.sql

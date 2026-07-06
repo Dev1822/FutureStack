@@ -5,22 +5,47 @@ import { FaClipboardList, FaStar, FaCheckCircle, FaPlus, FaList, FaTrash } from 
 import SEO from '../components/seo/SEO';
 import StatsCard from '../components/dashboard/StatsCard';
 import DeadlineWidget from '../components/dashboard/DeadlineWidget';
+import UpcomingInterviewsWidget from '../components/dashboard/UpcomingInterviewsWidget';
 import Card from '../components/common/Card';
 import Button from '../components/common/Button';
 import Modal from '../components/common/Modal';
-import { opportunityService } from '../services/api';
+import ShareProgressModal from '../components/sharing/ShareProgressModal';
+import ManageSharesPanel from '../components/sharing/ManageSharesPanel';
+import { opportunityService, roundService } from '../services/api';
 import { isOverdue, getDaysRemaining } from '../utils/dateHelpers';
 
 const Dashboard = () => {
   const [opportunities, setOpportunities] = useState([]);
+  const [upcomingInterviews, setUpcomingInterviews] = useState([]);
+  const [interviewsLoading, setInterviewsLoading] = useState(true);
   const [loading, setLoading] = useState(true);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [opportunityToDelete, setOpportunityToDelete] = useState(null);
+  const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [sharesRefreshKey, setSharesRefreshKey] = useState(0);
   const navigate = useNavigate();
 
   useEffect(() => {
     fetchOpportunities();
+    fetchUpcomingInterviews();
   }, []);
+
+  const fetchUpcomingInterviews = async () => {
+    try {
+      setInterviewsLoading(true);
+      const today = new Date();
+      const to = new Date(today);
+      to.setDate(to.getDate() + 30);
+      const fromStr = today.toISOString().slice(0, 10);
+      const toStr = to.toISOString().slice(0, 10);
+      const rounds = await roundService.listUpcoming({ from: fromStr, to: toStr });
+      setUpcomingInterviews(rounds);
+    } catch (error) {
+      console.error('Error fetching upcoming interviews:', error);
+    } finally {
+      setInterviewsLoading(false);
+    }
+  };
 
   const fetchOpportunities = async () => {
     try {
@@ -63,6 +88,10 @@ const Dashboard = () => {
   const handleDeleteCancel = () => {
     setDeleteModalOpen(false);
     setOpportunityToDelete(null);
+  };
+
+  const handleShareCreated = () => {
+    setSharesRefreshKey((current) => current + 1);
   };
 
 
@@ -193,9 +222,10 @@ const Dashboard = () => {
           </Card>
         )}
 
-        {/* Upcoming Deadlines */}
-        <div className="mb-6 sm:mb-8">
+        {/* Upcoming deadlines & interviews */}
+        <div className="mb-6 sm:mb-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
           <DeadlineWidget deadlines={upcomingDeadlines} onDelete={handleDeleteClick} />
+          <UpcomingInterviewsWidget interviews={upcomingInterviews} loading={interviewsLoading} />
         </div>
 
         {/* Quick Actions */}
@@ -228,6 +258,13 @@ const Dashboard = () => {
           </div>
         </Card>
 
+        <div className="mt-6 sm:mt-8">
+          <ManageSharesPanel
+            refreshKey={sharesRefreshKey}
+            onCreateShare={() => setShareModalOpen(true)}
+          />
+        </div>
+
         {/* Delete Confirmation Modal */}
         <Modal
           isOpen={deleteModalOpen}
@@ -249,6 +286,13 @@ const Dashboard = () => {
             </div>
           </div>
         </Modal>
+
+        <ShareProgressModal
+          isOpen={shareModalOpen}
+          onClose={() => setShareModalOpen(false)}
+          opportunities={opportunities}
+          onShareCreated={handleShareCreated}
+        />
       </div>
     </div>
   );

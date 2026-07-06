@@ -9,6 +9,7 @@
 [![Supabase](https://img.shields.io/badge/Database-Supabase-3ECF8E.svg)](https://supabase.com/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Live Demo](https://img.shields.io/badge/Live%20Demo-futuretracker.online-black.svg)](https://futuretracker.online/)
+[![Service Status](https://img.shields.io/badge/Service%20Status-uptime%20monitor-2ea44f.svg)](https://stats.uptimerobot.com/ArICmEg95Y)
 [![Docs on Devin](https://img.shields.io/badge/Docs-Devin-6C63FF.svg)](https://app.devin.ai/wiki/Venkat-Kolasani/FutureStack)
 
 ## 📋 Table of Contents
@@ -18,6 +19,7 @@
 - [Features](#features)
 - [Tech Stack](#tech-stack)
 - [System Architecture](#system-architecture)
+- [Database Schema](#database-schema)
 - [Getting Started](#getting-started)
 - [Environment Variables](#environment-variables)
 - [Deployment](#deployment)
@@ -38,6 +40,11 @@ FutureTracker is a modern, full-featured SaaS application designed to help stude
 - **📈 Analytics Dashboard**: Track success rates, trends, and conversion funnels
 - **📅 Deadline Management**: Never miss an important deadline with calendar integration
 - **📄 PDF Reports**: Export detailed reports for your records
+- **🔗 Share links**: Generate revocable read-only opportunity links with descriptions, deadlines, application CTAs, expiry, and optional passcode
+- **🧠 Interview prep**: Per-internship workspace for company research, Q&A, technical topics, STAR behavioral answers, and reflections — see [`docs/interview-prep.md`](docs/interview-prep.md)
+- **📊 ATS resume hints**: Client-side PDF/DOCX analysis with rule-based scoring on upload — see [`docs/documents-and-ats.md`](docs/documents-and-ats.md)
+- **🤖 AI Resume Checker**: Agentic server-side pipeline (LLM-powered) that extracts a structured JSON Resume, enriches with GitHub signals, and scores across four categories with evidence — see [`docs/ai-resume-checker.md`](docs/ai-resume-checker.md)
+- **🟢 Service status**: Live uptime page linked from the app footer and navbar
 - **📱 Responsive Design**: Works seamlessly on desktop, tablet, and mobile
 
 ### Demonstration Videos
@@ -48,7 +55,8 @@ FutureTracker is a modern, full-featured SaaS application designed to help stude
 ## 🌐 Live Demo
 
 **Frontend**: [https://futuretracker.online](https://futuretracker.online)  
-**Backend API**: [https://futurestack-api.onrender.com](https://futurestack-api.onrender.com)
+**Backend API**: [https://futurestack-api.onrender.com](https://futurestack-api.onrender.com)  
+**Service Status**: [UptimeRobot status page](https://stats.uptimerobot.com/ArICmEg95Y)
 
 ## ✨ Features
 
@@ -62,7 +70,10 @@ FutureTracker is a modern, full-featured SaaS application designed to help stude
 - **📋 Status Board**: Kanban-style board with drag-and-drop status updates
 - **📈 Analytics**: Charts for status distribution, weekly trends, conversion funnels, and deadline heatmaps
 - **📄 PDF Export**: Generate professional reports with multiple export options
-- **📎 Documents**: Upload resumes, cover letters, and portfolio links; track which documents were used for each internship
+- **🔗 Opportunity sharing**: Share redacted, read-only opportunity details at `/share/:token` without requiring viewer sign-in
+- **📎 Documents**: Upload resumes, cover letters, and portfolio links; track which documents were used for each internship; optional **ATS-style score** on PDF/DOCX upload; optional **AI Resume Check** via agentic LLM pipeline
+- **🎯 Interview pipeline**: Multi-round tracking for internships (OA → technical → HR → final) with timeline UI and auto-synced Kanban status — see [`docs/interview-rounds.md`](docs/interview-rounds.md)
+- **🧠 Interview preparation**: Tabbed prep workspace per internship (research, questions, topics, STAR behavioral, reflection) — see [`docs/interview-prep.md`](docs/interview-prep.md)
 - **🎨 Modern UI**: Clean, dark-themed interface with smooth animations
 - **📱 Responsive**: Fully responsive design for all screen sizes
 
@@ -90,6 +101,8 @@ FutureTracker is a modern, full-featured SaaS application designed to help stude
 | Framer Motion | 12.23.24 | Animations |
 | React Calendar | 6.0.0 | Calendar component |
 | jsPDF | 3.0.3 | PDF generation |
+| mammoth | 1.12.0 | DOCX text extraction (ATS scorer) |
+| pdfjs-dist | 6.0.227 | PDF text extraction (ATS scorer) |
 | Axios | 1.13.2 | HTTP client |
 
 ### Backend
@@ -98,6 +111,11 @@ FutureTracker is a modern, full-featured SaaS application designed to help stude
 | Node.js + Express | RESTful API server |
 | Clerk SDK | JWT verification |
 | Supabase Client | PostgreSQL database access |
+| Vercel AI SDK (`ai`) | Provider-agnostic LLM layer (AI Resume Checker) |
+| `@ai-sdk/google` | Google Gemini provider |
+| `ollama-ai-provider` | Local Ollama / llama / qwen provider |
+| `pdf-parse` + `mammoth` | Server-side PDF/DOCX text extraction |
+| Zod | Structured LLM output validation |
 
 ### External Services
 | Service | Purpose |
@@ -106,40 +124,140 @@ FutureTracker is a modern, full-featured SaaS application designed to help stude
 | **Supabase** | PostgreSQL database + Realtime WebSockets |
 | **Vercel** | Frontend hosting |
 | **Render** | Backend hosting |
+| **Google Gemini API** | LLM for AI Resume Checker (Ollama works offline) |
+| **GitHub REST API** | Resume enrichment with public repo signals (optional) |
 
 ## 🏗 System Architecture
 
+```mermaid
+flowchart TB
+    subgraph Browser["User Browser"]
+        React["React App (Vercel)"]
+        ClerkSDK["Clerk Auth SDK"]
+        SupaClient["Supabase Client<br/>(Realtime subscriptions)"]
+        Axios["Axios API Client"]
+    end
+
+    subgraph Backend["Express API (Render)"]
+        AuthMW["Auth Middleware<br/>(Clerk JWT verification)"]
+        Routes["REST Routes<br/>/api/*"]
+        Admin["Supabase Admin Client<br/>(user-scoped queries)"]
+    end
+
+    subgraph Services["External Services"]
+        Clerk["Clerk"]
+        PG[("Supabase PostgreSQL")]
+        RT["Realtime Engine"]
+    end
+
+    React --> ClerkSDK
+    React --> SupaClient
+    React --> Axios
+    ClerkSDK -.->|"OAuth / session"| Clerk
+    Axios -->|"JWT + API requests"| AuthMW
+    AuthMW --> Routes
+    Routes --> Admin
+    AuthMW -.->|"Verify token"| Clerk
+    Admin --> PG
+    SupaClient -.->|"WebSocket"| RT
+    RT -.-> PG
 ```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                              USER BROWSER                                    │
-│  ┌─────────────────────────────────────────────────────────────────────────┐ │
-│  │  React App (Vercel)                                                     │ │
-│  │  ├── Clerk Auth (OAuth login)                                           │ │
-│  │  ├── Supabase Client (Realtime subscriptions)                          │ │
-│  │  └── Axios (API calls with JWT)                                        │ │
-│  └─────────────────────────────────────────────────────────────────────────┘ │
-└─────────────────────────────────────────────────────────────────────────────┘
-                                    │
-                     JWT Token + API Requests
-                                    ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                         EXPRESS BACKEND (Render)                            │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────────────────────────────┐
-│  │ Auth         │  │ Routes       │  │ Services                            │
-│  │ Middleware   │──│ /api/*       │──│ Supabase Admin Client               │
-│  │ (Clerk JWT)  │  │              │  │ (user_id filtered queries)          │
-│  └──────────────┘  └──────────────┘  └──────────────────────────────────────┘
-└─────────────────────────────────────────────────────────────────────────────┘
-                                    │
-                                    ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                           SUPABASE (PostgreSQL)                             │
-│  ┌──────────────────────────────────────────────────────────────────────────┐
-│  │  Tables: users, opportunities                                           │
-│  │  Features: Row-Level Security, Realtime subscriptions                   │
-│  └──────────────────────────────────────────────────────────────────────────┘
-└─────────────────────────────────────────────────────────────────────────────┘
+
+## 🗄 Database Schema
+
+```mermaid
+erDiagram
+    USERS ||--o{ OPPORTUNITIES : tracks
+    USERS ||--o{ DOCUMENTS : owns
+    USERS ||--o{ OPPORTUNITY_ROUNDS : owns
+    USERS ||--o{ SHARE_LINKS : creates
+    OPPORTUNITIES ||--o{ OPPORTUNITY_DOCUMENTS : uses
+    OPPORTUNITIES ||--o{ OPPORTUNITY_ROUNDS : has
+    DOCUMENTS ||--o{ OPPORTUNITY_DOCUMENTS : linked_to
+
+    USERS {
+        uuid id PK
+        text clerk_id UK
+        text email
+        text full_name
+        text avatar_url
+        timestamptz created_at
+    }
+
+    OPPORTUNITIES {
+        uuid id PK
+        uuid user_id FK
+        text title
+        text description
+        text link
+        date deadline
+        text category
+        text status
+        int current_round_number
+        int rejected_round_number
+        text notes
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    OPPORTUNITY_ROUNDS {
+        uuid id PK
+        uuid opportunity_id FK
+        uuid user_id FK
+        int round_number
+        text round_type
+        date scheduled_date
+        text result
+        text notes
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    DOCUMENTS {
+        uuid id PK
+        uuid user_id FK
+        text name
+        text type
+        text file_url
+        text version
+        boolean is_external
+        timestamptz created_at
+    }
+
+    OPPORTUNITY_DOCUMENTS {
+        uuid id PK
+        uuid opportunity_id FK
+        uuid document_id FK
+        timestamptz submitted_at
+    }
+
+    SHARE_LINKS {
+        uuid id PK
+        uuid user_id FK
+        text token_hash UK
+        text token_ciphertext
+        text token_iv
+        text token_auth_tag
+        jsonb snapshot
+        text snapshot_type
+        timestamptz expires_at
+        boolean is_active
+        int view_count
+        text passcode_hash
+        text passcode_salt
+    }
 ```
+
+All tables use **Row-Level Security (RLS)** so each user only accesses their own data. Full SQL migrations live in [`docs/supabase-schema.sql`](docs/supabase-schema.sql) and the feature-specific files below.
+
+| Migration file | Feature |
+|----------------|---------|
+| [`docs/supabase-schema.sql`](docs/supabase-schema.sql) | Core users + opportunities |
+| [`docs/documents-migration.sql`](docs/documents-migration.sql) | Document vault + ATS columns |
+| [`docs/opportunity-rounds-migration.sql`](docs/opportunity-rounds-migration.sql) | Interview round pipeline |
+| [`docs/interview-prep-migration.sql`](docs/interview-prep-migration.sql) | Interview prep workspace |
+| [`docs/hackathon-collaboration-migration.sql`](docs/hackathon-collaboration-migration.sql) | Hackathon teams, tasks, ideas |
+| [`docs/share-links-migration.sql`](docs/share-links-migration.sql) | Dashboard share links |
 
 ## 🚀 Getting Started
 
@@ -260,60 +378,49 @@ The middleware automatically normalizes both formats.
 
 ```
 futurestack/
-├── public/                    # Static files
+├── public/                         # Static assets (incl. pdf.worker for ATS)
 ├── src/
-│   ├── components/           # Reusable components
-│   │   ├── auth/            # Authentication components
-│   │   │   └── ProtectedRoute.jsx
-│   │   ├── common/          # Common UI components
-│   │   │   ├── Button.jsx
-│   │   │   ├── Card.jsx
-│   │   │   ├── Modal.jsx
-│   │   │   ├── Navbar.jsx
-│   │   │   └── ErrorBoundary.jsx
-│   │   ├── dashboard/       # Dashboard components
-│   │   │   ├── DeadlineWidget.jsx
-│   │   │   └── StatsCard.jsx
-│   │   ├── opportunities/   # Opportunity components
-│   │   │   └── OpportunityForm.jsx
-│   │   └── statusboard/     # Kanban board components
-│   ├── hooks/               # Custom React hooks
-│   │   └── useAuthToken.js  # JWT token management
-│   ├── lib/                 # Library configurations
-│   │   └── supabase.js      # Supabase client
-│   ├── pages/               # Page components (routes)
-│   │   ├── Home.jsx
-│   │   ├── Dashboard.jsx
-│   │   ├── InternshipList.jsx
-│   │   ├── HackathonList.jsx
-│   │   ├── AddOpportunity.jsx
-│   │   ├── EditOpportunity.jsx
-│   │   ├── StatusBoard.jsx
-│   │   ├── Calendar.jsx
-│   │   ├── Analytics.jsx
-│   │   └── Reports.jsx
-│   ├── services/            # API services
-│   │   └── api.js           # Axios instance + interceptors
-│   ├── utils/               # Utility functions
-│   │   ├── dateHelpers.js
-│   │   └── pdfExport.js
-│   ├── App.js               # Main app component
-│   └── index.js             # Entry point
-├── backend/                  # Express API server
-│   ├── src/
-│   │   ├── server.js        # Express entry point
-│   │   ├── middleware/
-│   │   │   └── auth.js      # Clerk JWT verification
-│   │   ├── routes/
-│   │   │   ├── opportunities.js
-│   │   │   └── analytics.js
-│   │   └── lib/
-│   │       └── supabase.js  # Supabase admin client
-│   └── package.json
-├── docs/                     # Documentation
-├── tailwind.config.js       # Tailwind configuration
-└── package.json             # Frontend dependencies
+│   ├── App.js                      # Routes, lazy loading, PostHog analytics
+│   ├── components/
+│   │   ├── auth/                   # ProtectedRoute
+│   │   ├── common/                 # Navbar, Footer, StatusIndicator, Modal, …
+│   │   ├── dashboard/              # StatsCard, DeadlineWidget
+│   │   ├── opportunities/          # Cards, forms, detail modal (rounds + prep entry)
+│   │   ├── rounds/                 # RoundTimeline, AddRoundModal
+│   │   ├── interview-prep/         # Prep panels (questions, topics, STAR, …)
+│   │   ├── documents/              # Upload, cards, ATS analysis UI
+│   │   ├── hackathons/             # Team, ideas, tasks, checklist
+│   │   ├── statusboard/            # Kanban columns + cards
+│   │   ├── analytics/              # Rejection insights charts
+│   │   └── seo/                    # react-helmet-async SEO component
+│   ├── hooks/useAuthToken.js       # Clerk JWT → Axios interceptor
+│   ├── lib/                        # supabase (realtime), analytics (PostHog)
+│   ├── pages/                      # Route-level screens (see docs/CODEBASE_GUIDE.md)
+│   ├── services/api.js             # All REST calls (opportunity, round, prep, …)
+│   └── utils/                      # dateHelpers, pdfExport, atsScorer
+├── backend/src/
+│   ├── app.js                      # Express app, rate limits, route mounts
+│   ├── middleware/auth.js          # Clerk JWT verification
+│   ├── routes/
+│   │   ├── opportunities.js        # Opportunities CRUD
+│   │   ├── opportunity-rounds.js   # Nested interview rounds
+│   │   ├── interview-prep.js       # Prep workspace API
+│   │   ├── documents.js            # Document vault + upload
+│   │   ├── hackathons.js           # Team collaboration
+│   │   └── analytics.js            # Dashboard analytics
+│   ├── validation/                 # Request schemas per domain
+│   └── lib/                        # Supabase client, round sync helpers
+├── docs/                           # Feature guides + SQL migrations
+│   ├── CODEBASE_GUIDE.md           # Start here for code orientation
+│   ├── interview-rounds.md
+│   ├── interview-prep.md
+│   ├── documents-and-ats.md
+│   ├── DOCUMENTATION.md            # Full architecture deep-dive
+│   └── TESTING.md
+└── package.json
 ```
+
+**Orientation:** [`docs/CODEBASE_GUIDE.md`](docs/CODEBASE_GUIDE.md) maps routes, services, and feature docs in one place.
 
 ## 🔌 API Documentation
 
@@ -332,13 +439,28 @@ Authorization: Bearer <clerk_jwt_token>
 | Method | Endpoint | Description | Auth |
 |--------|----------|-------------|------|
 | GET | `/health` | Health check | ❌ |
+| GET | `/health/deps` | Supabase dependency check | ❌ |
+| GET | `/me` | Current user info | ✅ |
 | GET | `/opportunities` | List user's opportunities | ✅ |
 | GET | `/opportunities/:id` | Get single opportunity | ✅ |
 | POST | `/opportunities` | Create opportunity | ✅ |
 | PATCH | `/opportunities/:id` | Update opportunity | ✅ |
 | DELETE | `/opportunities/:id` | Delete opportunity | ✅ |
-| GET | `/analytics` | Get dashboard analytics | ✅ |
-| GET | `/me` | Get current user info | ✅ |
+| GET | `/opportunities/:id/rounds` | List interview rounds (internships) | ✅ |
+| POST | `/opportunities/:id/rounds` | Create round; returns `{ round, opportunity, rounds }` | ✅ |
+| PATCH | `/opportunities/:id/rounds/:roundId` | Update round; returns synced payload | ✅ |
+| DELETE | `/opportunities/:id/rounds/:roundId` | Delete round; returns synced payload | ✅ |
+| GET | `/interview-prep/:opportunityId` | Get prep + questions + topics + behavioral | ✅ |
+| POST | `/interview-prep/:opportunityId` | Create prep record | ✅ |
+| PUT | `/interview-prep/:opportunityId` | Update research / reflection notes | ✅ |
+| POST/PUT/DELETE | `/interview-prep/:opportunityId/questions|topics|behavioral/...` | Prep sub-resources | ✅ |
+| GET | `/documents` | List documents | ✅ |
+| POST | `/documents/upload` | Upload file (multipart) | ✅ |
+| POST | `/documents/:id/assign` | Link document to opportunity | ✅ |
+| GET | `/hackathons/:id/team` | Hackathon team workspace | ✅ |
+| GET | `/analytics` | Dashboard analytics | ✅ |
+
+Full route tables: [`backend/README.md`](backend/README.md), [`docs/interview-prep.md`](docs/interview-prep.md), [`docs/documents-and-ats.md`](docs/documents-and-ats.md).
 
 ### Example: Create Opportunity
 ```http
@@ -407,8 +529,17 @@ FutureStack is part of **GSSoC 2026**. Please read [CONTRIBUTING.md](CONTRIBUTIN
 
 ## 📚 Documentation
 
-- [Devin Wiki](https://app.devin.ai/wiki/Venkat-Kolasani/FutureStack) – canonical, always-current runbook with high-level decisions, architecture diagrams, and demo notes.
-- Local references: `docs/ARCHITECTURE.md`, `docs/DOCUMENTATION.md`, `docs/INTEGRATION_TEST_RESULTS.md`, and `docs/PROJECT_SUMMARY.md` provide offline deep dives, test evidence, and executive summaries.
+| Doc | Purpose |
+|-----|---------|
+| [**Codebase guide**](docs/CODEBASE_GUIDE.md) | **Start here** — routes, services, golden rules, recent PRs |
+| [Devin Wiki](https://app.devin.ai/wiki/Venkat-Kolasani/FutureStack) | Canonical runbook, deployment, architecture decisions |
+| [Interview rounds](docs/interview-rounds.md) | Multi-round pipeline, status sync, performance fix |
+| [Interview prep](docs/interview-prep.md) | Prep workspace API, UI tabs, testing |
+| [Documents & ATS](docs/documents-and-ats.md) | Document vault + client-side ATS scorer |
+| [DOCUMENTATION.md](docs/DOCUMENTATION.md) | Full architecture, auth flow, technical challenges |
+| [TESTING.md](docs/TESTING.md) | CI commands, smoke checklist, per-feature tests |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | GSSoC workflow, PR rules |
+| [SECURITY.md](docs/SECURITY.md) | Security practices and review notes |
 
 ---
 

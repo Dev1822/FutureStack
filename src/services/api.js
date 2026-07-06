@@ -10,6 +10,12 @@ const api = axios.create({
     timeout: 15000,
 });
 
+const publicApi = axios.create({
+    baseURL: API_BASE_URL,
+    headers: { 'Content-Type': 'application/json' },
+    timeout: 15000,
+});
+
 let getAuthToken = null;
 
 export const setAuthTokenGetter = (getter) => {
@@ -51,12 +57,15 @@ api.interceptors.response.use(
     (response) => response,
     (error) => {
         if (!error.response) {
-            toast.error('Network error. Please check your connection.');
+            if (!error.config?.skipErrorToast) {
+                toast.error('Network error. Please check your connection.');
+            }
             return Promise.reject(error);
         }
 
         const status = error.response?.status;
         const message = error.response?.data?.message || error.response?.data?.error;
+        const skipToast = Boolean(error.config?.skipErrorToast);
 
         if (process.env.NODE_ENV !== 'production') {
             console.error('[API] Response error:', {
@@ -67,37 +76,70 @@ api.interceptors.response.use(
             });
         }
 
-        switch (status) {
-            case 401:
-                // Don't auto-redirect — ProtectedRoute + Clerk handle actual session expiry.
-                // Auto-redirecting caused false positives when the token getter wasn't
-                // attached yet on first render (race condition on page load).
-                toast.error('Session expired. Please sign in again.');
-                break;
-            case 403:
-                toast.error('You don\'t have permission to do that.');
-                break;
-            case 404:
-                toast.error(message || 'Resource not found.');
-                break;
-            case 422:
-                toast.error(message || 'Invalid data provided.');
-                break;
-            case 500:
-                toast.error('Server error. Please try again later.');
-                break;
-            case 503:
-                toast.error(message || 'Service temporarily unavailable. Please try again shortly.');
-                break;
-            default:
-                if (status >= 400) {
-                    toast.error(message || 'Something went wrong.');
-                }
+        if (!skipToast) {
+            switch (status) {
+                case 401:
+                    toast.error('Session expired. Please sign in again.');
+                    break;
+                case 403:
+                    toast.error('You don\'t have permission to do that.');
+                    break;
+                case 404:
+                    toast.error(message || 'Resource not found.');
+                    break;
+                case 422:
+                    toast.error(message || 'Invalid data provided.');
+                    break;
+                case 500:
+                    toast.error('Server error. Please try again later.');
+                    break;
+                case 503:
+                    toast.error(message || 'Service temporarily unavailable. Please try again shortly.');
+                    break;
+                default:
+                    if (status >= 400) {
+                        toast.error(message || 'Something went wrong.');
+                    }
+            }
         }
 
         return Promise.reject(error);
     }
 );
+
+export const roundService = {
+  list: async (opportunityId) => {
+    const response = await api.get(`/opportunities/${opportunityId}/rounds`);
+    return response.data;
+  },
+
+  create: async (opportunityId, roundData) => {
+    const response = await api.post(`/opportunities/${opportunityId}/rounds`, roundData);
+    return response.data;
+  },
+
+  update: async (opportunityId, roundId, roundData) => {
+    const response = await api.patch(
+      `/opportunities/${opportunityId}/rounds/${roundId}`,
+      roundData
+    );
+    return response.data;
+  },
+
+  delete: async (opportunityId, roundId) => {
+    const response = await api.delete(
+      `/opportunities/${opportunityId}/rounds/${roundId}`
+    );
+    return response.data;
+  },
+
+  listUpcoming: async ({ from, to }) => {
+    const response = await api.get('/opportunities/rounds/upcoming', {
+      params: { from, to },
+    });
+    return response.data;
+  },
+};
 
 export const opportunityService = {
     getAll: async () => {
@@ -141,6 +183,33 @@ export const analyticsService = {
         const response = await api.get('/analytics');
         return response.data;
     }
+};
+
+export const shareLinkService = {
+    list: async () => {
+        const response = await api.get('/share-links');
+        return response.data;
+    },
+
+    create: async (data) => {
+        const response = await api.post('/share-links', data);
+        return response.data;
+    },
+
+    revoke: async (id) => {
+        const response = await api.delete(`/share-links/${id}`);
+        return response.data;
+    },
+
+    getPublic: async (token) => {
+        const response = await publicApi.get(`/public/share-links/${token}`);
+        return response.data;
+    },
+
+    verifyPasscode: async (token, passcode) => {
+        const response = await publicApi.post(`/public/share-links/${token}/verify`, { passcode });
+        return response.data;
+    },
 };
 
 export const documentService = {
@@ -200,6 +269,65 @@ export const documentService = {
         const response = await api.get(`/documents/by-opportunity/${opportunityId}`);
         return response.data;
     }
+};
+
+// =============================================================================
+// AI RESUME CHECKER SERVICE
+// =============================================================================
+
+export const resumeCheckerService = {
+    /**
+     * Trigger a new AI resume check for a document.
+     * LLM calls can take 20-60 s — the caller should show a long loading state.
+     *
+     * @param {string} documentId
+     * @returns {Promise<object>} Completed resume_ai_checks row
+     */
+    runCheck: async (documentId) => {
+        const response = await api.post(`/documents/${documentId}/ai-check`, {}, {
+            timeout: 300000,
+            skipErrorToast: true,
+        });
+        return response.data;
+    },
+
+    /**
+     * Fetch the latest AI check result for a document (no new analysis).
+     *
+     * @param {string} documentId
+     * @returns {Promise<object>} Latest resume_ai_checks row
+     */
+    getCheck: async (documentId) => {
+        const response = await api.get(`/documents/${documentId}/ai-check`, {
+            skipErrorToast: true,
+        });
+        return response.data;
+    },
+};
+
+// =============================================================================
+// AI SETTINGS (BYOK)
+// =============================================================================
+
+export const aiSettingsService = {
+    get: async () => {
+        const response = await api.get('/ai-settings');
+        return response.data;
+    },
+
+    save: async ({ apiKey, provider = 'gemini', model = 'gemini-3.1-flash-lite' }) => {
+        const payload = { provider, model };
+        if (typeof apiKey === 'string' && apiKey.trim()) {
+            payload.apiKey = apiKey.trim();
+        }
+        const response = await api.put('/ai-settings', payload, { skipErrorToast: true });
+        return response.data;
+    },
+
+    remove: async () => {
+        const response = await api.delete('/ai-settings');
+        return response.data;
+    },
 };
 
 export const healthCheck = async () => {
@@ -309,6 +437,76 @@ export const hackathonService = {
 
     deleteChecklistItem: async (opportunityId, itemId) => {
         const response = await api.delete(`/hackathons/${opportunityId}/checklist/${itemId}`);
+        return response.data;
+    }
+};
+
+// =============================================================================
+// INTERVIEW PREPARATION SERVICE
+// =============================================================================
+
+export const interviewPrepService = {
+    // Main prep record
+    getPrep: async (opportunityId) => {
+        const response = await api.get(`/interview-prep/${opportunityId}`);
+        return response.data;
+    },
+
+    createPrep: async (opportunityId, data) => {
+        const response = await api.post(`/interview-prep/${opportunityId}`, data);
+        return response.data;
+    },
+
+    updatePrep: async (opportunityId, data) => {
+        const response = await api.put(`/interview-prep/${opportunityId}`, data);
+        return response.data;
+    },
+
+    // Interview questions
+    createQuestion: async (opportunityId, data) => {
+        const response = await api.post(`/interview-prep/${opportunityId}/questions`, data);
+        return response.data;
+    },
+
+    updateQuestion: async (opportunityId, questionId, data) => {
+        const response = await api.put(`/interview-prep/${opportunityId}/questions/${questionId}`, data);
+        return response.data;
+    },
+
+    deleteQuestion: async (opportunityId, questionId) => {
+        const response = await api.delete(`/interview-prep/${opportunityId}/questions/${questionId}`);
+        return response.data;
+    },
+
+    // Technical topics
+    createTopic: async (opportunityId, data) => {
+        const response = await api.post(`/interview-prep/${opportunityId}/topics`, data);
+        return response.data;
+    },
+
+    updateTopic: async (opportunityId, topicId, data) => {
+        const response = await api.put(`/interview-prep/${opportunityId}/topics/${topicId}`, data);
+        return response.data;
+    },
+
+    deleteTopic: async (opportunityId, topicId) => {
+        const response = await api.delete(`/interview-prep/${opportunityId}/topics/${topicId}`);
+        return response.data;
+    },
+
+    // Behavioral prep (STAR method)
+    createBehavioral: async (opportunityId, data) => {
+        const response = await api.post(`/interview-prep/${opportunityId}/behavioral`, data);
+        return response.data;
+    },
+
+    updateBehavioral: async (opportunityId, behavioralId, data) => {
+        const response = await api.put(`/interview-prep/${opportunityId}/behavioral/${behavioralId}`, data);
+        return response.data;
+    },
+
+    deleteBehavioral: async (opportunityId, behavioralId) => {
+        const response = await api.delete(`/interview-prep/${opportunityId}/behavioral/${behavioralId}`);
         return response.data;
     }
 };

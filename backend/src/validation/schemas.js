@@ -67,6 +67,14 @@ const createOpportunitySchema = Joi.object({
         .optional()
         .messages({
             'string.max': 'Notes cannot exceed 5000 characters'
+        }),
+
+    campus_mode: Joi.string()
+        .valid('on_campus', 'off_campus')
+        .allow(null, '')
+        .optional()
+        .messages({
+            'any.only': 'Campus mode must be "on_campus" or "off_campus"'
         })
 });
 
@@ -136,6 +144,14 @@ const updateOpportunitySchema = Joi.object({
         .optional()
         .messages({
             'string.max': 'Notes cannot exceed 5000 characters'
+        }),
+
+    campus_mode: Joi.string()
+        .valid('on_campus', 'off_campus')
+        .allow(null, '')
+        .optional()
+        .messages({
+            'any.only': 'Campus mode must be "on_campus" or "off_campus"'
         })
 }).min(1).messages({
     'object.min': 'At least one field must be provided for update'

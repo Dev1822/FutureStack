@@ -17,6 +17,7 @@ import { ThemeProvider, useTheme } from './context/ThemeContext';
 
 // Hooks
 import { useAuthToken } from './hooks/useAuthToken';
+import { useInterviewReminders } from './hooks/useInterviewReminders';
 
 // Analytics
 import { trackPageView, identifyUser, resetAnalytics } from './lib/analytics';
@@ -27,6 +28,7 @@ const Dashboard = lazy(() => import('./pages/Dashboard'));
 const InternshipList = lazy(() => import('./pages/InternshipList'));
 const HackathonList = lazy(() => import('./pages/HackathonList'));
 const HackathonDetail = lazy(() => import('./pages/HackathonDetail'));
+const InterviewPrepDetail = lazy(() => import('./pages/InterviewPrepDetail'));
 const AddOpportunity = lazy(() => import('./pages/AddOpportunity'));
 const EditOpportunity = lazy(() => import('./pages/EditOpportunity'));
 const StatusBoard = lazy(() => import('./pages/StatusBoard'));
@@ -34,6 +36,7 @@ const Calendar = lazy(() => import('./pages/Calendar'));
 const Reports = lazy(() => import('./pages/Reports'));
 const Analytics = lazy(() => import('./pages/Analytics'));
 const Documents = lazy(() => import('./pages/Documents'));
+const PublicSharePage = lazy(() => import('./pages/PublicSharePage'));
 
 // Loading fallback component for Suspense
 const PageLoader = () => (
@@ -45,16 +48,23 @@ const PageLoader = () => (
 function AppContent() {
   const location = useLocation();
   const isHomePage = location.pathname === '/';
+  const isPublicSharePage = location.pathname.startsWith('/share/');
   const { user, isSignedIn } = useUser();
   const { isDark } = useTheme();
 
   // Initialize auth token getter for API calls
   useAuthToken();
+  useInterviewReminders();
 
-  // Track page views on route changes
+  // Track page views on route changes (redact public share tokens)
   useEffect(() => {
+    if (isPublicSharePage) {
+      trackPageView('/share/[token]');
+      return;
+    }
+
     trackPageView(location.pathname);
-  }, [location.pathname]);
+  }, [location.pathname, isPublicSharePage]);
 
   // Identify user when signed in
   useEffect(() => {
@@ -75,12 +85,13 @@ function AppContent() {
         Skip to main content
       </a>
 
-      {!isHomePage && <Navbar />}
+      {!isHomePage && !isPublicSharePage && <Navbar />}
 
       <main id="main-content" role="main">
         <Suspense fallback={<PageLoader />}>
           <Routes>
             <Route path="/" element={<Home />} />
+            <Route path="/share/:token" element={<PublicSharePage />} />
             <Route path="/dashboard" element={
               <ProtectedRoute>
                 <Dashboard />
@@ -99,6 +110,11 @@ function AppContent() {
             <Route path="/hackathons/:id" element={
               <ProtectedRoute>
                 <HackathonDetail />
+              </ProtectedRoute>
+            } />
+            <Route path="/internships/:id/prep" element={
+              <ProtectedRoute>
+                <InterviewPrepDetail />
               </ProtectedRoute>
             } />
             <Route path="/add" element={

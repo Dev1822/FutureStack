@@ -1,12 +1,13 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { FiActivity, FiBriefcase, FiCode, FiArrowRight, FiFileText, FiCalendar } from 'react-icons/fi';
+import { FiBriefcase, FiCode, FiArrowRight, FiFileText, FiCalendar, FiLayers, FiDownload } from 'react-icons/fi';
 import { SignInButton, SignUpButton, SignedIn, SignedOut, UserButton } from '@clerk/clerk-react';
 import SEO from '../components/seo/SEO';
 import FAQ from '../components/common/FAQ';
 import Footer from '../components/common/Footer';
 import ThemeToggle from '../components/common/ThemeToggle';
+import StatusIndicator from '../components/common/StatusIndicator';
 
 const Home = () => {
   const navigate = useNavigate();
@@ -18,7 +19,7 @@ const Home = () => {
     <div className="min-h-screen bg-white dark:bg-black text-gray-900 dark:text-white font-sans selection:bg-blue-500 selection:text-white overflow-x-hidden transition-colors duration-300">
       <SEO
         title={null}
-        description="Free opportunity tracker for students and developers. Organize job applications, track internship stages, never miss hackathon deadlines. Kanban boards, calendar view, and PDF reports."
+        description="Free opportunity tracker for students and developers. Track multi-round interviews, visualize rejections, manage hackathons, and export PDF reports."
         keywords="job tracker, internship tracker, hackathon tracker, application tracker, career tracker, job application organizer, student tools, developer tools, opportunity tracker"
         canonical="/"
       />
@@ -53,6 +54,7 @@ const Home = () => {
 
           <div className="flex items-center gap-2 md:gap-4">
             <ThemeToggle />
+            <StatusIndicator className="hidden sm:inline-flex" />
             <SignedOut>
               {/* Sign In hidden on mobile - users can use hero CTA */}
               <SignInButton mode="modal">
@@ -96,8 +98,8 @@ const Home = () => {
             </h1>
 
             <p className="text-xl text-gray-600 dark:text-gray-400 mb-12 max-w-2xl mx-auto leading-relaxed">
-              The all-in-one workspace for students and developers to track internships,
-              manage hackathons, and visualize career progress.
+              The all-in-one workspace for students and developers to track internships round-by-round,
+              manage hackathons, and see exactly where your applications stand.
             </p>
 
             <div className="flex items-center justify-center gap-4">
@@ -172,8 +174,14 @@ const Home = () => {
             {
               icon: <FiBriefcase className="w-6 h-6 text-blue-400" />,
               title: "Internship Tracker",
-              desc: "Keep track of applications, deadlines, and interview stages in one organized board.",
+              desc: "Kanban board for applications with deadlines, notes, and document links. Rejected roles move out of your active list automatically.",
               gradient: "from-blue-500/20 to-cyan-500/5"
+            },
+            {
+              icon: <FiLayers className="w-6 h-6 text-indigo-400" />,
+              title: "Interview Pipeline",
+              desc: "Log every round (OA, technical, HR, final) and see where you cleared, what's pending, or which round you were rejected at.",
+              gradient: "from-indigo-500/20 to-violet-500/5"
             },
             {
               icon: <FiCode className="w-6 h-6 text-purple-400" />,
@@ -182,21 +190,21 @@ const Home = () => {
               gradient: "from-purple-500/20 to-pink-500/5"
             },
             {
-              icon: <FiActivity className="w-6 h-6 text-green-400" />,
-              title: "Progress Analytics",
-              desc: "Visualize your application rates and success metrics with beautiful charts.",
-              gradient: "from-green-500/20 to-emerald-500/5"
+              icon: <FiDownload className="w-6 h-6 text-orange-400" />,
+              title: "Reports & Export",
+              desc: "Download PDF summaries with stats, opportunity details, and a breakdown of where rejections happened.",
+              gradient: "from-orange-500/20 to-amber-500/5"
             },
             {
               icon: <FiFileText className="w-6 h-6 text-yellow-400" />,
               title: "Document Vault",
-              desc: "Store resumes, cover letters, and transcripts links to specific opportunities.",
+              desc: "Store resumes, cover letters, and portfolio links. Attach them to specific opportunities when you apply.",
               gradient: "from-yellow-500/20 to-orange-500/5"
             },
             {
               icon: <FiCalendar className="w-6 h-6 text-red-400" />,
               title: "Smart Calendar",
-              desc: "Never miss a deadline. Visualize events and interview dates in a unified view.",
+              desc: "Never miss a deadline. Visualize application due dates and scheduled interview rounds in one view.",
               gradient: "from-red-500/20 to-rose-500/5"
             }
           ].map((feature, index) => (

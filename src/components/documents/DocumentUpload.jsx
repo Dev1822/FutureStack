@@ -7,6 +7,7 @@
 import React, { useState, useRef } from 'react';
 import { FaUpload, FaLink, FaTimes, FaFile, FaSpinner } from 'react-icons/fa';
 import Button from '../common/Button';
+import { analyzeFile, getAtsAnalysisErrorMessage } from '../../utils/atsScorer';
 
 /**
  * Modal component for adding new documents via file upload or external link.
@@ -31,7 +32,26 @@ const DocumentUpload = ({ isOpen, onClose, onUpload, onCreateExternal, isLoading
         file_url: ''
     });
     const [errors, setErrors] = useState({});
+    const [atsAnalysis, setAtsAnalysis] = useState(null);
+    const [isAnalyzing, setIsAnalyzing] = useState(false);
     const fileInputRef = useRef(null);
+
+    const analyzeResumeFile = async (selectedFile) => {
+        try {
+            setIsAnalyzing(true);
+            setErrors(prev => ({ ...prev, file: '' }));
+            const analysis = await analyzeFile(selectedFile);
+            setAtsAnalysis(analysis);
+        } catch (err) {
+            setErrors(prev => ({
+                ...prev,
+                file: getAtsAnalysisErrorMessage(err)
+            }));
+            setAtsAnalysis(null);
+        } finally {
+            setIsAnalyzing(false);
+        }
+    };
 
     const handleDrag = (e) => {
         e.preventDefault();
@@ -43,23 +63,23 @@ const DocumentUpload = ({ isOpen, onClose, onUpload, onCreateExternal, isLoading
         }
     };
 
-    const handleDrop = (e) => {
+    const handleDrop = async (e) => {
         e.preventDefault();
         e.stopPropagation();
         setDragActive(false);
 
         if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-            handleFile(e.dataTransfer.files[0]);
+            await handleFile(e.dataTransfer.files[0]);
         }
     };
 
-    const handleFileChange = (e) => {
+    const handleFileChange = async (e) => {
         if (e.target.files && e.target.files[0]) {
-            handleFile(e.target.files[0]);
+            await handleFile(e.target.files[0]);
         }
     };
 
-    const handleFile = (selectedFile) => {
+    const handleFile = async (selectedFile) => {
         const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
         if (!allowedTypes.includes(selectedFile.type)) {
             setErrors({ file: 'Only PDF, DOC, and DOCX files are allowed' });
@@ -73,16 +93,28 @@ const DocumentUpload = ({ isOpen, onClose, onUpload, onCreateExternal, isLoading
 
         setFile(selectedFile);
         setErrors({});
+        setAtsAnalysis(null);
 
         if (!formData.name) {
             const nameWithoutExt = selectedFile.name.replace(/\.[^/.]+$/, '');
             setFormData(prev => ({ ...prev, name: nameWithoutExt }));
+        }
+
+        if (formData.type === 'resume') {
+            await analyzeResumeFile(selectedFile);
         }
     };
 
     const handleChange = (e) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
+        if (name === 'type' && value !== 'resume') {
+            setAtsAnalysis(null);
+            setIsAnalyzing(false);
+        }
+        if (name === 'type' && value === 'resume' && file) {
+            analyzeResumeFile(file);
+        }
         if (errors[name]) {
             setErrors(prev => ({ ...prev, [name]: '' }));
         }
@@ -118,21 +150,28 @@ const DocumentUpload = ({ isOpen, onClose, onUpload, onCreateExternal, isLoading
 
         let success = false;
         if (mode === 'upload') {
-            success = await onUpload(file, {
+            const metadata = {
                 name: formData.name,
                 type: formData.type,
                 version: formData.version || 'v1',
                 notes: formData.notes
-            });
+            };
+            if (formData.type === 'resume' && atsAnalysis) {
+                metadata.ats_score = atsAnalysis.score;
+                metadata.ats_analyzed_at = new Date().toISOString();
+                metadata.ats_analysis = atsAnalysis;
+            }
+            success = await onUpload(file, metadata);
         } else {
-            success = await onCreateExternal({
+            const metadata = {
                 name: formData.name,
                 type: formData.type,
                 version: formData.version || 'v1',
                 notes: formData.notes,
                 file_url: formData.file_url,
                 is_external: true
-            });
+            };
+            success = await onCreateExternal(metadata);
         }
 
         if (success) {
@@ -150,6 +189,8 @@ const DocumentUpload = ({ isOpen, onClose, onUpload, onCreateExternal, isLoading
             file_url: ''
         });
         setErrors({});
+        setAtsAnalysis(null);
+        setIsAnalyzing(false);
     };
 
     const handleClose = () => {
@@ -242,19 +283,22 @@ const DocumentUpload = ({ isOpen, onClose, onUpload, onCreateExternal, isLoading
                                             className="hidden"
                                         />
                                         {file ? (
-                                            <div className="flex items-center justify-center gap-3">
-                                                <FaFile className="text-green-400" size={24} />
-                                                <div className="text-left">
-                                                    <p className="text-white font-medium">{file.name}</p>
-                                                    <p className="text-gray-400 text-sm">
-                                                        {(file.size / 1024).toFixed(1)} KB
-                                                    </p>
+                                            <div className="flex items-center justify-between gap-3">
+                                                <div className="flex items-center gap-3">
+                                                    <FaFile className="text-green-400" size={24} />
+                                                    <div className="text-left">
+                                                        <p className="text-white font-medium">{file.name}</p>
+                                                        <p className="text-gray-400 text-sm">
+                                                            {(file.size / 1024).toFixed(1)} KB
+                                                        </p>
+                                                    </div>
                                                 </div>
                                                 <button
                                                     type="button"
                                                     onClick={(e) => {
                                                         e.stopPropagation();
                                                         setFile(null);
+                                                        setAtsAnalysis(null);
                                                     }}
                                                     className="p-1 text-gray-400 hover:text-red-400"
                                                 >
@@ -351,14 +395,69 @@ const DocumentUpload = ({ isOpen, onClose, onUpload, onCreateExternal, isLoading
                                 />
                             </div>
 
+                            {/* ATS Analysis */}
+                            {mode === 'upload' && (isAnalyzing || atsAnalysis) && (
+                                <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-gray-200">
+                                    <div className="flex items-center justify-between mb-2">
+                                        <span className="font-medium">ATS Analysis</span>
+                                        {isAnalyzing ? (
+                                            <span className="text-blue-300">Analyzing...</span>
+                                        ) : (
+                                            <span className={
+                                                atsAnalysis?.score >= 75
+                                                    ? 'text-emerald-300'
+                                                    : atsAnalysis?.score >= 50
+                                                        ? 'text-amber-300'
+                                                        : 'text-red-300'
+                                            }>
+                                                {atsAnalysis?.score ?? '--'}
+                                            </span>
+                                        )}
+                                    </div>
+                                    <div className="space-y-2">
+                                        {!isAnalyzing && (
+                                            <p className="text-xs text-emerald-300">Done</p>
+                                        )}
+                                        <div className="flex items-center justify-between text-xs text-gray-400">
+                                            <span>Structure</span>
+                                            <span>{atsAnalysis?.breakdown?.structure ?? '--'}/60</span>
+                                        </div>
+                                        <div className="flex items-center justify-between text-xs text-gray-400">
+                                            <span>Content</span>
+                                            <span>{atsAnalysis?.breakdown?.content ?? '--'}/25</span>
+                                        </div>
+                                        <div className="flex items-center justify-between text-xs text-gray-400">
+                                            <span>ATS Friendly</span>
+                                            <span>{atsAnalysis?.breakdown?.atsFriendly ?? '--'}/15</span>
+                                        </div>
+                                        {atsAnalysis?.suggestions?.length > 0 && (
+                                            <div className="rounded-lg bg-black/20 p-3">
+                                                <p className="mb-1 text-xs font-medium text-gray-300">Top suggestions</p>
+                                                <ul className="space-y-1 text-xs text-gray-400">
+                                                    {atsAnalysis.suggestions.slice(0, 3).map((suggestion) => (
+                                                        <li key={suggestion}>{suggestion}</li>
+                                                    ))}
+                                                </ul>
+                                            </div>
+                                        )}
+                                        <p className="text-xs text-gray-500">
+                                            Rule-based hints - not an official ATS score.
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
+
                             {/* Submit Button */}
                             <Button
                                 type="submit"
                                 variant="primary"
-                                disabled={isLoading}
+                                disabled={isLoading || isAnalyzing || (mode === 'upload' && !file)}
                                 className="w-full"
                             >
-                                {isLoading ? (
+                                {isAnalyzing ? (
+                                    <><FaSpinner className="animate-spin mr-2" size={16} />
+                                        Analyzing...</>
+                                ) : isLoading ? (
                                     <><FaSpinner className="animate-spin mr-2" size={16} />
                                         {mode === 'upload' ? 'Uploading...' : 'Saving...'}</>
                                 ) : (

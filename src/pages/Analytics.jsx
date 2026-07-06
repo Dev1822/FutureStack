@@ -4,11 +4,13 @@ import {
     LineChart, Line, XAxis, YAxis, CartesianGrid,
     BarChart, Bar
 } from 'recharts';
-import { FaChartPie, FaChartLine, FaFilter, FaCalendarAlt, FaTrophy } from 'react-icons/fa';
+import { FaChartPie, FaChartLine, FaFilter, FaCalendarAlt, FaTrophy, FaLayerGroup } from 'react-icons/fa';
 import SEO from '../components/seo/SEO';
 import Card from '../components/common/Card';
 import EmptyState from '../components/common/EmptyState';
 import { SkeletonChart } from '../components/common/LoadingSpinner';
+import InterviewRejectionInsights from '../components/analytics/InterviewRejectionInsights';
+import InterviewFunnelChart from '../components/analytics/InterviewFunnelChart';
 import { analyticsService } from '../services/api';
 
 const Analytics = () => {
@@ -43,6 +45,11 @@ const Analytics = () => {
 
     const PIE_COLORS = ['#3B82F6', '#F59E0B', '#8B5CF6', '#10B981', '#EF4444', '#94A3B8'];
     const CATEGORY_COLORS = { internship: '#6366F1', hackathon: '#EC4899' };
+    const CAMPUS_MODE_COLORS = {
+        on_campus: '#14B8A6',
+        off_campus: '#F97316',
+        unspecified: '#6B7280',
+    };
 
     // Transform status data for pie chart
     const getStatusPieData = () => {
@@ -278,8 +285,8 @@ const Analytics = () => {
                     </Card>
                 </div>
 
-                {/* Conversion Funnel & Category Breakdown */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                {/* Conversion Funnel, Category & Campus Mode */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 mb-8">
                     {/* Conversion Funnel */}
                     <Card className="p-6">
                         <h3 className="text-lg font-semibold text-white mb-4">Conversion Funnel</h3>
@@ -354,6 +361,71 @@ const Analytics = () => {
                             </div>
                         </div>
                     </Card>
+
+                    {/* Campus Mode Breakdown */}
+                    <Card className="p-6">
+                        <h3 className="text-lg font-semibold text-white mb-4">Campus Mode Breakdown</h3>
+                        {analytics.campusModeCounts ? (
+                            <>
+                                <div className="h-64">
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <BarChart
+                                            data={[
+                                                { name: 'On-campus', value: analytics.campusModeCounts.on_campus, fill: CAMPUS_MODE_COLORS.on_campus },
+                                                { name: 'Off-campus', value: analytics.campusModeCounts.off_campus, fill: CAMPUS_MODE_COLORS.off_campus },
+                                                { name: 'Not specified', value: analytics.campusModeCounts.unspecified, fill: CAMPUS_MODE_COLORS.unspecified },
+                                            ]}
+                                            layout="vertical"
+                                        >
+                                            <CartesianGrid strokeDasharray="3 3" stroke="#374151" horizontal={false} />
+                                            <XAxis type="number" stroke="#9CA3AF" tick={{ fill: '#9CA3AF' }} allowDecimals={false} />
+                                            <YAxis type="category" dataKey="name" stroke="#9CA3AF" tick={{ fill: '#9CA3AF' }} width={100} />
+                                            <Tooltip
+                                                content={({ active, payload }) => {
+                                                    if (active && payload && payload.length) {
+                                                        return (
+                                                            <div className="bg-gray-900/95 backdrop-blur-sm px-4 py-2 rounded-lg border border-white/10">
+                                                                <p className="text-white font-medium">{payload[0].payload.name}</p>
+                                                                <p className="text-gray-300">{payload[0].value} opportunities</p>
+                                                            </div>
+                                                        );
+                                                    }
+                                                    return null;
+                                                }}
+                                            />
+                                            <Bar dataKey="value" radius={[0, 8, 8, 0]} animationDuration={800}>
+                                                {[
+                                                    { fill: CAMPUS_MODE_COLORS.on_campus },
+                                                    { fill: CAMPUS_MODE_COLORS.off_campus },
+                                                    { fill: CAMPUS_MODE_COLORS.unspecified },
+                                                ].map((entry, index) => (
+                                                    <Cell key={`campus-cell-${index}`} fill={entry.fill} />
+                                                ))}
+                                            </Bar>
+                                        </BarChart>
+                                    </ResponsiveContainer>
+                                </div>
+                                <div className="mt-4 flex flex-wrap justify-center gap-6">
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: CAMPUS_MODE_COLORS.on_campus }}></div>
+                                        <span className="text-gray-300 text-sm">On-campus</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: CAMPUS_MODE_COLORS.off_campus }}></div>
+                                        <span className="text-gray-300 text-sm">Off-campus</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: CAMPUS_MODE_COLORS.unspecified }}></div>
+                                        <span className="text-gray-300 text-sm">Not specified</span>
+                                    </div>
+                                </div>
+                            </>
+                        ) : (
+                            <div className="h-64 flex items-center justify-center text-gray-400">
+                                No campus data to display
+                            </div>
+                        )}
+                    </Card>
                 </div>
 
                 {/* Deadline Heatmap */}
@@ -419,6 +491,23 @@ const Analytics = () => {
                         <span>More</span>
                     </div>
                 </Card>
+
+                {/* Interview pipeline — where rejections happen */}
+                <div className="mb-8">
+                    <div className="mb-4">
+                        <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                            <FaLayerGroup className="text-red-400" />
+                            Interview pipeline insights
+                        </h2>
+                        <p className="text-sm text-gray-400 mt-1">
+                            See which round and stage type you were rejected at across internships
+                        </p>
+                    </div>
+                    <InterviewRejectionInsights pipeline={analytics.pipelineAnalytics} />
+                    <div className="mt-6">
+                        <InterviewFunnelChart pipeline={analytics.pipelineAnalytics} />
+                    </div>
+                </div>
             </div>
         </div>
     );
