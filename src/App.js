@@ -76,7 +76,7 @@ function AppContent() {
   }, [isSignedIn, user]);
 
   return (
-    <div className="min-h-screen bg-white dark:bg-black text-gray-900 dark:text-white font-sans transition-colors duration-300">
+    <div className="min-h-screen font-sans transition-colors duration-300">
       {/* Skip to main content link for accessibility */}
       <a
         href="#main-content"

@@ -17,17 +17,11 @@ export function ThemeProvider({ children }) {
   });
 
   useEffect(() => {
-    try {
-      const root = window.document.documentElement;
-      if (isDark) {
-        root.classList.add('dark');
-        window.localStorage.setItem('futurestack-theme', 'dark');
-      } else {
-        root.classList.remove('dark');
-        window.localStorage.setItem('futurestack-theme', 'light');
-      }
-    } catch (error) {
-      console.warn('Error saving theme to localStorage', error);
+    const root = window.document.documentElement;
+    if (isDark) {
+      root.classList.add('dark');
+    } else {
+      root.classList.remove('dark');
     }
   }, [isDark]);
 
@@ -35,7 +29,11 @@ export function ThemeProvider({ children }) {
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
     const handleChange = (e) => {
       // Only change if user hasn't explicitly set a preference in localStorage
-      if (!window.localStorage.getItem('futurestack-theme')) {
+      try {
+        if (!window.localStorage.getItem('futurestack-theme')) {
+          setIsDark(e.matches);
+        }
+      } catch (error) {
         setIsDark(e.matches);
       }
     };
@@ -43,7 +41,17 @@ export function ThemeProvider({ children }) {
     return () => mediaQuery.removeEventListener('change', handleChange);
   }, []);
 
-  const toggleTheme = () => setIsDark((prev) => !prev);
+  const toggleTheme = () => {
+    setIsDark((prev) => {
+      const next = !prev;
+      try {
+        window.localStorage.setItem('futurestack-theme', next ? 'dark' : 'light');
+      } catch (error) {
+        console.warn('Error saving theme to localStorage', error);
+      }
+      return next;
+    });
+  };
 
   return (
     <ThemeContext.Provider value={{ isDark, toggleTheme }}>
