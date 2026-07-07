@@ -438,7 +438,7 @@ const PublicSharePage = () => {
       </main>
 
       <footer className="relative border-t border-white/10 px-4 py-8 text-center text-sm text-gray-500">
-        Shared via FutureStack — futurestack.online
+        Shared via FutureTracker — futuretracker.online
       </footer>
     </div>
   );
