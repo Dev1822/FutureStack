@@ -12,6 +12,9 @@ import ErrorBoundary from './components/common/ErrorBoundary';
 import LoadingSpinner from './components/common/LoadingSpinner';
 import Home from './pages/Home'; // Landing page - load immediately for best UX
 
+// Context
+import { ThemeProvider, useTheme } from './context/ThemeContext';
+
 // Hooks
 import { useAuthToken } from './hooks/useAuthToken';
 import { useInterviewReminders } from './hooks/useInterviewReminders';
@@ -37,7 +40,7 @@ const PublicSharePage = lazy(() => import('./pages/PublicSharePage'));
 
 // Loading fallback component for Suspense
 const PageLoader = () => (
-  <div className="min-h-screen bg-black flex items-center justify-center">
+  <div className="min-h-screen bg-white dark:bg-black flex items-center justify-center">
     <LoadingSpinner size="lg" />
   </div>
 );
@@ -47,6 +50,7 @@ function AppContent() {
   const isHomePage = location.pathname === '/';
   const isPublicSharePage = location.pathname.startsWith('/share/');
   const { user, isSignedIn } = useUser();
+  const { isDark } = useTheme();
 
   // Initialize auth token getter for API calls
   useAuthToken();
@@ -72,7 +76,7 @@ function AppContent() {
   }, [isSignedIn, user]);
 
   return (
-    <div className="min-h-screen bg-black text-white font-sans">
+    <div className="min-h-screen font-sans transition-colors duration-300">
       {/* Skip to main content link for accessibility */}
       <a
         href="#main-content"
@@ -162,7 +166,7 @@ function AppContent() {
         pauseOnFocusLoss
         draggable
         pauseOnHover
-        theme="dark"
+        theme={isDark ? 'dark' : 'light'}
       />
     </div>
   );
@@ -171,11 +175,13 @@ function AppContent() {
 function App() {
   return (
     <HelmetProvider>
-      <ErrorBoundary>
-        <Router>
-          <AppContent />
-        </Router>
-      </ErrorBoundary>
+      <ThemeProvider>
+        <ErrorBoundary>
+          <Router>
+            <AppContent />
+          </Router>
+        </ErrorBoundary>
+      </ThemeProvider>
     </HelmetProvider>
   );
 }
