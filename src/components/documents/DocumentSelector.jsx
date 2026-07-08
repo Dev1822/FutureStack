@@ -122,7 +122,7 @@ const DocumentSelector = ({ opportunityId, category, onDocumentsChange }) => {
     return (
         <div className="mt-6 pt-6 border-t border-gray-200 dark:border-white/10">
             <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-medium text-gray-200">
+                <h3 className="text-sm font-medium text-gray-900 dark:text-gray-200">
                     Attached Documents
                 </h3>
                 {availableDocuments.length > 0 && (
@@ -194,7 +194,7 @@ const DocumentSelector = ({ opportunityId, category, onDocumentsChange }) => {
                                 type="button"
                                 onClick={() => handleLink(doc.id)}
                                 disabled={actionLoading === doc.id}
-                                className="w-full flex items-center gap-3 p-2 hover:bg-white/5 rounded-lg transition-colors text-left"
+                                className="w-full flex items-center gap-3 p-2 hover:bg-black/5 dark:hover:bg-white/5 rounded-lg transition-colors text-left"
                             >
                                 <Icon className={colorClass} size={16} />
                                 <div className="flex-1 min-w-0">

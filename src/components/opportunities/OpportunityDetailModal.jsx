@@ -286,7 +286,7 @@ const OpportunityDetailModal = ({
                         </div>
                         <button
                             onClick={onClose}
-                            className="p-2 text-gray-600 dark:text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                            className="p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 rounded-lg transition-colors"
                             aria-label="Close"
                         >
                             <FaTimes size={20} />

@@ -74,7 +74,7 @@ const InterviewFunnelChart = ({ pipeline, compact = false }) => {
                 const data = payload[0].payload;
 
                 return (
-                  <div className="rounded-lg border border-gray-700 bg-gray-900 p-3 text-sm text-gray-200">
+                  <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white/95 dark:bg-gray-900/95 shadow-xl p-3 text-sm text-gray-700 dark:text-gray-200">
                     <p className="mb-2 font-medium text-gray-900 dark:text-white">{data.fullName}</p>
                     <p>Reached: {data.reached}</p>
                     <p>Cleared: {data.cleared}</p>

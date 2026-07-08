@@ -276,7 +276,7 @@ const InterviewPrepDetail = () => {
                 {/* Back Button */}
                 <button
                     onClick={() => navigate('/internships')}
-                    className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-white mb-6 transition-colors"
+                    className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white mb-6 transition-colors"
                 >
                     <FaArrowLeft />
                     Back to Internships
@@ -328,7 +328,7 @@ const InterviewPrepDetail = () => {
                             onClick={() => setActiveTab(tab.id)}
                             className={`flex items-center gap-2 px-4 py-2.5 rounded-t-lg font-medium text-sm whitespace-nowrap transition-colors ${activeTab === tab.id
                                 ? 'bg-white/10 text-gray-900 dark:text-white border-b-2 border-blue-500'
-                                : 'text-gray-600 dark:text-gray-400 hover:text-white hover:bg-white/5'
+                                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5'
                                 }`}
                         >
                             <tab.icon size={14} />

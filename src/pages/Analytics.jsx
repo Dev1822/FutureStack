@@ -100,12 +100,12 @@ const Analytics = () => {
             <div className="min-h-screen bg-white dark:bg-black p-4 sm:p-6">
                 <div className="max-w-7xl mx-auto">
                     <div className="mb-6 sm:mb-8">
-                        <div className="h-8 bg-gray-800 rounded w-1/3 mb-2 animate-pulse"></div>
-                        <div className="h-4 bg-gray-800 rounded w-1/2 animate-pulse"></div>
+                        <div className="h-8 bg-gray-200 dark:bg-gray-800 rounded w-1/3 mb-2 animate-pulse"></div>
+                        <div className="h-4 bg-gray-200 dark:bg-gray-800 rounded w-1/2 animate-pulse"></div>
                     </div>
                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
                         {[...Array(4)].map((_, i) => (
-                            <div key={i} className="h-24 bg-gray-800/50 rounded-xl animate-pulse"></div>
+                            <div key={i} className="h-24 bg-gray-200 dark:bg-gray-800/50 rounded-xl animate-pulse"></div>
                         ))}
                     </div>
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -302,7 +302,7 @@ const Analytics = () => {
                                         <span className="text-gray-700 dark:text-gray-300 font-medium">{stage.stage}</span>
                                         <span className="text-gray-600 dark:text-gray-400 text-sm">{stage.count} ({stage.percentage}%)</span>
                                     </div>
-                                    <div className="h-8 bg-gray-800 rounded-lg overflow-hidden">
+                                    <div className="h-8 bg-gray-200 dark:bg-gray-800 rounded-lg overflow-hidden">
                                         <div
                                             className="h-full rounded-lg transition-all duration-1000 ease-out"
                                             style={{
@@ -335,7 +335,7 @@ const Analytics = () => {
                                         content={({ active, payload }) => {
                                             if (active && payload && payload.length) {
                                                 return (
-                                                    <div className="bg-gray-900/95 backdrop-blur-sm px-4 py-2 rounded-lg border border-gray-200 dark:border-white/10">
+                                                    <div className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm shadow-xl px-4 py-2 rounded-lg border border-gray-200 dark:border-white/10">
                                                         <p className="text-gray-900 dark:text-white font-medium">{payload[0].payload.name}</p>
                                                         <p className="text-gray-700 dark:text-gray-300">{payload[0].value} opportunities</p>
                                                     </div>

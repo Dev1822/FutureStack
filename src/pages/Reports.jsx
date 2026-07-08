@@ -274,10 +274,10 @@ const Reports = () => {
                       className={`w-full text-left p-3 rounded-xl border transition-all ${
                         selected
                           ? 'border-blue-500/50 bg-blue-500/10 ring-1 ring-blue-500/30'
-                          : 'border-gray-200 dark:border-white/10 bg-black/5 dark:bg-white/5 hover:border-white/20 hover:bg-white/[0.07]'
+                          : 'border-gray-200 dark:border-white/10 bg-black/5 dark:bg-white/5 hover:border-gray-400 dark:hover:border-white/20 hover:bg-black/10 dark:hover:bg-white/[0.07]'
                       }`}
                     >
-                      <p className={`text-sm font-medium ${selected ? 'text-gray-900 dark:text-white' : 'text-gray-200'}`}>
+                      <p className={`text-sm font-medium ${selected ? 'text-gray-900 dark:text-white' : 'text-gray-700 dark:text-gray-200'}`}>
                         {option.label}
                       </p>
                       <p className="text-xs text-gray-500 mt-0.5 leading-snug">{option.description}</p>

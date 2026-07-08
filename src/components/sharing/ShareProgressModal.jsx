@@ -218,7 +218,7 @@ const ShareProgressModal = ({
                   className={`flex-1 rounded-md px-3 py-2 text-sm transition-colors sm:flex-none ${
                     selectionMode === 'all'
                       ? 'bg-blue-500/15 text-blue-200'
-                      : 'text-gray-600 dark:text-gray-400 hover:text-gray-200'
+                      : 'text-gray-600 dark:text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
                   }`}
                 >
                   All ({shareableOpportunities.length})
@@ -229,7 +229,7 @@ const ShareProgressModal = ({
                   className={`flex-1 rounded-md px-3 py-2 text-sm transition-colors sm:flex-none ${
                     selectionMode === 'internships'
                       ? 'bg-blue-500/15 text-blue-200'
-                      : 'text-gray-600 dark:text-gray-400 hover:text-gray-200'
+                      : 'text-gray-600 dark:text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
                   }`}
                 >
                   Internships ({shareableOpportunities.filter((o) => o.category === 'internship').length})
@@ -240,7 +240,7 @@ const ShareProgressModal = ({
                   className={`flex-1 rounded-md px-3 py-2 text-sm transition-colors sm:flex-none ${
                     selectionMode === 'hackathons'
                       ? 'bg-blue-500/15 text-blue-200'
-                      : 'text-gray-600 dark:text-gray-400 hover:text-gray-200'
+                      : 'text-gray-600 dark:text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
                   }`}
                 >
                   Hackathons ({shareableOpportunities.filter((o) => o.category === 'hackathon').length})
@@ -251,7 +251,7 @@ const ShareProgressModal = ({
                   className={`flex-1 rounded-md px-3 py-2 text-sm transition-colors sm:flex-none ${
                     selectionMode === 'specific'
                       ? 'bg-blue-500/15 text-blue-200'
-                      : 'text-gray-600 dark:text-gray-400 hover:text-gray-200'
+                      : 'text-gray-600 dark:text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
                   }`}
                 >
                   Selected ({selectedIds.length})

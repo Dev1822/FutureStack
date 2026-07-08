@@ -205,7 +205,7 @@ const BehavioralPrepPanel = ({ behavioral, onCreateBehavioral, onUpdateBehaviora
                                     <button
                                         onClick={() => handleEdit(entry)}
                                         disabled={isLoading}
-                                        className="p-1.5 text-gray-600 dark:text-gray-400 hover:text-white hover:bg-white/10 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                        className="p-1.5 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                         title="Edit"
                                     >
                                         <FaEdit size={12} />
@@ -213,7 +213,7 @@ const BehavioralPrepPanel = ({ behavioral, onCreateBehavioral, onUpdateBehaviora
                                     <button
                                         onClick={() => handleDelete(entry.id)}
                                         disabled={isLoading}
-                                        className="p-1.5 text-gray-600 dark:text-gray-400 hover:text-white hover:bg-white/10 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                        className="p-1.5 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                         title="Delete"
                                     >
                                         <FaTrash size={12} />
