@@ -103,7 +103,7 @@ const BehavioralPrepPanel = ({ behavioral, onCreateBehavioral, onUpdateBehaviora
 
             {/* STAR Method Guide */}
             <div className="mb-4 p-3 bg-blue-500/5 border border-blue-500/20 rounded-lg">
-                <p className="text-xs text-blue-300">
+                <p className="text-xs text-blue-700 dark:text-blue-300">
                     <strong>STAR Method:</strong> Structure your answers using Situation, Task, Action, and Result for clear, compelling responses.
                 </p>
             </div>
