@@ -175,9 +175,9 @@ function AppContent() {
 
 function ClerkThemeProvider({ children }) {
   const { isDark } = useTheme();
-  
+
   return (
-    <ClerkProvider 
+    <ClerkProvider
       publishableKey={clerkPublishableKey}
       appearance={{
         variables: {

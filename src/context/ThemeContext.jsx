@@ -19,7 +19,7 @@ export function ThemeProvider({ children }) {
   useEffect(() => {
     const root = window.document.documentElement;
     let metaThemeColor = document.querySelector('meta[name="theme-color"]');
-    
+
     // Create it if it doesn't exist
     if (!metaThemeColor) {
       metaThemeColor = document.createElement('meta');
